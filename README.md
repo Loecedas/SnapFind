@@ -23,7 +23,7 @@
 - **开机自启动自愈**：通过 Windows 注册表配置自启动项，并在启动时检查自愈，支持托盘一键开启或关闭。
 
 ### 性能与架构优化
-- **智能内存自动回收**：在 OCR 运行结束后，引擎会启动 2 分钟不活动倒计时。超时无操作将自动卸载推理引擎并调用 Windows `EmptyWorkingSet` 对物理内存进行深度压缩，使后台待机内存由推理时的 ~400MB **骤降至仅约 20MB**。
+- **智能内存自动回收**：在 OCR 运行结束后，引擎会启动 8 秒不活动倒计时。超时无操作将自动卸载推理引擎并调用 Windows `EmptyWorkingSet` 对物理内存进行深度压缩，使后台待机内存由推理时的 ~40MB **骤降至仅约 10MB 以内**。
 - **单例互斥锁守护**：基于系统级 `Mutex` 构建单例保护，防止快捷键误连击导致程序多开冲突。
 
 ## 项目结构
@@ -52,8 +52,8 @@ SnapFind/
 │   ├── config.json                  # 用户热键与偏好配置信息
 │   └── debug_crop.png               # 最近一次截图的裁剪预览临时图
 ├── releases/                        # 自动打包发布的包目录 (已加入 .gitignore)
-│   ├── installers/                  # 带时间戳的 Inno Setup 安装包
-│   └── portables/                   # 带时间戳的免安装绿色版 ZIP 压缩包
+│   ├── installers/                  # 递增版本号的 Inno Setup 安装包 (如 SnapFindSetup_v2.0.0.exe)
+│   └── portables/                   # 递增版本号的免安装绿色版 ZIP 压缩包 (如 SnapFindPortable_v2.0.0.zip)
 ├── SnapFind.exe                     # 项目根目录下的绿色版直接启动程序 (Git 过滤)
 ├── .gitignore                       # Git 忽略配置文件
 └── README.md                        # 自述文件 (中文)
@@ -100,22 +100,18 @@ dotnet run
 
 ## 编译与发布指引
 
-根据项目发布规范，若您修改了代码，请同步执行以下步骤：
+为了简化开发流程，项目根目录下提供了一键自动化打包脚本 `src/build.ps1`。该脚本会自动执行：
+1. 自动读取 `releases/` 目录下的历史包计算并递增生成下一个版本号（符合 `x.y.z` 规则）。
+2. 调用 `dotnet publish` 进行单文件编译。
+3. 复制生成的程序覆盖根目录下的 `SnapFind.exe`。
+4. 复制 `libs/` 并清理其中的冗余大模型，然后生成 `releases/portables/SnapFindPortable_vX.Y.Z.zip` 压缩包。
+5. 自动调用 Inno Setup 编译器生成 `releases/installers/SnapFindSetup_vX.Y.Z.exe` 安装包（使用 LZMA2 Ultra 算法进行固实极致压缩）。
 
-### 1. 发布免安装绿色版 (Portable)
-在项目 `src` 目录下执行编译发布命令，构建出 win-x64 的单文件包：
-```bash
-dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false
+### 一键打包命令
+只需在项目根目录下以管理员权限打开 PowerShell 并运行：
+```powershell
+powershell -ExecutionPolicy Bypass -File src/build.ps1
 ```
-1. 编译完成后，将生成的最新 `SnapFind.exe` 复制到项目根目录下，覆盖旧的绿色版。
-2. 将 `SnapFind.exe` 和 `libs/` 文件夹共同打包并压缩为 ZIP，存放于 `releases/portables/` 中。
-
-### 2. 生成安装包 (Installer)
-确保本地安装了 **Inno Setup 6**，使用编译器对 `setup.iss` 进行编译：
-```bash
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" src/setup.iss
-```
-打包成功后，将在 `releases/installers/` 下自动生成带有时间戳的安装包 `SnapFindSetup_v1.0.0_yyyyMMdd_hhnn.exe`。
 
 ## 数据流向与逻辑架构
 
@@ -133,16 +129,16 @@ graph TD
     D --> H2[分支 B: Enter / 点击搜索]
     H2 --> I2[拉起浏览器搜索并关闭窗口]
     
-    I1 --> J["4. 激活 2 分钟空闲定时器"]
+    I1 --> J["4. 激活 8 秒空闲定时器"]
     I2 --> J
-    J -- 无新操作 --> K["5. 回收引擎资源，内存回落至 ~20MB 待机"]
+    J -- 无新操作 --> K["5. 回收引擎资源，内存回落至 <10MB 待机"]
 ```
 
 ### 内存自动回收与优化机制
-当识别出文本并呈现后，如果程序持续处于闲置状态，在 2 分钟后：
+当识别出文本并呈现后，如果程序持续处于闲置状态，在 8 秒后：
 1. 自动调用 `PaddleOCREngine.Dispose()` 销毁推理引擎实例，释放其持有的全部 C++ 未托管内存。
 2. 触发 Windows 内核 `EmptyWorkingSet`，迫使操作系统回收当前进程分配的垃圾物理页面到虚拟交换文件。
-3. 待下一次快捷键再次唤醒截图时，会在后台静默重新实例化引擎，在保证秒级极速响应的同时，极大地降低了常驻内存的代价。
+3. 待下一次快捷键再次唤醒截图时，会在后台静默重新实例化引擎，在保证秒级极速响应的同时，极大地降低了常驻内存的代价（后台仅约 10MB 左右）。
 
 ## 常见问题
 

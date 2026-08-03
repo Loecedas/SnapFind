@@ -23,7 +23,7 @@
 - **Startup Registry Self-Healing**: Sets Windows Run registry keys directly from Settings. Automatically repairs pathways on boot and toggles from the tray menu.
 
 ### Optimization & Lifecycle
-- **Smart Idle Memory Reclamation**: Once OCR finishes, the engine initiates a 2-minute inactivity timer. On expiration, it disposes of the active inference instances and calls the Windows `EmptyWorkingSet` kernel API to clean process pages, reducing background standby memory usage from ~400MB **down to just 20MB**.
+- **Smart Idle Memory Reclamation**: Once OCR finishes, the engine initiates an 8-second inactivity timer. On expiration, it disposes of the active inference instances and calls the Windows `EmptyWorkingSet` kernel API to clean process pages, reducing background standby memory usage from ~40MB **down to just under 10MB**.
 - **Mutex Single Instance Guard**: Built on a system-level `Mutex` flag to avoid hotkey double-triggering conflicts.
 
 ## Project Structure
@@ -52,8 +52,8 @@ SnapFind/
 │   ├── config.json                  # User hotkeys and preference JSON configuration
 │   └── debug_crop.png               # Temporary bitmap slice from the latest crop action
 ├── releases/                        # Packaged outputs directory (Ignored by Git)
-│   ├── installers/                  # Timestamped Inno Setup install packages
-│   └── portables/                   # Timestamped portable ZIP archives
+│   ├── installers/                  # Incremental versioned Inno Setup install packages (e.g., SnapFindSetup_v2.0.0.exe)
+│   └── portables/                   # Incremental versioned portable ZIP archives (e.g., SnapFindPortable_v2.0.0.zip)
 ├── SnapFind.exe                     # Compiled program launcher in the workspace root (Git Ignored)
 ├── .gitignore                       # Git ignore rules configuration
 └── README.md                        # Self-description document (Chinese)
@@ -100,22 +100,18 @@ dotnet run
 
 ## Build & Compile Guide
 
-If you make modifications to the codebase, follow the synchronization steps below:
+To simplify development workflows, a one-click automated packaging script `src/build.ps1` is provided at the repository root. It automatically performs:
+1. Auto-calculating the next incremental version number based on existing packages in `releases/` (following `x.y.z` format).
+2. Running `dotnet publish` to compile a single-file executable.
+3. Overwriting `SnapFind.exe` in the repository root.
+4. Syncing DLL dependencies from `libs/` and cleaning up unused model folders, then generating `releases/portables/SnapFindPortable_vX.Y.Z.zip`.
+5. Generating the optimized installer package `releases/installers/SnapFindSetup_vX.Y.Z.exe` using LZMA2 Ultra solid compression.
 
-### 1. Publish Portable (Green Edition)
-Execute the single-file publish CLI command in the `src` directory:
-```bash
-dotnet publish -c Release -r win-x64 -p:PublishSingleFile=true --self-contained false
+### One-Click Packaging Command
+Simply run the following command in PowerShell with Administrator privileges:
+```powershell
+powershell -ExecutionPolicy Bypass -File src/build.ps1
 ```
-1. After the publish completes, copy the generated executable `SnapFind.exe` back to the repository root directory, overwriting the old version.
-2. Package the root `SnapFind.exe` and the `libs/` folder together into a ZIP archive and store it under `releases/portables/`.
-
-### 2. Generate Installer Package
-Ensure you have **Inno Setup 6** installed on your workstation, and compile `setup.iss`:
-```bash
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" src/setup.iss
-```
-Once completed, a timestamped binary installer will output to `releases/installers/` named `SnapFindSetup_v1.0.0_yyyyMMdd_hhnn.exe`.
 
 ## Data Flow & Architecture
 
@@ -133,16 +129,16 @@ graph TD
     D --> H2[Branch B: Enter / Search]
     H2 --> I2[Launch browser search & close window]
     
-    I1 --> J["4. Activate 2-minute idle timer"]
+    I1 --> J["4. Activate 8-second idle timer"]
     I2 --> J
-    J -- Inactive --> K["5. Dispose engine resources, RAM drops to ~20MB standby"]
+    J -- Inactive --> K["5. Dispose engine resources, RAM drops to <10MB standby"]
 ```
 
 ### Memory Optimization Mechanism
 To maintain a small footprint on user machines, SnapFind applies an aggressive cleanup cycle:
 1. Calls `PaddleOCREngine.Dispose()` to unload C++ unmanaged engines and variables.
 2. Triggers the Windows kernel `EmptyWorkingSet` API to push process working pages to the page file.
-3. The next screenshot action automatically re-instantiates the engine silently, ensuring fast millisecond response while keeping background standby RAM low.
+3. The next screenshot action automatically re-instantiates the engine silently, ensuring fast millisecond response while keeping background standby RAM low (approx. 10MB background standby).
 
 ## FAQs
 
