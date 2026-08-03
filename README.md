@@ -52,8 +52,11 @@ SnapFind/
 │   ├── config.json                  # 用户热键与偏好配置信息
 │   └── debug_crop.png               # 最近一次截图的裁剪预览临时图
 ├── releases/                        # 自动打包发布的包目录 (已加入 .gitignore)
-│   ├── installers/                  # 递增版本号的 Inno Setup 安装包 (如 SnapFindSetup_v2.0.0.exe)
-│   └── portables/                   # 递增版本号的免安装绿色版 ZIP 压缩包 (如 SnapFindPortable_v2.0.0.zip)
+│   ├── installers/                  # 递增版本号 of Inno Setup 安装包 (如 SnapFindSetup_v2.0.0.exe)
+│   └── portables/                   # 递增版本号 of 免安装绿色版 ZIP 压缩包 (如 SnapFindPortable_v2.0.0.zip)
+├── backup/                          # 备份专用工具目录（仅用于清理项目临时文件，固定存放）
+│   ├── backup.ps1                   # 一键清理临时编译文件及发布包的 PowerShell 脚本
+│   └── BACKUP_GUIDE.md              # 备份安全清理与保留指南
 ├── SnapFind.exe                     # 项目根目录下的绿色版直接启动程序 (Git 过滤)
 ├── .gitignore                       # Git 忽略配置文件
 └── README.md                        # 自述文件 (中文)
@@ -111,6 +114,12 @@ dotnet run
 只需在项目根目录下以管理员权限打开 PowerShell 并运行：
 ```powershell
 powershell -ExecutionPolicy Bypass -File src/build.ps1
+```
+
+### 备份前一键清理命令
+若要对项目进行备份，可先在项目根目录下以管理员权限打开 PowerShell 并运行以下脚本，一键清理所有临时编译缓存、历史安装包以及根目录主程序：
+```powershell
+powershell -ExecutionPolicy Bypass -File backup/backup.ps1
 ```
 
 ## 数据流向与逻辑架构

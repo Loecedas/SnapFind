@@ -52,8 +52,11 @@ SnapFind/
 │   ├── config.json                  # User hotkeys and preference JSON configuration
 │   └── debug_crop.png               # Temporary bitmap slice from the latest crop action
 ├── releases/                        # Packaged outputs directory (Ignored by Git)
-│   ├── installers/                  # Incremental versioned Inno Setup install packages (e.g., SnapFindSetup_v2.0.0.exe)
-│   └── portables/                   # Incremental versioned portable ZIP archives (e.g., SnapFindPortable_v2.0.0.zip)
+│   ├── installers/                  # Incremental versioned of Inno Setup install packages (e.g., SnapFindSetup_v2.0.0.exe)
+│   └── portables/                   # Incremental versioned of portable ZIP archives (e.g., SnapFindPortable_v2.0.0.zip)
+├── backup/                          # Dedicated backup cleanup tools folder (Fixed)
+│   ├── backup.ps1                   # One-click PowerShell script to clean up compilation caches & builds
+│   └── BACKUP_GUIDE.md              # Backup cleanup guidelines documentation
 ├── SnapFind.exe                     # Compiled program launcher in the workspace root (Git Ignored)
 ├── .gitignore                       # Git ignore rules configuration
 └── README.md                        # Self-description document (Chinese)
@@ -111,6 +114,12 @@ To simplify development workflows, a one-click automated packaging script `src/b
 Simply run the following command in PowerShell with Administrator privileges:
 ```powershell
 powershell -ExecutionPolicy Bypass -File src/build.ps1
+```
+
+### One-Click Project Cleanup
+To clean up compilation caches, historical builds, and the root binary before manual zipping/backup, run this script in PowerShell with Administrator privileges:
+```powershell
+powershell -ExecutionPolicy Bypass -File backup/backup.ps1
 ```
 
 ## Data Flow & Architecture
