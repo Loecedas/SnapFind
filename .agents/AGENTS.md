@@ -15,3 +15,20 @@
         1. 同步将最新编译的 `SnapFind.exe` 拷贝至项目根目录下，覆盖旧的绿色版。
         2. 在 `releases/portables/` 中生成全新带时间戳的免安装 ZIP 压缩包。
         3. 在 `releases/installers/` 中生成全新带时间戳的安装包。
+
+*   **GitHub Release 发布描述规范**：
+    *   在 GitHub 撰写 Release 发布说明时，必须采用中英文双语对照格式，并使用 HTML `<details>` 标签包裹以实现折叠卡片效果（默认中文展开，英文收起），保持发布页面整洁：
+        ```html
+        <details open>
+          <summary><b>🇨🇳 点击展开中文更新日志 (Chinese)</b></summary>
+          <br/>
+          <!-- 中文更新内容 -->
+        </details>
+        <br/>
+        <details>
+          <summary><b>🇺🇸 Click to expand English Changelog</b></summary>
+          <br/>
+          <!-- 英文更新内容 -->
+        </details>
+        ```
+
