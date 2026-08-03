@@ -123,25 +123,19 @@ From hotkey trigger to clipboard output and window close, the flow is handled as
 
 ```mermaid
 graph TD
-    A[User presses Custom Hotkey] --> B[1. Capture all monitors and show overlay crop masks]
-    B --> C[2. User selects text region by dragging mouse]
-    C --> D[3. Crop selected rectangle region to Bitmap]
-    D --> E[4. Initialize and load PaddleOCR Engine asynchronously]
-    E --> F[5. Execute detection & recognition on the bitmap slice]
-    F --> G[6. Display popup EditWindow near the cropped region]
+    A[User presses Custom Hotkey] --> B["1. Crop selection to Bitmap"]
+    B --> C["2. Offline PaddleOCR Text Extraction"]
+    C --> D["3. Display EditWindow Popup"]
     
-    G --> H1[Branch A: Press Ctrl + C or click Copy]
-    H1 --> I1[1. Write selected/all characters to Clipboard]
-    I1 --> I2[2. Auto-close result window]
+    D --> H1[Branch A: Ctrl+C / Copy]
+    H1 --> I1[Copy to clipboard & close window]
     
-    G --> H2[Branch B: Press Enter or click Search]
-    H2 --> I3[1. Concatenate text & clean format]
-    I3 --> I4[2. Launch search query in default web browser]
-    I4 --> I2
+    D --> H2[Branch B: Enter / Search]
+    H2 --> I2[Launch browser search & close window]
     
-    I2 --> J[3. Activate 2-minute idle timer]
-    J -- No actions detected --> K[4. Dispose engine resources and call EmptyWorkingSet]
-    K --> L[Standby RAM usage falls back to ~20MB]
+    I1 --> J["4. Activate 2-minute idle timer"]
+    I2 --> J
+    J -- Inactive --> K["5. Dispose engine resources, RAM drops to ~20MB standby"]
 ```
 
 ### Memory Optimization Mechanism
