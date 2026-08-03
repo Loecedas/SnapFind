@@ -112,6 +112,19 @@ namespace PixOcrSearch
         {
             try
             {
+                var sri = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/app.ico"));
+                if (sri != null)
+                {
+                    using (System.IO.Stream stream = sri.Stream)
+                    {
+                        return new Icon(stream);
+                    }
+                }
+            }
+            catch { }
+
+            try
+            {
                 string? exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
                 if (!string.IsNullOrEmpty(exePath) && System.IO.File.Exists(exePath))
                 {
