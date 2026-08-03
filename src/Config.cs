@@ -34,6 +34,19 @@ namespace PixOcrSearch
 
         private static readonly object ConfigLock = new object();
 
+        private static bool CheckRegistryAutoStart()
+        {
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", false);
+                return key?.GetValue("SnapFind") != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static void Load()
         {
             lock (ConfigLock)
@@ -47,6 +60,7 @@ namespace PixOcrSearch
                         if (config != null)
                         {
                             Current = config;
+                            Current.StartWithWindows = CheckRegistryAutoStart();
                             return;
                         }
                     }
@@ -56,6 +70,7 @@ namespace PixOcrSearch
                     // Fallback to default config on error
                 }
                 Current = new AppConfig();
+                Current.StartWithWindows = CheckRegistryAutoStart();
             }
         }
 

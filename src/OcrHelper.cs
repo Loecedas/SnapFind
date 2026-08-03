@@ -24,7 +24,7 @@ namespace PixOcrSearch
         {
             lock (_lock)
             {
-                if (_initTask == null || _initTask.IsFaulted)
+                if (_engine == null && (_initTask == null || _initTask.IsFaulted || _initTask.IsCompleted))
                 {
                     _initTask = Task.Run(() => InitializeInternal());
                 }
@@ -111,7 +111,7 @@ namespace PixOcrSearch
             // Ensure the engine has loaded in the background
             await EnsureInitializedAsync();
 
-            return await Task.Run(() =>
+            string result = await Task.Run(() =>
             {
                 try
                 {
@@ -124,7 +124,12 @@ namespace PixOcrSearch
                     if (engine != null)
                     {
                         // Run OCR directly on the Bitmap to avoid MemoryStream/PNG allocations
-                        OCRResult ocrResult = engine.DetectText(bitmap);
+                        // Synchronize access to the native PaddleOCR engine to ensure thread-safety
+                        OCRResult ocrResult;
+                        lock (engine)
+                        {
+                            ocrResult = engine.DetectText(bitmap);
+                        }
                         
                         if (ocrResult != null && !string.IsNullOrEmpty(ocrResult.Text))
                         {
@@ -138,11 +143,16 @@ namespace PixOcrSearch
                 }
                 finally
                 {
-                    // Reset timer again after OCR completes to start the 30s countdown
+                    // Reset timer again after OCR completes to start the 8s countdown
                     ResetDisposeTimer();
                 }
                 return string.Empty;
             });
+
+            // Immediately run memory optimization and working set trim after OCR completes
+            OptimizeMemory();
+
+            return result;
         }
 
         public static void OptimizeMemory()
@@ -157,6 +167,10 @@ namespace PixOcrSearch
                 // Trim physical memory pages back to OS standby list
                 using var process = System.Diagnostics.Process.GetCurrentProcess();
                 EmptyWorkingSet(process.Handle);
+
+                // Constrain physical memory working set to a fixed range (5MB to 40MB)
+                process.MinWorkingSet = new IntPtr(5 * 1024 * 1024);
+                process.MaxWorkingSet = new IntPtr(40 * 1024 * 1024);
             }
             catch { }
         }
@@ -185,11 +199,11 @@ namespace PixOcrSearch
             {
                 if (_disposeTimer == null)
                 {
-                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 30000, System.Threading.Timeout.Infinite);
+                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 8000, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
-                    _disposeTimer.Change(30000, System.Threading.Timeout.Infinite);
+                    _disposeTimer.Change(8000, System.Threading.Timeout.Infinite);
                 }
             }
         }
