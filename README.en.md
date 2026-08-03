@@ -15,7 +15,7 @@
 ### Smart Screenshot & Offline Local OCR
 - **Zero-Network Local Inference**: Integrates lightweight PP-OCRv6_tiny Chinese/English models. Executes purely offline on your local device, guaranteeing zero privacy leakage risks.
 - **Multi-Monitor & High DPI Adaptation**: Traverses screen monitors using Win32 API to fetch independent DPI scale factors. Prevents screenshot shifts or black screen overlaps across multiple monitors.
-- **Customizable Global Hotkeys**: Default hotkey `Alt + W` (fully customizable modifier keys and character combinations) invokes screen crop overlay in milliseconds from any third-party app.
+- **Customizable Global Hotkeys**: Default hotkey Ctrl + Alt + S (fully customizable modifier keys and character combinations) invokes screen crop overlay in milliseconds from any third-party app.
 
 ### Interactive Result Dialog
 - **Quick Copy & Auto-Close**: Press `Ctrl + C` inside the result popup to automatically extract selected text (or all text if no selection exists), write it to the clipboard, and **instantly destroy and close the window**.
@@ -81,8 +81,8 @@ On startup, a default configuration file will be auto-generated in `cache/config
 ```json
 {
   "SearchEngineUrl": "https://www.google.com/search?q=",
-  "HotkeyModifiers": "Alt",
-  "HotkeyKey": "W",
+  "HotkeyModifiers": "Control,Alt",
+  "HotkeyKey": "S",
   "StartWithWindows": false
 }
 ```
@@ -90,8 +90,8 @@ On startup, a default configuration file will be auto-generated in `cache/config
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `SearchEngineUrl` | String | `https://www.google.com/search?q=` | Target URL prefix opened when clicking "Search" or pressing Enter |
-| `HotkeyModifiers` | String | `Alt` | Modifier keys (Supports combinations like `Control`, `Alt`, `Shift`) |
-| `HotkeyKey` | String | `W` | Primary activator key (Supports letters and standard virtual keys) |
+| `HotkeyModifiers` | String | `Control,Alt` | Modifier keys (Supports combinations like `Control`, `Alt`, `Shift`) |
+| `HotkeyKey` | String | `S` | Primary activator key (Supports letters and standard virtual keys) |
 | `StartWithWindows`| Boolean| `false` | Enable boot launch with Windows |
 
 ### 3. Run and Debug
@@ -154,8 +154,8 @@ To maintain a small footprint on user machines, SnapFind applies an aggressive c
 **Q: Prompted with `DllNotFoundException` on launch?**
 > **A**: Make sure the native dependency directory `libs/` is in the same directory as the executable `SnapFind.exe`. It contains compiled C++ DLLs and model weights necessary for offline inference.
 
-**Q: Nothing happens when pressing the shortcut `Alt+W`?**
-> **A**: The shortcut key might be held globally by another application (e.g. GeForce Experience, Discord, WeChat). Click the Settings icon in the tray context menu to map a different modifier combination.
+**Q: Nothing happens when pressing the shortcut Ctrl+Alt+S?**
+> **A**: The shortcut key might be held globally by another application. Click the Settings icon in the tray context menu to map a different modifier combination.
 
 **Q: Auto-start on boot does not work?**
 > **A**: Auto-launch configures registry run entries under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`. Check if antivirus/security software blocked this registry edit.

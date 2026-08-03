@@ -15,7 +15,7 @@
 ### 智能截图与本地离线 OCR
 - **本地零联网推理**：集成轻量化 PaddleOCR v6_tiny 中英文检测与识别模型。无需联网，零隐私泄露风险。
 - **多显示器与高 DPI 自适应**：通过 Win32 API 遍历所有屏幕，自动适配监视器不同的高 DPI 缩放比例，杜绝跨屏截图下的偏移和黑屏。
-- **自定义全局热键**：默认热键 `Alt + W`（可自定义修饰键与字母组合），在任意第三方程序界面皆可实现毫秒级快速唤起。
+- **自定义全局热键**：默认热键 `Ctrl + Alt + S`（可自定义修饰键与字母组合），在任意第三方程序界面皆可实现毫秒级快速唤起。
 
 ### 人性化结果交互
 - **快捷复制并自动关闭**：在文字框卡片内直接按下键盘快捷键 `Ctrl + C`，系统将智能提取选中段落（若无选中则复制全部），写入剪贴板的同时**自动销毁并关闭窗口**。
@@ -81,8 +81,8 @@ cd SnapFind
 ```json
 {
   "SearchEngineUrl": "https://www.google.com/search?q=",
-  "HotkeyModifiers": "Alt",
-  "HotkeyKey": "W",
+  "HotkeyModifiers": "Control,Alt",
+  "HotkeyKey": "S",
   "StartWithWindows": false
 }
 ```
@@ -90,8 +90,8 @@ cd SnapFind
 | 键名 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `SearchEngineUrl` | String | `https://www.google.com/search?q=` | 点击“搜索”或按回车时拉起的默认搜索引擎基址 |
-| `HotkeyModifiers` | String | `Alt` | 唤起截图的全局热键修饰键（支持 `Control`, `Alt`, `Shift` 等组合） |
-| `HotkeyKey` | String | `W` | 唤起截图的主键（支持字母和标准控制键） |
+| `HotkeyModifiers` | String | `Control,Alt` | 唤起截图的全局热键修饰键（支持 `Control`, `Alt`, `Shift` 等组合） |
+| `HotkeyKey` | String | `S` | 唤起截图的主键（支持字母和标准控制键） |
 | `StartWithWindows`| Boolean| `false` | 是否开启 Windows 开机自启动 |
 
 ### 3. 开发运行与调试
@@ -154,8 +154,8 @@ graph TD
 **Q: 运行程序时弹出 `DllNotFoundException` 错误？**
 > **A**: 请确保解压出的 `libs/` 依赖目录与主程序 `SnapFind.exe` 在同一个目录中。该目录包含 PaddleOCR 所需的原生 C++ 动态链接库和模型。
 
-**Q: 快捷键 `Alt+W` 按下没有反应？**
-> **A**: 该快捷键可能被系统内的其他软件（如 QQ、WeChat 或 GeForce Experience）全局独占了。请在右下角托盘图标右键点击“设置”，修改热键为其他组合。
+**Q: 快捷键 `Ctrl+Alt+S` 按下没有反应？**
+> **A**: 该快捷键可能被系统内的其他软件全局独占了。请在右下角托盘图标右键点击“设置”，修改热键为其他组合。
 
 **Q: 无法开机自启动？**
 > **A**: 开机自启动通过写入当前用户的注册表 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 实现。请检查杀毒软件是否拦截了程序的注册表修改行为。
