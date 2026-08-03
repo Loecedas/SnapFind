@@ -1,0 +1,20 @@
+<Application x:Class="PixOcrSearch.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PixOcrSearch"
+             Startup="Application_Startup">
+    <Application.Resources>
+        <!-- Default theme color fallbacks -->
+        <SolidColorBrush x:Key="ThemeWindowBg" Color="#1E1E22"/>
+        <SolidColorBrush x:Key="ThemeWindowBorder" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="ThemeText" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ThemeSubText" Color="#8E8E93"/>
+        <SolidColorBrush x:Key="ThemeInputBg" Color="#121215"/>
+        <SolidColorBrush x:Key="ThemeInputFg" Color="#F1F1F1"/>
+        <SolidColorBrush x:Key="ThemeInputBorder" Color="#2D2D32"/>
+        <SolidColorBrush x:Key="ThemeBtnBg" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="ThemeBtnFg" Color="#E1E1E1"/>
+        <SolidColorBrush x:Key="ThemeBtnBorder" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="ThemeHoverBg" Color="#3F3F46"/>
+    </Application.Resources>
+</Application>

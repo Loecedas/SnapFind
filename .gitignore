@@ -1,0 +1,31 @@
+# Visual Studio / VS Code / Rider
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build & Compilation Outputs
+[Bb]in/
+[Oo]bj/
+src/bin/
+src/obj/
+
+# NuGet Packages
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+
+# SnapFind Generated Binaries & Packages
+/SnapFind.exe
+/releases/
+
+# SnapFind Runtime Cache & Configurations
+/cache/debug_crop.png
+/cache/config.json
+
+# OS specific files
+.DS_Store
+Thumbs.db

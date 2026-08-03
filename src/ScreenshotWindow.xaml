@@ -1,0 +1,59 @@
+<Window x:Class="PixOcrSearch.ScreenshotWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Cursor="Cross"
+        KeyDown="Window_KeyDown"
+        MouseDown="Window_MouseDown"
+        MouseMove="Window_MouseMove"
+        MouseUp="Window_MouseUp"
+        Loaded="Window_Loaded">
+    <Grid x:Name="LayoutRoot">
+        <!-- The background screen image -->
+        <Image x:Name="BackgroundImg" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top" />
+
+        <!-- Hollow-out dark overlay -->
+        <Path Fill="#50000000">
+            <Path.Data>
+                <CombinedGeometry GeometryCombineMode="Exclude">
+                    <CombinedGeometry.Geometry1>
+                        <RectangleGeometry x:Name="ScreenGeometry" />
+                    </CombinedGeometry.Geometry1>
+                    <CombinedGeometry.Geometry2>
+                        <RectangleGeometry x:Name="SelectionGeometry" Rect="0,0,0,0" />
+                    </CombinedGeometry.Geometry2>
+                </CombinedGeometry>
+            </Path.Data>
+        </Path>
+
+        <!-- Selection border and dimensions label -->
+        <Canvas x:Name="OverlayCanvas">
+            <!-- Border of the selection -->
+            <Border x:Name="SelectionBorder"
+                    BorderBrush="#0078D7"
+                    BorderThickness="1.5"
+                    Visibility="Collapsed"
+                    Background="Transparent">
+                <!-- Drop shadow or internal highlight can go here -->
+            </Border>
+
+            <!-- PixPin-like sizing label -->
+            <Border x:Name="SizeLabelBorder"
+                    Background="#2D2D30"
+                    BorderBrush="#3F3F46"
+                    BorderThickness="1"
+                    CornerRadius="3"
+                    Padding="4,2"
+                    Visibility="Collapsed">
+                <TextBlock x:Name="SizeTextBlock"
+                           Foreground="#F1F1F1"
+                           FontSize="10"
+                           FontFamily="Segoe UI" />
+            </Border>
+        </Canvas>
+    </Grid>
+</Window>
