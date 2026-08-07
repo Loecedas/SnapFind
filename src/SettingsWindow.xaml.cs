@@ -1,9 +1,15 @@
 using Microsoft.Win32;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Navigation;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MessageBox = System.Windows.MessageBox;
 using Application = System.Windows.Application;
@@ -14,10 +20,24 @@ namespace PixOcrSearch
     {
         private string _recordedModifiers = "";
         private string _recordedKey = "";
+        private string _recordedControlPanelModifiers = "";
+        private string _recordedControlPanelKey = "";
+        
+        // Updater fields
+        private GitHubRelease? _releaseInfo;
+        private CancellationTokenSource? _cts;
+        private bool _isDownloading = false;
+        private string _currentActiveTab = "settings";
 
-        public SettingsWindow()
+        public SettingsWindow() : this("settings", null)
+        {
+        }
+
+        public SettingsWindow(string activeTab, GitHubRelease? releaseInfo = null)
         {
             InitializeComponent();
+            _currentActiveTab = activeTab;
+            _releaseInfo = releaseInfo;
         }
 
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
@@ -39,7 +59,19 @@ namespace PixOcrSearch
             // Dynamically refresh system theme resources before rendering
             App.ApplyTheme();
 
-            // Load current configs
+            // Load current config settings
+            LoadSettingsConfig();
+
+            // Setup Version Text in About Page
+            Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+            AboutVersionText.Text = $"版本: v{version.Major}.{version.Minor}.{version.Build}";
+
+            // Select default tab
+            SelectTab(_currentActiveTab);
+        }
+
+        private void LoadSettingsConfig()
+        {
             string currentUrl = ConfigManager.Current.SearchEngineUrl;
             bool found = false;
             foreach (System.Windows.Controls.ComboBoxItem item in SearchEngineComboBox.Items)
@@ -53,11 +85,10 @@ namespace PixOcrSearch
             }
             if (!found)
             {
-                // Default to Google if not matched
                 SearchEngineComboBox.SelectedIndex = 0;
             }
 
-            // Dynamically detect available models in libs/inference
+            // Detect OCR models
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string inferenceDir = Path.Combine(baseDir, "libs", "inference");
 
@@ -99,10 +130,72 @@ namespace PixOcrSearch
 
             _recordedModifiers = ConfigManager.Current.HotkeyModifiers;
             _recordedKey = ConfigManager.Current.HotkeyKey;
+            _recordedControlPanelModifiers = ConfigManager.Current.ControlPanelHotkeyModifiers;
+            _recordedControlPanelKey = ConfigManager.Current.ControlPanelHotkeyKey;
             
             UpdateHotkeyTextBoxDisplay();
+            UpdateControlPanelHotkeyTextBoxDisplay();
             AutoStartCheckBox.IsChecked = ConfigManager.Current.StartWithWindows;
         }
+
+        public void SelectTab(string tabName)
+        {
+            // If download is in progress, lock navigation to avoid breaking state
+            if (_isDownloading) return;
+
+            _currentActiveTab = tabName;
+
+            // Toggle Panels Visibility
+            PanelNotifications.Visibility = tabName == "notifications" ? Visibility.Visible : Visibility.Collapsed;
+            PanelSettings.Visibility = tabName == "settings" ? Visibility.Visible : Visibility.Collapsed;
+            PanelAbout.Visibility = tabName == "about" ? Visibility.Visible : Visibility.Collapsed;
+
+            // Highlight Sidebar Radio
+            if (tabName == "notifications") RadioNotifications.IsChecked = true;
+            else if (tabName == "settings") RadioSettings.IsChecked = true;
+            else if (tabName == "about") RadioAbout.IsChecked = true;
+
+            // Custom tab initialization
+            if (tabName == "notifications")
+            {
+                if (_releaseInfo != null)
+                {
+                    DisplayReleaseInfo(_releaseInfo);
+                }
+                else
+                {
+                    FetchLatestReleaseAsync();
+                }
+            }
+        }
+
+        public void SetReleaseInfo(GitHubRelease releaseInfo)
+        {
+            _releaseInfo = releaseInfo;
+            if (_currentActiveTab == "notifications")
+            {
+                DisplayReleaseInfo(_releaseInfo);
+            }
+        }
+
+        private void Sidebar_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDownloading)
+            {
+                // Prevent check change
+                if (_currentActiveTab == "notifications") RadioNotifications.IsChecked = true;
+                else if (_currentActiveTab == "settings") RadioSettings.IsChecked = true;
+                else if (_currentActiveTab == "about") RadioAbout.IsChecked = true;
+                return;
+            }
+
+            if (sender is System.Windows.Controls.RadioButton rb && rb.Tag != null)
+            {
+                SelectTab(rb.Tag.ToString() ?? "settings");
+            }
+        }
+
+        // --- Settings Page Code ---
 
         private void UpdateHotkeyTextBoxDisplay()
         {
@@ -127,13 +220,11 @@ namespace PixOcrSearch
             e.Handled = true;
 
             Key key = e.Key;
-            // Handle System key (Alt is sent as System)
             if (key == Key.System)
             {
                 key = e.SystemKey;
             }
 
-            // Skip if only modifier is pressed
             if (key == Key.LeftCtrl || key == Key.RightCtrl ||
                 key == Key.LeftAlt || key == Key.RightAlt ||
                 key == Key.LeftShift || key == Key.RightShift ||
@@ -142,7 +233,6 @@ namespace PixOcrSearch
                 return;
             }
 
-            // Build modifier string
             var sb = new StringBuilder();
             var modifiers = Keyboard.Modifiers;
             if ((modifiers & ModifierKeys.Control) != 0) sb.Append("Control,");
@@ -150,7 +240,6 @@ namespace PixOcrSearch
             if ((modifiers & ModifierKeys.Shift) != 0) sb.Append("Shift,");
             if ((modifiers & ModifierKeys.Windows) != 0) sb.Append("Windows,");
 
-            // Strip trailing comma
             string modStr = sb.ToString();
             if (modStr.EndsWith(","))
             {
@@ -163,11 +252,77 @@ namespace PixOcrSearch
             UpdateHotkeyTextBoxDisplay();
         }
 
+        private void UpdateControlPanelHotkeyTextBoxDisplay()
+        {
+            if (string.IsNullOrEmpty(_recordedControlPanelKey))
+            {
+                ControlPanelHotkeyTextBox.Text = "无快捷键";
+                return;
+            }
+            string mods = _recordedControlPanelModifiers.Replace(",", " + ");
+            if (string.IsNullOrEmpty(mods))
+            {
+                ControlPanelHotkeyTextBox.Text = _recordedControlPanelKey;
+            }
+            else
+            {
+                ControlPanelHotkeyTextBox.Text = mods + " + " + _recordedControlPanelKey;
+            }
+        }
+
+        private void ControlPanelHotkeyTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            e.Handled = true;
+
+            Key key = e.Key;
+            if (key == Key.System)
+            {
+                key = e.SystemKey;
+            }
+
+            if (key == Key.LeftCtrl || key == Key.RightCtrl ||
+                key == Key.LeftAlt || key == Key.RightAlt ||
+                key == Key.LeftShift || key == Key.RightShift ||
+                key == Key.LWin || key == Key.RWin)
+            {
+                return;
+            }
+
+            var sb = new StringBuilder();
+            var modifiers = Keyboard.Modifiers;
+            if ((modifiers & ModifierKeys.Control) != 0) sb.Append("Control,");
+            if ((modifiers & ModifierKeys.Alt) != 0) sb.Append("Alt,");
+            if ((modifiers & ModifierKeys.Shift) != 0) sb.Append("Shift,");
+            if ((modifiers & ModifierKeys.Windows) != 0) sb.Append("Windows,");
+
+            string modStr = sb.ToString();
+            if (modStr.EndsWith(","))
+            {
+                modStr = modStr.Substring(0, modStr.Length - 1);
+            }
+
+            _recordedControlPanelModifiers = modStr;
+            _recordedControlPanelKey = key.ToString();
+
+            UpdateControlPanelHotkeyTextBoxDisplay();
+        }
+
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrEmpty(_recordedModifiers))
             {
                 MessageBox.Show("快捷键必须包含修饰键 (如 Ctrl, Alt, Shift 等)！以防键盘普通按键被系统全局拦截冲突。", "设置无效", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (string.IsNullOrEmpty(_recordedControlPanelModifiers))
+            {
+                MessageBox.Show("控制面板快捷键必须包含修饰键 (如 Ctrl, Alt, Shift 等)！以防键盘普通按键被系统全局拦截冲突。", "设置无效", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (_recordedModifiers == _recordedControlPanelModifiers && _recordedKey == _recordedControlPanelKey)
+            {
+                MessageBox.Show("截图快捷键与控制面板快捷键不能相同！请设置不同的快捷键组合以防冲突。", "快捷键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -188,6 +343,8 @@ namespace PixOcrSearch
             ConfigManager.Current.SearchEngineUrl = url;
             ConfigManager.Current.HotkeyModifiers = _recordedModifiers;
             ConfigManager.Current.HotkeyKey = _recordedKey;
+            ConfigManager.Current.ControlPanelHotkeyModifiers = _recordedControlPanelModifiers;
+            ConfigManager.Current.ControlPanelHotkeyKey = _recordedControlPanelKey;
             ConfigManager.Current.OcrModel = model;
             
             bool autoStart = AutoStartCheckBox.IsChecked == true;
@@ -200,10 +357,8 @@ namespace PixOcrSearch
                 OcrHelper.Dispose();
             }
 
-            // Handle registry for autostart
             SetAutoStart(autoStart);
 
-            // Trigger Hotkey Re-registration in App
             if (Application.Current is App app)
             {
                 app.ReRegisterHotkey();
@@ -216,7 +371,6 @@ namespace PixOcrSearch
         {
             try
             {
-                // Dynamically fetch the current running executable name (supports renaming)
                 string exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
                     ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SnapFind.exe");
                 
@@ -239,6 +393,467 @@ namespace PixOcrSearch
             }
         }
 
+        // --- About & Notifications / Updater Page Code ---
+
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            }
+            catch { }
+            e.Handled = true;
+        }
+
+        private async void AboutCheckUpdateButton_Click(object sender, RoutedEventArgs e)
+        {
+            AboutCheckUpdateButton.IsEnabled = false;
+            AboutCheckUpdateButton.Content = "正在检查...";
+            AboutStatusText.Visibility = Visibility.Visible;
+            AboutStatusText.Text = "正在连接 GitHub...";
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                
+                string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
+                
+                using var doc = JsonDocument.Parse(response);
+                var root = doc.RootElement;
+                
+                string tagName = root.GetProperty("tag_name").GetString() ?? "";
+                string body = root.GetProperty("body").GetString() ?? "";
+                string htmlUrl = root.GetProperty("html_url").GetString() ?? "";
+                
+                string downloadUrl = "";
+                long size = 0;
+                
+                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var asset in assetsVal.EnumerateArray())
+                    {
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.Contains("Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                            size = asset.GetProperty("size").GetInt64();
+                            break;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        foreach (var asset in assetsVal.EnumerateArray())
+                        {
+                            string name = asset.GetProperty("name").GetString() ?? "";
+                            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                            {
+                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                size = asset.GetProperty("size").GetInt64();
+                                break;
+                            }
+                        }
+                    }
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        foreach (var asset in assetsVal.EnumerateArray())
+                        {
+                            string name = asset.GetProperty("name").GetString() ?? "";
+                            if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                size = asset.GetProperty("size").GetInt64();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                var release = new GitHubRelease
+                {
+                    TagName = tagName,
+                    Body = body,
+                    HtmlUrl = htmlUrl,
+                    DownloadUrl = downloadUrl,
+                    Size = size
+                };
+
+                Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+                string cleanTag = tagName.TrimStart('v', 'V');
+                
+                if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
+                {
+                    AboutStatusText.Visibility = Visibility.Collapsed;
+                    SetReleaseInfo(release);
+                    SelectTab("notifications");
+                }
+                else
+                {
+                    AboutStatusText.Visibility = Visibility.Collapsed;
+                    MessageBox.Show($"您当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})，无需更新。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                AboutStatusText.Visibility = Visibility.Collapsed;
+                MessageBox.Show($"检查更新失败: {ex.Message}\n请检查您的网络连接或稍后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                AboutCheckUpdateButton.IsEnabled = true;
+                AboutCheckUpdateButton.Content = "检查更新";
+            }
+        }
+
+        private static string ExtractChineseChangelog(string rawBody)
+        {
+            if (string.IsNullOrEmpty(rawBody)) return "";
+
+            string cnContent = rawBody;
+            
+            int startDetails = rawBody.IndexOf("<details", StringComparison.OrdinalIgnoreCase);
+            if (startDetails != -1)
+            {
+                int endDetails = rawBody.IndexOf("</details>", startDetails, StringComparison.OrdinalIgnoreCase);
+                if (endDetails != -1)
+                {
+                    cnContent = rawBody.Substring(startDetails, endDetails - startDetails);
+                }
+            }
+
+            int startSummary = cnContent.IndexOf("<summary>", StringComparison.OrdinalIgnoreCase);
+            if (startSummary != -1)
+            {
+                int endSummary = cnContent.IndexOf("</summary>", startSummary, StringComparison.OrdinalIgnoreCase);
+                if (endSummary != -1)
+                {
+                    cnContent = cnContent.Remove(startSummary, (endSummary + 10) - startSummary);
+                }
+            }
+
+            cnContent = cnContent.Replace("<br/>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<br>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<p>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</p>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<ul>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</ul>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<li>", "• ", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</li>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<b>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</b>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<strong>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</strong>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<h3>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</h3>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<h2>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</h2>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<h1>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</h1>", "\n", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("<code>", "", StringComparison.OrdinalIgnoreCase);
+            cnContent = cnContent.Replace("</code>", "", StringComparison.OrdinalIgnoreCase);
+
+            cnContent = System.Text.RegularExpressions.Regex.Replace(cnContent, @"<[^>]+>", "");
+
+            var lines = cnContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var sb = new StringBuilder();
+            foreach (var line in lines)
+            {
+                string trimmed = line.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                {
+                    trimmed = trimmed.TrimStart('#').Trim();
+                    if (!string.IsNullOrEmpty(trimmed))
+                    {
+                        sb.AppendLine(trimmed);
+                    }
+                }
+            }
+
+            return sb.ToString().Trim();
+        }
+
+        private async void FetchLatestReleaseAsync()
+        {
+            ChangelogTextBlock.Text = "正在从 GitHub 获取最新的更新日志...";
+            NotificationTitleText.Text = "正在获取最新版本信息...";
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                
+                string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
+                
+                using var doc = JsonDocument.Parse(response);
+                var root = doc.RootElement;
+                
+                string tagName = root.GetProperty("tag_name").GetString() ?? "";
+                string body = root.GetProperty("body").GetString() ?? "";
+                string htmlUrl = root.GetProperty("html_url").GetString() ?? "";
+                
+                string downloadUrl = "";
+                long size = 0;
+                
+                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var asset in assetsVal.EnumerateArray())
+                    {
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.Contains("Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                            size = asset.GetProperty("size").GetInt64();
+                            break;
+                        }
+                    }
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        foreach (var asset in assetsVal.EnumerateArray())
+                        {
+                            string name = asset.GetProperty("name").GetString() ?? "";
+                            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                            {
+                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                size = asset.GetProperty("size").GetInt64();
+                                break;
+                            }
+                        }
+                    }
+                    if (string.IsNullOrEmpty(downloadUrl))
+                    {
+                        foreach (var asset in assetsVal.EnumerateArray())
+                        {
+                            string name = asset.GetProperty("name").GetString() ?? "";
+                            if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                            {
+                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                                size = asset.GetProperty("size").GetInt64();
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                _releaseInfo = new GitHubRelease
+                {
+                    TagName = tagName,
+                    Body = body,
+                    HtmlUrl = htmlUrl,
+                    DownloadUrl = downloadUrl,
+                    Size = size
+                };
+
+                DisplayReleaseInfo(_releaseInfo);
+            }
+            catch
+            {
+                DisplayOfflineLog();
+            }
+        }
+
+        private void DisplayReleaseInfo(GitHubRelease release)
+        {
+            Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+            string cleanTag = release.TagName.TrimStart('v', 'V');
+            
+            ChangelogTextBlock.Text = ExtractChineseChangelog(release.Body);
+
+            if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
+            {
+                NotificationTitleText.Text = $"发现新版本: {release.TagName}";
+                DownloadButton.Visibility = Visibility.Visible;
+                IgnoreButton.Visibility = Visibility.Visible;
+                CancelNotifBtn.Content = "暂不更新";
+            }
+            else
+            {
+                NotificationTitleText.Text = $"当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})";
+                DownloadButton.Visibility = Visibility.Collapsed;
+                IgnoreButton.Visibility = Visibility.Collapsed;
+                CancelNotifBtn.Content = "关闭";
+            }
+        }
+
+        private void DisplayOfflineLog()
+        {
+            NotificationTitleText.Text = "最新更新日志 (离线)";
+            ChangelogTextBlock.Text = "v2.1.0 更新日志\n" +
+                               "• 移除了 OCR 结果窗口底部“设置”、“复制”和“搜索”按钮的 Emoji 图标。\n" +
+                               "• 新增了托盘图标右键菜单中的“关于”和“通知”功能，支持检查更新及本地直接下载更新包。\n\n" +
+                               "v2.0.1 更新日志\n" +
+                               "• 系统原生级视觉优化，支持 Windows 11 原生大圆角与阴影自适应渲染。\n\n" +
+                               "v2.0.0 更新日志\n" +
+                               "• 集成轻量化本地 PaddleOCR v6 引擎推理，支持双模型动态热切换，数据完全离线。\n" +
+                               "• 支持智能内存自动深度压缩回收，空闲待机物理内存降至约 10MB。";
+            
+            DownloadButton.Visibility = Visibility.Collapsed;
+            IgnoreButton.Visibility = Visibility.Collapsed;
+            CancelNotifBtn.Content = "关闭";
+        }
+
+        private async void DownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isDownloading)
+            {
+                CancelDownload();
+                return;
+            }
+
+            if (_releaseInfo == null || string.IsNullOrEmpty(_releaseInfo.DownloadUrl))
+            {
+                MessageBox.Show("获取下载链接失败，请手动访问 GitHub 获取更新。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
+            if (string.IsNullOrEmpty(ext)) ext = ".exe";
+            string cacheDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache");
+            string fileName = $"SnapFindSetup_{_releaseInfo.TagName}{ext}";
+            string filePath = Path.Combine(cacheDir, fileName);
+
+            _isDownloading = true;
+            DownloadButton.Content = "取消下载";
+            IgnoreButton.IsEnabled = false;
+            CancelNotifBtn.IsEnabled = false;
+            ProgressPanel.Visibility = Visibility.Visible;
+            DownloadProgressBar.Value = 0;
+            ProgressPercentText.Text = "下载进度: 0%";
+            ProgressBytesText.Text = "正在连接服务器...";
+
+            // Disable sidebar radio buttons to prevent switching tabs mid-download
+            RadioNotifications.IsEnabled = false;
+            RadioSettings.IsEnabled = false;
+            RadioAbout.IsEnabled = false;
+
+            await StartDownloadAsync(_releaseInfo.DownloadUrl, filePath);
+        }
+
+        private async Task StartDownloadAsync(string url, string filePath)
+        {
+            _cts = new CancellationTokenSource();
+            var token = _cts.Token;
+
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+
+                using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+                response.EnsureSuccessStatusCode();
+
+                long? totalBytes = response.Content.Headers.ContentLength;
+                using var contentStream = await response.Content.ReadAsStreamAsync(token);
+
+                string dir = Path.GetDirectoryName(filePath)!;
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+                byte[] buffer = new byte[8192];
+                long totalReadBytes = 0;
+                int readBytes;
+
+                while ((readBytes = await contentStream.ReadAsync(buffer, 0, buffer.Length, token)) > 0)
+                {
+                    await fileStream.WriteAsync(buffer, 0, readBytes, token);
+                    totalReadBytes += readBytes;
+
+                    if (totalBytes.HasValue)
+                    {
+                        double progress = (double)totalReadBytes / totalBytes.Value * 100;
+                        
+                        Dispatcher.Invoke(() =>
+                        {
+                            DownloadProgressBar.Value = progress;
+                            ProgressPercentText.Text = $"下载进度: {(int)progress}%";
+                            
+                            double readMb = (double)totalReadBytes / (1024 * 1024);
+                            double totalMb = (double)totalBytes.Value / (1024 * 1024);
+                            ProgressBytesText.Text = $"{readMb:F2} MB / {totalMb:F2} MB";
+                        });
+                    }
+                }
+
+                await fileStream.FlushAsync(token);
+                fileStream.Close();
+
+                // Run installer and exit
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                        Application.Current.Shutdown();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"无法启动安装程序: {ex.Message}\n请手动运行: {filePath}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                });
+            }
+            catch (OperationCanceledException)
+            {
+                if (File.Exists(filePath))
+                {
+                    try { File.Delete(filePath); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (File.Exists(filePath))
+                {
+                    try { File.Delete(filePath); } catch { }
+                }
+                MessageBox.Show($"下载更新失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _cts?.Dispose();
+                _cts = null;
+                _isDownloading = false;
+                
+                Dispatcher.Invoke(() =>
+                {
+                    ResetUiAfterDownload();
+                });
+            }
+        }
+
+        private void CancelDownload()
+        {
+            if (_cts != null)
+            {
+                _cts.Cancel();
+            }
+        }
+
+        private void ResetUiAfterDownload()
+        {
+            DownloadButton.Content = "立即下载";
+            IgnoreButton.IsEnabled = true;
+            CancelNotifBtn.IsEnabled = true;
+            ProgressPanel.Visibility = Visibility.Collapsed;
+
+            // Re-enable sidebar
+            RadioNotifications.IsEnabled = true;
+            RadioSettings.IsEnabled = true;
+            RadioAbout.IsEnabled = true;
+        }
+
+        private void IgnoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_releaseInfo != null)
+            {
+                ConfigManager.Current.IgnoredVersion = _releaseInfo.TagName;
+                ConfigManager.Save();
+            }
+            Close();
+        }
+
+        // --- Window general events ---
+
         private void MinimizeButton_Click(object sender, RoutedEventArgs e)
         {
             SystemCommands.MinimizeWindow(this);
@@ -246,12 +861,19 @@ namespace PixOcrSearch
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            if (_isDownloading)
+            {
+                CancelDownload();
+            }
+            else
+            {
+                Close();
+            }
         }
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.OriginalSource != SearchEngineComboBox)
+            if (!_isDownloading && e.OriginalSource != SearchEngineComboBox && e.OriginalSource != OcrModelComboBox)
             {
                 DragMove();
             }
@@ -259,7 +881,7 @@ namespace PixOcrSearch
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape && !_isDownloading)
             {
                 Close();
             }

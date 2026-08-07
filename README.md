@@ -15,12 +15,13 @@
 ### 智能截图与本地离线 OCR
 - **本地零联网推理**：集成轻量化 PaddleOCR v6 中英文检测与识别引擎，支持 **PP-OCRv6_tiny** 与 **PP-OCRv6_small** 双模型动态热切换，无需联网，零隐私泄露风险。
 - **多显示器与高 DPI 自适应**：通过 Win32 API 遍历所有屏幕，自动适配监视器不同的高 DPI 缩放比例，杜绝跨屏截图下的偏移和黑屏。
-- **自定义全局热键**：默认热键 `Ctrl + Alt + S`（可自定义修饰键与字母组合），在任意第三方程序界面皆可实现毫秒级快速唤起。
+- **双自定义全局热键**：支持全局截图热键（默认 `Ctrl + Alt + S`）与控制面板热键（默认 `Ctrl + Alt + C`，一键拉起设置窗口），可在任意界面毫秒级快速唤起。
 
-### 系统原生级融合设计
-- **Windows 11 圆角自适应**：在 Windows 11 下通过 DWM API 渲染原生大圆角与阴影特效，在 Windows 10 下保持精巧直角，UI 风格自适应系统环境。
-- **100% Win32 系统原生托盘菜单**：弃用自定义 WinForms 容器渲染，直接调用原生 API 唤起右键菜单。纯文字极简设计，自适应 Windows 11 亚克力磨砂及云母半透明特效。
-- **任务栏回缩飞入动效**：通过合理优化 DWM 窗口非边框区域计算，使窗口关闭和折叠动画 100% 对齐任务栏对应位置，过渡连贯丝滑。
+### 统一控制中心与现代 UI
+- **三合一控制中心**：将“设置”、“关于”、“更新通知”融合为统一的控制中心窗口。拥有极简的 WinUI 侧边栏，支持无阻碍平滑切换。
+- **自适应系统主题与圆角**：支持暗色/亮色主题及 Windows 11 原生 DWM 圆角与阴影特效。
+- **极细 Fluent 滚动条**：自定义了 6 像素极细半透明滚动条（普通悬浮低可见度， hover 状态渐显），带来极佳的系统原生感。
+- **100% Win32 原生系统托盘菜单**：精简托盘右键选项为“截图 OCR 搜索”、“控制面板”、“退出”，极简纯文字设计，完美适配 Windows 11 亚克力磨砂及云母毛玻璃特效。
 
 ### 人性化结果交互
 - **快捷复制并自动关闭**：在文字框卡片内直接按下键盘快捷键 `Ctrl + C`，系统将智能提取选中段落（若无选中则复制全部），写入剪贴板的同时**自动销毁并关闭窗口**。
@@ -46,8 +47,8 @@ SnapFind/
 │   ├── OcrHelper.cs                 # PaddleOCR 引擎生命周期控制、空闲定时内存优化压缩
 │   ├── ScreenshotWindow.xaml        # 截图遮罩层 XAML 布局
 │   ├── ScreenshotWindow.xaml.cs     # 多屏幕截图绘制、框选、DPI 换算与位图切片处理
-│   ├── SettingsWindow.xaml          # 系统全局设置窗口 (修改热键、配置搜索引擎、开机自启)
-│   ├── SettingsWindow.xaml.cs       # 设置界面业务逻辑
+│   ├── SettingsWindow.xaml          # 统一控制中心窗口 (含导航侧栏，关于、设置、更新通知面板，薄滚动条)
+│   ├── SettingsWindow.xaml.cs       # 控制中心逻辑 (侧栏切换、版本检查与自动下载安装、配置及防冲突校验)
 │   ├── SnapFind.csproj              # .NET 8.0 WPF 项目工程配置文件
 │   └── setup.iss                    # Inno Setup 自动化安装包生成脚本
 ├── libs/                            # PaddleOCR C++ 原生 DLL 动态库与模型文件目录
@@ -88,6 +89,8 @@ cd SnapFind
   "SearchEngineUrl": "https://www.google.com/search?q=",
   "HotkeyModifiers": "Control,Alt",
   "HotkeyKey": "S",
+  "ControlPanelHotkeyModifiers": "Control,Alt",
+  "ControlPanelHotkeyKey": "C",
   "StartWithWindows": false
 }
 ```
@@ -97,6 +100,8 @@ cd SnapFind
 | `SearchEngineUrl` | String | `https://www.google.com/search?q=` | 点击“搜索”或按回车时拉起的默认搜索引擎基址 |
 | `HotkeyModifiers` | String | `Control,Alt` | 唤起截图的全局热键修饰键（支持 `Control`, `Alt`, `Shift` 等组合） |
 | `HotkeyKey` | String | `S` | 唤起截图的主键（支持字母和标准控制键） |
+| `ControlPanelHotkeyModifiers` | String | `Control,Alt` | 唤起控制面板的全局热键修饰键 |
+| `ControlPanelHotkeyKey` | String | `C` | 唤起控制面板的主键 |
 | `StartWithWindows`| Boolean| `false` | 是否开启 Windows 开机自启动 |
 
 ### 3. 开发运行与调试

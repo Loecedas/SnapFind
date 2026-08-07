@@ -11,6 +11,9 @@ namespace PixOcrSearch
         public string HotkeyKey { get; set; } = "S";                // Main key
         public bool StartWithWindows { get; set; } = false;
         public string OcrModel { get; set; } = "PP-OCRv6_tiny";
+        public string IgnoredVersion { get; set; } = "";
+        public string ControlPanelHotkeyModifiers { get; set; } = "Control,Alt";
+        public string ControlPanelHotkeyKey { get; set; } = "C";
     }
 
     public static class ConfigManager

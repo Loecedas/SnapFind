@@ -155,7 +155,7 @@ namespace PixOcrSearch
             // Add standard items without emojis, completely plain text
             AppendMenu(hMenu, MF_STRING, 1, "截图 OCR 搜索");
             AppendMenu(hMenu, MF_SEPARATOR, 0, string.Empty);
-            AppendMenu(hMenu, MF_STRING, 2, "设置");
+            AppendMenu(hMenu, MF_STRING, 2, "控制面板");
             AppendMenu(hMenu, MF_STRING, 3, "退出");
 
             // We need a window handle to own the popup menu and receive commands.
@@ -244,10 +244,16 @@ namespace PixOcrSearch
             string mods = ConfigManager.Current.HotkeyModifiers;
             string key = ConfigManager.Current.HotkeyKey;
 
-            bool success = _hotkeyHelper.Register(_dummyHookWindow, mods, key, StartScreenshot);
+            string cpMods = ConfigManager.Current.ControlPanelHotkeyModifiers;
+            string cpKey = ConfigManager.Current.ControlPanelHotkeyKey;
+
+            bool success = _hotkeyHelper.Register(_dummyHookWindow, 
+                mods, key, StartScreenshot,
+                cpMods, cpKey, OpenSettings);
+
             if (!success)
             {
-                MessageBox.Show($"无法注册全局快捷键: {mods} + {key}。请在设置中修改，避免与其他程序冲突。", "快捷键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"无法注册全局快捷键。\n主截图快捷键: {mods} + {key}\n控制面板快捷键: {cpMods} + {cpKey}\n请在设置中修改，避免与其他程序冲突。", "快捷键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -342,17 +348,53 @@ namespace PixOcrSearch
 
         private void OpenSettings()
         {
-            // Ensure single SettingsWindow
             foreach (Window win in Current.Windows)
             {
-                if (win is SettingsWindow)
+                if (win is SettingsWindow activeWin)
                 {
-                    win.Activate();
+                    activeWin.SelectTab("settings");
+                    activeWin.Activate();
                     return;
                 }
             }
 
-            var settingsWin = new SettingsWindow();
+            var settingsWin = new SettingsWindow("settings");
+            settingsWin.Show();
+        }
+
+        public void OpenAbout()
+        {
+            foreach (Window win in Current.Windows)
+            {
+                if (win is SettingsWindow activeWin)
+                {
+                    activeWin.SelectTab("about");
+                    activeWin.Activate();
+                    return;
+                }
+            }
+
+            var settingsWin = new SettingsWindow("about");
+            settingsWin.Show();
+        }
+
+        public void OpenNotifications(GitHubRelease? releaseInfo = null)
+        {
+            foreach (Window win in Current.Windows)
+            {
+                if (win is SettingsWindow activeWin)
+                {
+                    if (releaseInfo != null)
+                    {
+                        activeWin.SetReleaseInfo(releaseInfo);
+                    }
+                    activeWin.SelectTab("notifications");
+                    activeWin.Activate();
+                    return;
+                }
+            }
+
+            var settingsWin = new SettingsWindow("notifications", releaseInfo);
             settingsWin.Show();
         }
 
@@ -462,5 +504,14 @@ namespace PixOcrSearch
             }
             catch { }
         }
+    }
+
+    public class GitHubRelease
+    {
+        public string TagName { get; set; } = "";
+        public string Body { get; set; } = "";
+        public string HtmlUrl { get; set; } = "";
+        public string DownloadUrl { get; set; } = "";
+        public long Size { get; set; }
     }
 }

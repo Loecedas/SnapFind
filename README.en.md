@@ -15,12 +15,13 @@
 ### Smart Screenshot & Offline Local OCR
 - **Zero-Network Local Inference**: Integrates the lightweight PaddleOCR v6 engine, supporting dynamic runtime hot-swapping between **PP-OCRv6_tiny** and **PP-OCRv6_small** models. Runs 100% locally on your machine with zero data privacy leakage risk.
 - **Multi-Monitor & High DPI Adaptation**: Traverses screen monitors using Win32 API to fetch independent DPI scale factors. Prevents screenshot shifts or black screen overlaps across multiple monitors.
-- **Customizable Global Hotkeys**: Default hotkey `Ctrl + Alt + S` (fully customizable modifier keys and character combinations) invokes screen crop overlay in milliseconds from any third-party app.
+- **Dual Customizable Global Hotkeys**: Supports setting a global screenshot hotkey (default: `Ctrl + Alt + S`) and a global control panel hotkey (default: `Ctrl + Alt + C`, opening settings panel directly) for millisecond-level quick invocation.
 
-### Native OS Visual Integration
-- **Windows 11 Native Rounded Corners**: Leverages the DWM API to automatically apply modern rounded corners and dropshadows on Windows 11, while retaining clean rectangular borders on Windows 10 for visual consistency.
-- **100% Native Win32 Tray Context Menu**: Migrates from custom WinForms container to the native Win32 `TrackPopupMenu` API. Employs a clean, iconless plain-text list that inherits native Windows 11 Acrylic blur, Mica transparency, and drop-shadow effects.
-- **DWM Taskbar Minimization Fly-in**: Optimizes non-client frame boundaries to align minimization and restore animations precisely with the system tray icon location for fluid, consistent visual feedback.
+### Unified Control Center & Modern UI
+- **Unified 3-in-1 Control Center**: Blends Settings, About, and Update Notifications into a single unified dashboard window with a clean WinUI-style navigation sidebar.
+- **System Theme & Rounded Corners**: Supports light/dark themes and Windows 11 native rounded corners and dropshadows automatically.
+- **Ultra-thin Fluent Scrollbar**: Customizes scrollbars to a thin 6px width capsule shape with default semi-transparent opacity (0.4) that fades in (0.8) on mouse hover.
+- **100% Native Win32 System Tray Menu**: Simplified context menu options down to "截图 OCR 搜索" (Screenshot OCR), "控制面板" (Control Panel), and "退出" (Exit) for a clean visual alignment with Windows 11 Fluent Acrylic blur effects.
 
 ### Interactive Result Dialog
 - **Quick Copy & Auto-Close**: Press `Ctrl + C` inside the result popup to automatically extract selected text (or all text if no selection exists), write it to the clipboard, and **instantly destroy and close the window**.
@@ -46,8 +47,8 @@ SnapFind/
 │   ├── OcrHelper.cs                 # PaddleOCR lifecycle driver, idle timer memory cleanup
 │   ├── ScreenshotWindow.xaml        # Capture overlay window XAML
 │   ├── ScreenshotWindow.xaml.cs     # Multi-monitor rendering, region selecting, DPI scale mapping, and bitmap cropping
-│   ├── SettingsWindow.xaml          # System global settings panel (Hotkeys, Search engine base, Windows startup toggle)
-│   ├── SettingsWindow.xaml.cs       # Settings window code-behind logic
+│   ├── SettingsWindow.xaml          # Unified Control Center Window (Sidebar navigation, Settings/About/Notifications tabs, custom scrollbars)
+│   ├── SettingsWindow.xaml.cs       # Control Center backend logic (Tab switching, update check & stream downloader, validation)
 │   ├── SnapFind.csproj              # .NET 8.0 WPF project configuration
 │   └── setup.iss                    # Inno Setup installer script
 ├── libs/                            # Native PaddleOCR C++ DLL binaries and model resources
@@ -88,6 +89,8 @@ On startup, a default configuration file will be auto-generated in `cache/config
   "SearchEngineUrl": "https://www.google.com/search?q=",
   "HotkeyModifiers": "Control,Alt",
   "HotkeyKey": "S",
+  "ControlPanelHotkeyModifiers": "Control,Alt",
+  "ControlPanelHotkeyKey": "C",
   "StartWithWindows": false
 }
 ```
@@ -95,8 +98,10 @@ On startup, a default configuration file will be auto-generated in `cache/config
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `SearchEngineUrl` | String | `https://www.google.com/search?q=` | Target URL prefix opened when clicking "Search" or pressing Enter |
-| `HotkeyModifiers` | String | `Control,Alt` | Modifier keys (Supports combinations like `Control`, `Alt`, `Shift`) |
-| `HotkeyKey` | String | `S` | Primary activator key (Supports letters and standard virtual keys) |
+| `HotkeyModifiers` | String | `Control,Alt` | Modifier keys for screenshot hotkey (Supports combinations like `Control`, `Alt`, `Shift`) |
+| `HotkeyKey` | String | `S` | Primary activator key for screenshot hotkey (Supports letters and standard virtual keys) |
+| `ControlPanelHotkeyModifiers` | String | `Control,Alt` | Modifier keys for control panel hotkey |
+| `ControlPanelHotkeyKey` | String | `C` | Primary activator key for control panel hotkey |
 | `StartWithWindows`| Boolean| `false` | Enable boot launch with Windows |
 
 ### 3. Run and Debug

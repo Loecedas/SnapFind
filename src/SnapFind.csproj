@@ -10,6 +10,9 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <Version>2.2.0</Version>
+    <AssemblyVersion>2.2.0.0</AssemblyVersion>
+    <FileVersion>2.2.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +28,7 @@
 
   <ItemGroup>
     <Resource Include="app.ico" />
+    <Resource Include="about_logo.jpg" />
   </ItemGroup>
 
 </Project>

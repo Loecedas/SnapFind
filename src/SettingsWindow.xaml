@@ -8,8 +8,9 @@
         Topmost="False"
         ShowInTaskbar="True"
         Icon="pack://application:,,,/app.ico"
-        SizeToContent="Height"
-        Width="380"
+        Width="560"
+        Height="400"
+        ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         KeyDown="Window_KeyDown"
@@ -68,16 +69,65 @@
             </Style.Triggers>
         </Style>
 
+        <Style TargetType="Hyperlink">
+            <Setter Property="Foreground" Value="#0078D7"/>
+            <Setter Property="TextDecorations" Value="None"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#1084E3"/>
+                    <Setter Property="TextDecorations" Value="Underline"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Sidebar Radio Button Style -->
+        <Style x:Key="SidebarRadio" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,8"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Margin="4,2"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <!-- Active indicator bar on the left -->
+                                <Rectangle x:Name="activeIndicator" Width="3" Height="14" Fill="#0078D7" HorizontalAlignment="Left" VerticalAlignment="Center" Visibility="Collapsed"/>
+                                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                <Setter TargetName="activeIndicator" Property="Visibility" Value="Visible"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Custom clean ComboBox Template to avoid system high-contrast theme issues -->
         <ControlTemplate x:Key="ThemeComboBoxTemplate" TargetType="ComboBox">
-            <Grid>
+            <Grid SnapsToDevicePixels="true">
                 <ToggleButton Name="ToggleButton" 
-                              BorderBrush="{TemplateBinding BorderBrush}" 
-                              Background="{TemplateBinding Background}" 
-                              Foreground="{TemplateBinding Foreground}" 
-                              Focusable="false"
-                              IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" 
-                              ClickMode="Press">
+                               BorderBrush="{TemplateBinding BorderBrush}" 
+                               Background="{TemplateBinding Background}" 
+                               Foreground="{TemplateBinding Foreground}" 
+                               Focusable="false"
+                               IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" 
+                               ClickMode="Press">
                     <ToggleButton.Template>
                         <ControlTemplate TargetType="ToggleButton">
                             <Border Name="Border" CornerRadius="3" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
@@ -114,23 +164,52 @@
                 </Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate>
+
+        <!-- Minimalist Thin ScrollBar Style -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Bg" SnapsToDevicePixels="true" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="true" IsEnabled="{TemplateBinding IsEnabled}">
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="thumbBorder" CornerRadius="3" Background="{DynamicResource ThemeSubText}" Opacity="0.4" Width="6"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="thumbBorder" Property="Opacity" Value="0.8"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Border Background="{DynamicResource ThemeWindowBg}"
             BorderBrush="{DynamicResource ThemeWindowBorder}"
             BorderThickness="1">
-        <Grid Margin="16">
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/> <!-- Title Bar -->
+                <RowDefinition Height="*"/>    <!-- Layout Body -->
             </Grid.RowDefinitions>
 
-            <!-- Header -->
-            <Grid Grid.Row="0" Margin="0,0,0,16" Cursor="SizeAll">
-                <TextBlock Text="SnapFind 设置" 
+            <!-- 1. Header (Title and Close Button) -->
+            <Grid Grid.Row="0" Margin="16,8,16,0" Height="30" Cursor="SizeAll">
+                <TextBlock Text="SnapFind 控制中心" 
                             Foreground="{DynamicResource ThemeText}" 
-                            FontSize="13" 
+                            FontSize="12" 
                             FontWeight="Bold"
                             VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -190,115 +269,283 @@
                 </StackPanel>
             </Grid>
 
-            <!-- Settings Content -->
-            <StackPanel Grid.Row="1">
-                <!-- Search Engine Section -->
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="搜索引擎" 
-                               Foreground="{DynamicResource ThemeSubText}" 
-                               FontSize="11" 
-                               Margin="0,0,0,4"/>
-                    <ComboBox x:Name="SearchEngineComboBox"
-                              Background="{DynamicResource ThemeInputBg}"
-                              Foreground="{DynamicResource ThemeInputFg}"
-                              BorderBrush="{DynamicResource ThemeInputBorder}"
-                              BorderThickness="1"
-                              Padding="6"
-                              FontSize="12"
-                              FontFamily="Segoe UI, Microsoft YaHei UI"
-                              Template="{StaticResource ThemeComboBoxTemplate}">
-                        <ComboBox.Resources>
-                            <Style TargetType="ComboBoxItem">
-                                <Setter Property="Background" Value="{DynamicResource ThemeWindowBg}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ThemeInputFg}"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#0078D7"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ComboBox.Resources>
-                        <ComboBoxItem Content="谷歌 (Google)" Tag="https://www.google.com/search?q="/>
-                        <ComboBoxItem Content="必应 (Bing)" Tag="https://www.bing.com/search?q="/>
-                    </ComboBox>
-                </StackPanel>
+            <!-- 2. Main Content Grid -->
+            <Grid Grid.Row="1" Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="90"/> <!-- Left Sidebar -->
+                    <ColumnDefinition Width="*"/>   <!-- Right Content Panel -->
+                </Grid.ColumnDefinitions>
 
-                <!-- OCR Model Section -->
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="OCR 识别模型" 
-                               Foreground="{DynamicResource ThemeSubText}" 
-                               FontSize="11" 
-                               Margin="0,0,0,4"/>
-                    <ComboBox x:Name="OcrModelComboBox"
-                              Background="{DynamicResource ThemeInputBg}"
-                              Foreground="{DynamicResource ThemeInputFg}"
-                              BorderBrush="{DynamicResource ThemeInputBorder}"
-                              BorderThickness="1"
-                              Padding="6"
-                              FontSize="12"
-                              FontFamily="Segoe UI, Microsoft YaHei UI"
-                              Template="{StaticResource ThemeComboBoxTemplate}">
-                        <ComboBox.Resources>
-                            <Style TargetType="ComboBoxItem">
-                                <Setter Property="Background" Value="{DynamicResource ThemeWindowBg}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource ThemeInputFg}"/>
-                                <Setter Property="Padding" Value="8,6"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#0078D7"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ComboBox.Resources>
-                        <ComboBoxItem Content="PP-OCRv6 (轻量版 - 速度最快)" Tag="PP-OCRv6_tiny"/>
-                        <ComboBoxItem Content="PP-OCRv6 (标准版 - 准确率高)" Tag="PP-OCRv6_small"/>
-                    </ComboBox>
-                </StackPanel>
+                <!-- Sidebar column -->
+                <Border BorderBrush="{DynamicResource ThemeWindowBorder}" BorderThickness="0,0,1,0">
+                    <StackPanel Margin="0,10,0,0">
+                        <RadioButton x:Name="RadioNotifications" Content="通知" GroupName="Sidebar" Click="Sidebar_Click" Tag="notifications" Style="{StaticResource SidebarRadio}"/>
+                        <RadioButton x:Name="RadioSettings" Content="设置" GroupName="Sidebar" Click="Sidebar_Click" Tag="settings" Style="{StaticResource SidebarRadio}"/>
+                        <RadioButton x:Name="RadioAbout" Content="关于" GroupName="Sidebar" Click="Sidebar_Click" Tag="about" Style="{StaticResource SidebarRadio}"/>
+                    </StackPanel>
+                </Border>
 
-                <!-- Hotkey Section -->
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="全局截图快捷键 (点击文本框后直接按键盘设置)" 
-                               Foreground="{DynamicResource ThemeSubText}" 
-                               FontSize="11" 
-                               Margin="0,4,0,4"/>
-                    <TextBox x:Name="HotkeyTextBox"
-                             Background="{DynamicResource ThemeInputBg}"
-                             Foreground="{DynamicResource ThemeInputFg}"
-                             BorderBrush="{DynamicResource ThemeInputBorder}"
-                             BorderThickness="1"
-                             Padding="6"
-                             FontSize="12"
-                             IsReadOnly="True"
-                             Cursor="Hand"
-                             Text="Control,Alt + S"
-                             PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"/>
-                </StackPanel>
+                <!-- Content column containing three sub-panels -->
+                <Grid Grid.Column="1" Margin="16,10,16,16">
+                    
+                    <!-- PANEL A: Notifications -->
+                    <Grid x:Name="PanelNotifications" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                <!-- Auto Start -->
-                <CheckBox x:Name="AutoStartCheckBox"
-                          Content="开机自动启动"
-                          Foreground="{DynamicResource ThemeText}"
-                          FontSize="12"
-                          VerticalContentAlignment="Center"
-                          Margin="0,4,0,0"/>
-            </StackPanel>
+                        <TextBlock x:Name="NotificationTitleText" Grid.Row="0" Text="最新更新日志" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,8"/>
+                        
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                            <TextBlock x:Name="ChangelogTextBlock" 
+                                       TextWrapping="Wrap" 
+                                       FontSize="12" 
+                                       Foreground="{DynamicResource ThemeText}" 
+                                       LineHeight="18"/>
+                        </ScrollViewer>
 
-            <!-- Bottom Buttons -->
-            <StackPanel Grid.Row="2" 
-                        Orientation="Horizontal" 
-                        HorizontalAlignment="Right" 
-                        Margin="0,20,0,0">
-                <Button Content="取消" 
-                        Click="CancelButton_Click"
-                        Style="{StaticResource ModernButton}" 
-                        Margin="0,0,8,0"/>
-                <Button Content="保存" 
-                        Click="SaveButton_Click"
-                        Style="{StaticResource PrimaryButton}"/>
-            </StackPanel>
+                        <!-- Progress Bar Panel -->
+                        <StackPanel x:Name="ProgressPanel" Grid.Row="2" Visibility="Collapsed" Margin="0,0,0,10">
+                            <Grid Margin="0,0,0,4">
+                                <TextBlock x:Name="ProgressPercentText" Text="下载进度: 0%" FontSize="11" Foreground="{DynamicResource ThemeText}" HorizontalAlignment="Left"/>
+                                <TextBlock x:Name="ProgressBytesText" Text="正在连接服务器..." FontSize="11" Foreground="{DynamicResource ThemeSubText}" HorizontalAlignment="Right"/>
+                            </Grid>
+                            <ProgressBar x:Name="DownloadProgressBar" 
+                                         Height="8" 
+                                         Minimum="0" 
+                                         Maximum="100" 
+                                         Value="0"
+                                         Foreground="#0078D7"
+                                         Background="{DynamicResource ThemeInputBorder}"/>
+                        </StackPanel>
+
+                        <!-- Notification Actions -->
+                        <Grid Grid.Row="3">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="DownloadButton" Content="立即下载" 
+                                        Click="DownloadButton_Click"
+                                        Style="{StaticResource PrimaryButton}" 
+                                        Margin="0,0,8,0"/>
+                                <Button x:Name="IgnoreButton" Content="忽略此版本" 
+                                        Click="IgnoreButton_Click"
+                                        Style="{StaticResource ModernButton}" 
+                                        Margin="0,0,8,0"/>
+                                <Button x:Name="CancelNotifBtn" Content="暂不更新" 
+                                        Click="CancelButton_Click"
+                                        Style="{StaticResource ModernButton}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- PANEL B: Settings -->
+                    <Grid x:Name="PanelSettings" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <!-- Search Engine Section -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="搜索引擎" 
+                                           Foreground="{DynamicResource ThemeSubText}" 
+                                           FontSize="11" 
+                                           Margin="0,0,0,4"/>
+                                <ComboBox x:Name="SearchEngineComboBox"
+                                          Background="{DynamicResource ThemeInputBg}"
+                                          Foreground="{DynamicResource ThemeInputFg}"
+                                          BorderBrush="{DynamicResource ThemeInputBorder}"
+                                          BorderThickness="1"
+                                          Padding="6"
+                                          FontSize="12"
+                                          FontFamily="Segoe UI, Microsoft YaHei UI"
+                                          Template="{StaticResource ThemeComboBoxTemplate}">
+                                    <ComboBox.Resources>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeWindowBg}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ThemeInputFg}"/>
+                                            <Setter Property="Padding" Value="8,6"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#0078D7"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Resources>
+                                    <ComboBoxItem Content="谷歌 (Google)" Tag="https://www.google.com/search?q="/>
+                                    <ComboBoxItem Content="必应 (Bing)" Tag="https://www.bing.com/search?q="/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- OCR Model Section -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="OCR 识别模型" 
+                                           Foreground="{DynamicResource ThemeSubText}" 
+                                           FontSize="11" 
+                                           Margin="0,0,0,4"/>
+                                <ComboBox x:Name="OcrModelComboBox"
+                                          Background="{DynamicResource ThemeInputBg}"
+                                          Foreground="{DynamicResource ThemeInputFg}"
+                                          BorderBrush="{DynamicResource ThemeInputBorder}"
+                                          BorderThickness="1"
+                                          Padding="6"
+                                          FontSize="12"
+                                          FontFamily="Segoe UI, Microsoft YaHei UI"
+                                          Template="{StaticResource ThemeComboBoxTemplate}">
+                                    <ComboBox.Resources>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="Background" Value="{DynamicResource ThemeWindowBg}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ThemeInputFg}"/>
+                                            <Setter Property="Padding" Value="8,6"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="#0078D7"/>
+                                                    <Setter Property="Foreground" Value="White"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Resources>
+                                    <ComboBoxItem Content="PP-OCRv6 (轻量版 - 速度最快)" Tag="PP-OCRv6_tiny"/>
+                                    <ComboBoxItem Content="PP-OCRv6 (标准版 - 准确率高)" Tag="PP-OCRv6_small"/>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <!-- Hotkey Section -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="全局截图快捷键 (点击文本框后直接按键盘设置)" 
+                                           Foreground="{DynamicResource ThemeSubText}" 
+                                           FontSize="11" 
+                                           Margin="0,0,0,4"/>
+                                <TextBox x:Name="HotkeyTextBox"
+                                         Background="{DynamicResource ThemeInputBg}"
+                                         Foreground="{DynamicResource ThemeInputFg}"
+                                         BorderBrush="{DynamicResource ThemeInputBorder}"
+                                         BorderThickness="1"
+                                         Padding="6"
+                                         FontSize="12"
+                                         IsReadOnly="True"
+                                         Cursor="Hand"
+                                         Text="Control,Alt + S"
+                                         PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"/>
+                            </StackPanel>
+
+                            <!-- Control Panel Hotkey Section -->
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock Text="控制面板快捷键 (点击文本框后直接按键盘设置)" 
+                                           Foreground="{DynamicResource ThemeSubText}" 
+                                           FontSize="11" 
+                                           Margin="0,0,0,4"/>
+                                <TextBox x:Name="ControlPanelHotkeyTextBox"
+                                         Background="{DynamicResource ThemeInputBg}"
+                                         Foreground="{DynamicResource ThemeInputFg}"
+                                         BorderBrush="{DynamicResource ThemeInputBorder}"
+                                         BorderThickness="1"
+                                         Padding="6"
+                                         FontSize="12"
+                                         IsReadOnly="True"
+                                         Cursor="Hand"
+                                         Text="Control,Alt + C"
+                                         PreviewKeyDown="ControlPanelHotkeyTextBox_PreviewKeyDown"/>
+                            </StackPanel>
+
+                            <!-- Auto Start -->
+                            <CheckBox x:Name="AutoStartCheckBox"
+                                      Content="开机自动启动"
+                                      Foreground="{DynamicResource ThemeText}"
+                                      FontSize="12"
+                                      VerticalContentAlignment="Center"
+                                      Margin="0,4,0,0"/>
+                        </StackPanel>
+
+                        <!-- Settings Actions -->
+                        <StackPanel Grid.Row="1" 
+                                    Orientation="Horizontal" 
+                                    HorizontalAlignment="Right">
+                            <Button Content="取消" 
+                                    Click="CancelButton_Click"
+                                    Style="{StaticResource ModernButton}" 
+                                    Margin="0,0,8,0"/>
+                            <Button Content="保存" 
+                                    Click="SaveButton_Click"
+                                    Style="{StaticResource PrimaryButton}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- PANEL C: About -->
+                    <Grid x:Name="PanelAbout" Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- App info -->
+                            <RowDefinition Height="*"/>    <!-- Scrollable descriptions -->
+                            <RowDefinition Height="Auto"/> <!-- Action buttons -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Header Info with brand new Logo -->
+                        <Grid Grid.Row="0" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Image Source="about_logo.jpg" Width="52" Height="52" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="SnapFind" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource ThemeText}"/>
+                                <TextBlock x:Name="AboutVersionText" Text="版本: v2.1.0" FontSize="11" Foreground="{DynamicResource ThemeSubText}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Descriptions and Links -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="项目简介与声明" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8">
+                                    SnapFind 是一款专为 Windows 系统度身定制的高性能、纯本地截图 OCR 识别与搜索工具。<LineBreak/>
+                                    所有截取的图片与识别结果完全保存在本地进行推理，绝不上传云端，彻底保护您的隐私安全。
+                                </TextBlock>
+                                
+                                <TextBlock Text="操作方法" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8">
+                                    • 截图：按快捷键选定屏幕区域后松开，即刻唤起 OCR 识别结果。<LineBreak/>
+                                    • 快速复制：在结果文本卡片中，直接按 Ctrl + C 拷贝内容，软件会自动拷贝到剪贴板并关闭窗口。<LineBreak/>
+                                    • 网页检索：按 Enter 键或点击结果框中“搜索”按钮，拉起浏览器一键检索。
+                                </TextBlock>
+
+                                <Separator Background="{DynamicResource ThemeWindowBorder}" Margin="0,8,0,8"/>
+
+                                <TextBlock Text="官方渠道" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,4"/>
+                                <TextBlock FontSize="11" Margin="0,2">
+                                    <Run Text="GitHub 地址: " Foreground="{DynamicResource ThemeSubText}"/>
+                                    <Hyperlink NavigateUri="https://github.com/Loecedas/SnapFind" RequestNavigate="Hyperlink_RequestNavigate">
+                                        <Run Text="https://github.com/Loecedas/SnapFind"/>
+                                    </Hyperlink>
+                                </TextBlock>
+                                <TextBlock FontSize="11" Margin="0,2,0,4">
+                                    <Run Text="官方网站: " Foreground="{DynamicResource ThemeSubText}"/>
+                                    <Hyperlink NavigateUri="https://snapfind.baseye.org/" RequestNavigate="Hyperlink_RequestNavigate">
+                                        <Run Text="https://snapfind.baseye.org/"/>
+                                    </Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- About actions -->
+                        <Grid Grid.Row="2">
+                            <TextBlock x:Name="AboutStatusText" Foreground="{DynamicResource ThemeSubText}" FontSize="11" VerticalAlignment="Center" HorizontalAlignment="Left" Visibility="Collapsed"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="AboutCheckUpdateButton" Content="检查更新" 
+                                        Click="AboutCheckUpdateButton_Click"
+                                        Style="{StaticResource PrimaryButton}" 
+                                        Margin="0,0,8,0"/>
+                                <Button Content="关闭" 
+                                        Click="CancelButton_Click"
+                                        Style="{StaticResource ModernButton}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Grid>
         </Grid>
     </Border>
 </Window>

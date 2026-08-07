@@ -15,15 +15,20 @@ namespace PixOcrSearch
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
         private const int WM_HOTKEY = 0x0312;
-        private const int HOTKEY_ID = 9000;
+        private const int HOTKEY_ID_SCREENSHOT = 9000;
+        private const int HOTKEY_ID_CONTROLPANEL = 9001;
 
         private IntPtr _hWnd;
         private HwndSource? _hwndSource;
-        private Action? _onHotkeyPressed;
+        private Action? _onScreenshotPressed;
+        private Action? _onControlPanelPressed;
 
-        public bool Register(Window window, string modifiersStr, string keyStr, Action onHotkeyPressed)
+        public bool Register(Window window, 
+                            string modifiersStr, string keyStr, Action onScreenshotPressed,
+                            string cpModifiersStr, string cpKeyStr, Action onControlPanelPressed)
         {
-            _onHotkeyPressed = onHotkeyPressed;
+            _onScreenshotPressed = onScreenshotPressed;
+            _onControlPanelPressed = onControlPanelPressed;
 
             if (_hWnd == IntPtr.Zero)
             {
@@ -35,30 +40,46 @@ namespace PixOcrSearch
             }
             else
             {
-                // Just unregister the old hotkey, keeping window and hook alive
-                UnregisterHotKey(_hWnd, HOTKEY_ID);
+                // Just unregister the old hotkeys, keeping window and hook alive
+                UnregisterHotKey(_hWnd, HOTKEY_ID_SCREENSHOT);
+                UnregisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL);
             }
 
             uint modifiers = ParseModifiers(modifiersStr);
             uint vk = ParseKey(keyStr);
+            bool ok1 = RegisterHotKey(_hWnd, HOTKEY_ID_SCREENSHOT, modifiers, vk);
 
-            return RegisterHotKey(_hWnd, HOTKEY_ID, modifiers, vk);
+            uint cpModifiers = ParseModifiers(cpModifiersStr);
+            uint cpVk = ParseKey(cpKeyStr);
+            bool ok2 = RegisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL, cpModifiers, cpVk);
+
+            return ok1 && ok2;
         }
 
         public void Unregister()
         {
             if (_hWnd != IntPtr.Zero)
             {
-                UnregisterHotKey(_hWnd, HOTKEY_ID);
+                UnregisterHotKey(_hWnd, HOTKEY_ID_SCREENSHOT);
+                UnregisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL);
             }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg == WM_HOTKEY && wParam.ToInt32() == HOTKEY_ID)
+            if (msg == WM_HOTKEY)
             {
-                _onHotkeyPressed?.Invoke();
-                handled = true;
+                int id = wParam.ToInt32();
+                if (id == HOTKEY_ID_SCREENSHOT)
+                {
+                    _onScreenshotPressed?.Invoke();
+                    handled = true;
+                }
+                else if (id == HOTKEY_ID_CONTROLPANEL)
+                {
+                    _onControlPanelPressed?.Invoke();
+                    handled = true;
+                }
             }
             return IntPtr.Zero;
         }
