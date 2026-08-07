@@ -43,6 +43,15 @@ namespace PixOcrSearch
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int GetWindowLong(IntPtr hwnd, int index);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
+
+        private const int GWL_STYLE = -16;
+        private const int WS_MAXIMIZEBOX = 0x00010000;
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             try
@@ -53,6 +62,10 @@ namespace PixOcrSearch
                     int preference = 2; // DWMWCP_ROUND
                     DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
                 }
+
+                // Disable Maximize Box
+                int value = GetWindowLong(hwnd, GWL_STYLE);
+                SetWindowLong(hwnd, GWL_STYLE, value & ~WS_MAXIMIZEBOX);
             }
             catch { }
 
@@ -677,14 +690,17 @@ namespace PixOcrSearch
         private void DisplayOfflineLog()
         {
             NotificationTitleText.Text = "最新更新日志 (离线)";
-            ChangelogTextBlock.Text = "v2.1.0 更新日志\n" +
+            ChangelogTextBlock.Text = "v2.3.0 更新日志\n" +
+                               "• 控制中心支持拖拽拉伸调整窗口尺寸，并原生适配任务栏最小化缩回操作。\n" +
+                               "• 移除了结果展示窗口（EditWindow）醒目的蓝色边框线，改为系统主题自适应灰色。\n\n" +
+                               "v2.2.0 更新日志\n" +
+                               "• 控制面板整合侧栏切换，移除了冗余的独立关于和通知窗口。\n" +
+                               "• 新增全局控制中心呼出热键（默认 Ctrl+Alt+C），自带快捷键冲突防重校验机制。\n" +
+                               "• 精简系统托盘右键选项为：截图 OCR 搜索、控制面板、退出。\n" +
+                               "• 引入 6 像素极细半透明 Fluent 滚动条，悬停时自动渐显。\n\n" +
+                               "v2.1.0 更新日志\n" +
                                "• 移除了 OCR 结果窗口底部“设置”、“复制”和“搜索”按钮的 Emoji 图标。\n" +
-                               "• 新增了托盘图标右键菜单中的“关于”和“通知”功能，支持检查更新及本地直接下载更新包。\n\n" +
-                               "v2.0.1 更新日志\n" +
-                               "• 系统原生级视觉优化，支持 Windows 11 原生大圆角与阴影自适应渲染。\n\n" +
-                               "v2.0.0 更新日志\n" +
-                               "• 集成轻量化本地 PaddleOCR v6 引擎推理，支持双模型动态热切换，数据完全离线。\n" +
-                               "• 支持智能内存自动深度压缩回收，空闲待机物理内存降至约 10MB。";
+                               "• 支持检查更新及本地直接下载更新包。";
             
             DownloadButton.Visibility = Visibility.Collapsed;
             IgnoreButton.Visibility = Visibility.Collapsed;

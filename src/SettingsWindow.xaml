@@ -10,7 +10,7 @@
         Icon="pack://application:,,,/app.ico"
         Width="560"
         Height="400"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
         KeyDown="Window_KeyDown"
@@ -18,7 +18,7 @@
 
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="30" 
-                      ResizeBorderThickness="0" 
+                      ResizeBorderThickness="5" 
                       GlassFrameThickness="0" 
                       UseAeroCaptionButtons="False"
                       CornerRadius="0"/>

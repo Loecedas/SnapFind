@@ -69,7 +69,7 @@
     </Window.Resources>
 
     <Border Background="{DynamicResource ThemeWindowBg}"
-            BorderBrush="#0078D7"
+            BorderBrush="{DynamicResource ThemeWindowBorder}"
             BorderThickness="1">
         <Grid Margin="12">
             <Grid.RowDefinitions>
