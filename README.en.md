@@ -13,9 +13,14 @@
 ## Core Features
 
 ### Smart Screenshot & Offline Local OCR
-- **Zero-Network Local Inference**: Integrates lightweight PP-OCRv6_tiny Chinese/English models. Executes purely offline on your local device, guaranteeing zero privacy leakage risks.
+- **Zero-Network Local Inference**: Integrates the lightweight PaddleOCR v6 engine, supporting dynamic runtime hot-swapping between **PP-OCRv6_tiny** and **PP-OCRv6_small** models. Runs 100% locally on your machine with zero data privacy leakage risk.
 - **Multi-Monitor & High DPI Adaptation**: Traverses screen monitors using Win32 API to fetch independent DPI scale factors. Prevents screenshot shifts or black screen overlaps across multiple monitors.
-- **Customizable Global Hotkeys**: Default hotkey Ctrl + Alt + S (fully customizable modifier keys and character combinations) invokes screen crop overlay in milliseconds from any third-party app.
+- **Customizable Global Hotkeys**: Default hotkey `Ctrl + Alt + S` (fully customizable modifier keys and character combinations) invokes screen crop overlay in milliseconds from any third-party app.
+
+### Native OS Visual Integration
+- **Windows 11 Native Rounded Corners**: Leverages the DWM API to automatically apply modern rounded corners and dropshadows on Windows 11, while retaining clean rectangular borders on Windows 10 for visual consistency.
+- **100% Native Win32 Tray Context Menu**: Migrates from custom WinForms container to the native Win32 `TrackPopupMenu` API. Employs a clean, iconless plain-text list that inherits native Windows 11 Acrylic blur, Mica transparency, and drop-shadow effects.
+- **DWM Taskbar Minimization Fly-in**: Optimizes non-client frame boundaries to align minimization and restore animations precisely with the system tray icon location for fluid, consistent visual feedback.
 
 ### Interactive Result Dialog
 - **Quick Copy & Auto-Close**: Press `Ctrl + C` inside the result popup to automatically extract selected text (or all text if no selection exists), write it to the clipboard, and **instantly destroy and close the window**.
@@ -23,7 +28,7 @@
 - **Startup Registry Self-Healing**: Sets Windows Run registry keys directly from Settings. Automatically repairs pathways on boot and toggles from the tray menu.
 
 ### Optimization & Lifecycle
-- **Smart Idle Memory Reclamation**: Once OCR finishes, the engine initiates an 8-second inactivity timer. On expiration, it disposes of the active inference instances and calls the Windows `EmptyWorkingSet` kernel API to clean process pages, reducing background standby memory usage from ~40MB **down to just under 10MB**.
+- **Smart Idle Memory Reclamation**: Once OCR finishes, the engine initiates a **5-second** inactivity timer. On expiration, it disposes of the active inference instances and calls the Windows `EmptyWorkingSet` kernel API to clean process pages, reducing background standby memory usage from ~40MB **down to just under 10MB**.
 - **Mutex Single Instance Guard**: Built on a system-level `Mutex` flag to avoid hotkey double-triggering conflicts.
 
 ## Project Structure
@@ -138,13 +143,13 @@ graph TD
     D --> H2[Branch B: Enter / Search]
     H2 --> I2[Launch browser search & close window]
     
-    I1 --> J["4. Activate 8-second idle timer"]
+    I1 --> J["4. Activate 5-second idle timer"]
     I2 --> J
     J -- Inactive --> K["5. Dispose engine resources, RAM drops to <10MB standby"]
 ```
 
 ### Memory Optimization Mechanism
-To maintain a small footprint on user machines, SnapFind applies an aggressive cleanup cycle:
+To maintain a small footprint on user machines, SnapFind applies an aggressive cleanup cycle after **5 seconds** of inactivity:
 1. Calls `PaddleOCREngine.Dispose()` to unload C++ unmanaged engines and variables.
 2. Triggers the Windows kernel `EmptyWorkingSet` API to push process working pages to the page file.
 3. The next screenshot action automatically re-instantiates the engine silently, ensuring fast millisecond response while keeping background standby RAM low (approx. 10MB background standby).
