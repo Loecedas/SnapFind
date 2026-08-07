@@ -14,19 +14,34 @@ namespace PixOcrSearch
         [DllImport("psapi.dll", EntryPoint = "EmptyWorkingSet", SetLastError = true)]
         private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
+        [DllImport("mklml.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "MKL_Free_Buffers", CharSet = CharSet.Ansi)]
+        private static extern void MKL_Free_Buffers();
+
+        [DllImport("mklml.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "mkl_free_buffers", CharSet = CharSet.Ansi)]
+        private static extern void mkl_free_buffers();
+
         private static PaddleOCREngine? _engine;
         private static Task? _initTask;
         private static System.Threading.Timer? _disposeTimer;
+        private static string _currentModel = "";
         private static readonly object _lock = new object();
 
-        // Start initialization asynchronously in the background
+        // Start initialization asynchronously in the background using the user-selected model
         public static void StartInitialize()
         {
+            string modelToLoad = ConfigManager.Current.OcrModel;
             lock (_lock)
             {
-                if (_engine == null && (_initTask == null || _initTask.IsFaulted || _initTask.IsCompleted))
+                if (_engine == null || _currentModel != modelToLoad)
                 {
-                    _initTask = Task.Run(() => InitializeInternal());
+                    // If model is changing, dispose old engine first to avoid memory leaks
+                    if (_engine != null)
+                    {
+                        _engine.Dispose();
+                        _engine = null;
+                    }
+                    _currentModel = modelToLoad;
+                    _initTask = Task.Run(() => InitializeInternal(modelToLoad));
                 }
             }
         }
@@ -34,9 +49,14 @@ namespace PixOcrSearch
         // Wait for the background initialization task to complete
         public static async Task EnsureInitializedAsync()
         {
+            string modelToLoad = ConfigManager.Current.OcrModel;
             Task? task;
             lock (_lock)
             {
+                if (_engine == null || _currentModel != modelToLoad)
+                {
+                    StartInitialize();
+                }
                 task = _initTask;
             }
 
@@ -44,54 +64,73 @@ namespace PixOcrSearch
             {
                 await task;
             }
-            else
-            {
-                StartInitialize();
-                lock (_lock)
-                {
-                    task = _initTask;
-                }
-                if (task != null)
-                {
-                    await task;
-                }
-            }
         }
 
-        private static void InitializeInternal()
+        private static void InitializeInternal(string model)
         {
             try
             {
-                lock (_lock)
-                {
-                    if (_engine != null) return;
-                }
+                // Suppress PaddlePaddle C++ glog output to optimize console writing overhead and speed up execution
+                Environment.SetEnvironmentVariable("GLOG_minloglevel", "3");
 
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 string libsDir = Path.Combine(baseDir, "libs");
                 SetDllDirectory(libsDir);
 
                 // Initialize OCR parameters optimized for RAM footprint and speed balance
-                OCRParameter ocrParameter = new OCRParameter
+                OCRParameter ocrParam = new OCRParameter
                 {
-                    cpu_math_library_num_threads = Math.Min(4, Environment.ProcessorCount), // Limit CPU threads but leverage multi-core
-                    enable_mkldnn = false,            // Disable MKLDNN memory pool cache
+                    cpu_math_library_num_threads = Math.Min(4, Environment.ProcessorCount), // Restrict threads to 4 to avoid native crashes under heavy load
+                    enable_mkldnn = true,             // Enable MKLDNN for fast CPU inference (improves speed by 2x-4x)
                     cls = false,                      // Disable orientation classifier
                     det = true,                       // Enable detection
                     rec = true,                       // Enable recognition
                     max_side_len = 960                // Limit maximum image side length
                 };
 
-                // Create OCR model config pointing to lightweight "tiny" model paths
+                string inferenceDir = Path.Combine(libsDir, "inference");
+
+                string detModel = "PP-OCRv6_tiny_det_infer";
+                string recModel = "PP-OCRv6_tiny_rec_infer";
+
+                bool tinyExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_rec_infer"));
+                bool smallExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_rec_infer"));
+
+                if (model == "PP-OCRv6_small" && smallExists)
+                {
+                    detModel = "PP-OCRv6_small_det_infer";
+                    recModel = "PP-OCRv6_small_rec_infer";
+                }
+                else if (model == "PP-OCRv6_tiny" && tinyExists)
+                {
+                    detModel = "PP-OCRv6_tiny_det_infer";
+                    recModel = "PP-OCRv6_tiny_rec_infer";
+                }
+                else
+                {
+                    // Fallback to whichever is available if preferred model is missing
+                    if (tinyExists)
+                    {
+                        detModel = "PP-OCRv6_tiny_det_infer";
+                        recModel = "PP-OCRv6_tiny_rec_infer";
+                    }
+                    else if (smallExists)
+                    {
+                        detModel = "PP-OCRv6_small_det_infer";
+                        recModel = "PP-OCRv6_small_rec_infer";
+                    }
+                }
+
                 OCRModelConfig config = new OCRModelConfig
                 {
-                    det_infer = Path.Combine(libsDir, "inference", "PP-OCRv6_tiny_det_infer"),
+                    det_infer = Path.Combine(libsDir, "inference", detModel),
                     cls_infer = Path.Combine(libsDir, "inference", "PP-OCRv5_mobile_cls_infer"),
-                    rec_infer = Path.Combine(libsDir, "inference", "PP-OCRv6_tiny_rec_infer"),
+                    rec_infer = Path.Combine(libsDir, "inference", recModel),
                     keys = Path.Combine(libsDir, "inference", "ppocr_keys.txt")
                 };
 
-                var engine = new PaddleOCREngine(config, ocrParameter);
+                var engine = new PaddleOCREngine(config, ocrParam);
+
                 lock (_lock)
                 {
                     _engine = engine;
@@ -108,7 +147,7 @@ namespace PixOcrSearch
             // Reset the inactivity timer when a screenshot is captured
             ResetDisposeTimer();
 
-            // Ensure the engine has loaded in the background
+            // Ensure the selected model engine has loaded in the background
             await EnsureInitializedAsync();
 
             string result = await Task.Run(() =>
@@ -123,17 +162,16 @@ namespace PixOcrSearch
 
                     if (engine != null)
                     {
-                        // Run OCR directly on the Bitmap to avoid MemoryStream/PNG allocations
-                        // Synchronize access to the native PaddleOCR engine to ensure thread-safety
-                        OCRResult ocrResult;
-                        lock (engine)
+                        // Run OCR directly on the selected model
+                        var ocrResult = engine.DetectText(bitmap);
+                        if (ocrResult != null)
                         {
-                            ocrResult = engine.DetectText(bitmap);
-                        }
-                        
-                        if (ocrResult != null && !string.IsNullOrEmpty(ocrResult.Text))
-                        {
-                            return ocrResult.Text.Trim();
+                            string text = ocrResult.Text?.Trim() ?? string.Empty;
+                            if (ocrResult is IDisposable disposable)
+                            {
+                                disposable.Dispose();
+                            }
+                            return text;
                         }
                     }
                 }
@@ -143,7 +181,7 @@ namespace PixOcrSearch
                 }
                 finally
                 {
-                    // Reset timer again after OCR completes to start the 8s countdown
+                    // Reset timer again after OCR completes to start the 5s countdown
                     ResetDisposeTimer();
                 }
                 return string.Empty;
@@ -155,6 +193,22 @@ namespace PixOcrSearch
             return result;
         }
 
+        public static void FreeMklBuffers()
+        {
+            try
+            {
+                MKL_Free_Buffers();
+            }
+            catch
+            {
+                try
+                {
+                    mkl_free_buffers();
+                }
+                catch { }
+            }
+        }
+
         public static void OptimizeMemory()
         {
             try
@@ -164,13 +218,12 @@ namespace PixOcrSearch
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
 
+                // Free Intel MKL internal thread-local scratch buffers to drop background RAM usage
+                FreeMklBuffers();
+
                 // Trim physical memory pages back to OS standby list
                 using var process = System.Diagnostics.Process.GetCurrentProcess();
                 EmptyWorkingSet(process.Handle);
-
-                // Constrain physical memory working set to a fixed range (5MB to 40MB)
-                process.MinWorkingSet = new IntPtr(5 * 1024 * 1024);
-                process.MaxWorkingSet = new IntPtr(40 * 1024 * 1024);
             }
             catch { }
         }
@@ -191,6 +244,8 @@ namespace PixOcrSearch
                 }
                 _initTask = null;
             }
+            // Free Intel MKL internal buffers upon engine disposal
+            FreeMklBuffers();
         }
 
         private static void ResetDisposeTimer()
@@ -199,11 +254,11 @@ namespace PixOcrSearch
             {
                 if (_disposeTimer == null)
                 {
-                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 8000, System.Threading.Timeout.Infinite);
+                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 5000, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
-                    _disposeTimer.Change(8000, System.Threading.Timeout.Infinite);
+                    _disposeTimer.Change(5000, System.Threading.Timeout.Infinite);
                 }
             }
         }

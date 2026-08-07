@@ -20,6 +20,7 @@ project.fragment.lock.json
 
 # SnapFind Generated Binaries & Packages
 /SnapFind.exe
+/SnapFind_*.exe
 /releases/
 
 # SnapFind Runtime Cache & Configurations

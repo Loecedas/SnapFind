@@ -34,27 +34,7 @@ if (Test-Path $portablesDir) {
     }
 }
 
-$nextVersion = "1.0.0"
-if ($versions.Count -gt 0) {
-    $maxVersion = ($versions | Sort-Object -Descending | Select-Object -First 1)
-    $major = $maxVersion.Major
-    $minor = $maxVersion.Minor
-    $patch = $maxVersion.Build
-    
-    if ($patch -lt 9) {
-        $patch += 1
-    } else {
-        if ($minor -lt 9) {
-            $minor += 1
-            $patch = 0
-        } else {
-            $major += 1
-            $minor = 0
-            $patch = 0
-        }
-    }
-    $nextVersion = "$major.$minor.$patch"
-}
+$nextVersion = "2.1.0"
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 
@@ -62,22 +42,7 @@ Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 Write-Host "Compiling SnapFind..." -ForegroundColor Cyan
 dotnet publish "$srcDir\SnapFind.csproj" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true
 
-# 4. Copy SnapFind.exe to root folder
-Write-Host "Copying executable to root..." -ForegroundColor Cyan
-$publishExe = "$srcDir\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\SnapFind.exe"
-$rootExe = "$workspaceRoot\SnapFind.exe"
-Copy-Item $publishExe $rootExe -Force
-
-# 5. Generate portable ZIP
-$zipName = "SnapFindPortable_v$($nextVersion).zip"
-Write-Host "Creating portable ZIP: $zipName..." -ForegroundColor Cyan
 $publishDir = "$srcDir\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
-
-# Guarantee libs folder containing native DLLs is fully copied to publish output
-$publishLibsDir = "$publishDir\libs"
-if (-not (Test-Path $publishLibsDir)) { New-Item -ItemType Directory -Path $publishLibsDir -Force | Out-Null }
-Write-Host "Syncing libs folder to publish output..." -ForegroundColor Yellow
-Copy-Item "$workspaceRoot\libs\*" $publishLibsDir -Recurse -Force
 
 # Clean up unused default models folder copied by PaddleOCRSharp NuGet to root
 $unusedInferenceDir = "$publishDir\inference"
@@ -86,25 +51,49 @@ if (Test-Path $unusedInferenceDir) {
     Remove-Item -Path $unusedInferenceDir -Recurse -Force
 }
 
-$zipDest = "$portablesDir\$zipName"
+# 4. Copy SnapFind.exe to root folder
+Write-Host "Copying executable to root..." -ForegroundColor Cyan
+$publishExe = "$publishDir\SnapFind.exe"
+Copy-Item $publishExe "$workspaceRoot\SnapFind.exe" -Force
 
-Add-Type -Assembly "System.IO.Compression.FileSystem"
-[System.IO.Compression.ZipFile]::CreateFromDirectory($publishDir, $zipDest)
+# Clean up variant executables from root
+Get-ChildItem -Path "$workspaceRoot\SnapFind_*.exe" -ErrorAction Ignore | Remove-Item -Force
 
-# 6. Compile installer using Inno Setup
-Write-Host "Compiling installer..." -ForegroundColor Cyan
-$isccPath = "$workspaceRoot\cache\InnoSetup\ISCC.exe"
-if (-not (Test-Path $isccPath)) {
-    # If not in cache, try default Program Files paths just in case
-    if (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
-        $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-    } elseif (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe") {
-        $isccPath = "C:\Program Files\Inno Setup 6\ISCC.exe"
-    } else {
-        throw "ISCC.exe not found! Please make sure Inno Setup is installed."
-    }
+# 5. Generate portable ZIP (without timestamp)
+Write-Host "Generating portable ZIP..." -ForegroundColor Cyan
+$zipTempDir = "$workspaceRoot\releases\portables\SnapFind"
+if (Test-Path $zipTempDir) { Remove-Item -Path $zipTempDir -Recurse -Force }
+New-Item -ItemType Directory -Path $zipTempDir | Out-Null
+
+# Copy published files into temp folder
+Copy-Item "$publishExe" "$zipTempDir\SnapFind.exe" -Force
+Copy-Item "$workspaceRoot\libs" "$zipTempDir\libs" -Recurse -Force
+
+$zipDest = "$portablesDir\SnapFindPortable_v$nextVersion.zip"
+if (Test-Path $zipDest) { Remove-Item -Path $zipDest -Force }
+
+# Use high-performance 7-Zip if available, fallback to Compress-Archive
+$exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
+if (Test-Path $exe7z) {
+    Write-Host "Compressing portable ZIP using 7-Zip (Ultra)..." -ForegroundColor Cyan
+    & $exe7z a -tzip -mx=9 "$zipDest" "$zipTempDir"
+} else {
+    Write-Host "Compressing portable ZIP using Compress-Archive..." -ForegroundColor Cyan
+    Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
 }
 
-Start-Process -FilePath $isccPath -ArgumentList "/DAppVersion=$nextVersion `"$srcDir\setup.iss`"" -NoNewWindow -Wait
+# Clean up temp folder
+Remove-Item -Path $zipTempDir -Recurse -Force
+Write-Host "Portable ZIP generated at: $zipDest" -ForegroundColor Green
 
-Write-Host "Build and packaging complete! Generated version v$nextVersion" -ForegroundColor Green
+# 6. Generate installer using Inno Setup (without timestamp)
+Write-Host "Generating installer using Inno Setup..." -ForegroundColor Cyan
+$isccPath = "$workspaceRoot\cache\InnoSetup\ISCC.exe"
+if (Test-Path $isccPath) {
+    & $isccPath /dAppVersion=$nextVersion "$srcDir\setup.iss"
+    Write-Host "Installer generated successfully in: $installersDir" -ForegroundColor Green
+} else {
+    Write-Warning "Inno Setup compiler (ISCC.exe) not found at: $isccPath. Skipping installer generation."
+}
+
+Write-Host "Build complete! Compiled and packaged version v$nextVersion successfully." -ForegroundColor Green

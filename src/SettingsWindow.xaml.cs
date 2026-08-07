@@ -20,8 +20,22 @@ namespace PixOcrSearch
             InitializeComponent();
         }
 
+        [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
+                {
+                    int preference = 2; // DWMWCP_ROUND
+                    DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+                }
+            }
+            catch { }
+
             // Dynamically refresh system theme resources before rendering
             App.ApplyTheme();
 
@@ -41,6 +55,46 @@ namespace PixOcrSearch
             {
                 // Default to Google if not matched
                 SearchEngineComboBox.SelectedIndex = 0;
+            }
+
+            // Dynamically detect available models in libs/inference
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string inferenceDir = Path.Combine(baseDir, "libs", "inference");
+
+            bool tinyExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_rec_infer"));
+            bool smallExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_rec_infer"));
+
+            var itemsToRemove = new System.Collections.Generic.List<System.Windows.Controls.ComboBoxItem>();
+            foreach (System.Windows.Controls.ComboBoxItem item in OcrModelComboBox.Items)
+            {
+                string tag = item.Tag?.ToString() ?? "";
+                if (tag == "PP-OCRv6_tiny" && !tinyExists) itemsToRemove.Add(item);
+                else if (tag == "PP-OCRv6_small" && !smallExists) itemsToRemove.Add(item);
+            }
+            foreach (var item in itemsToRemove)
+            {
+                OcrModelComboBox.Items.Remove(item);
+            }
+
+            string currentModel = ConfigManager.Current.OcrModel;
+            bool modelFound = false;
+            foreach (System.Windows.Controls.ComboBoxItem item in OcrModelComboBox.Items)
+            {
+                if (item.Tag?.ToString() == currentModel)
+                {
+                    OcrModelComboBox.SelectedItem = item;
+                    modelFound = true;
+                    break;
+                }
+            }
+            if (!modelFound && OcrModelComboBox.Items.Count > 0)
+            {
+                OcrModelComboBox.SelectedIndex = 0;
+            }
+
+            if (OcrModelComboBox.Items.Count <= 1)
+            {
+                OcrModelComboBox.IsEnabled = false;
             }
 
             _recordedModifiers = ConfigManager.Current.HotkeyModifiers;
@@ -123,14 +177,28 @@ namespace PixOcrSearch
                 url = selectedItem.Tag?.ToString() ?? "https://www.google.com/search?q=";
             }
 
+            string model = "PP-OCRv6_small";
+            if (OcrModelComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem selectedModelItem)
+            {
+                model = selectedModelItem.Tag?.ToString() ?? "PP-OCRv6_small";
+            }
+
+            bool modelChanged = ConfigManager.Current.OcrModel != model;
+
             ConfigManager.Current.SearchEngineUrl = url;
             ConfigManager.Current.HotkeyModifiers = _recordedModifiers;
             ConfigManager.Current.HotkeyKey = _recordedKey;
+            ConfigManager.Current.OcrModel = model;
             
             bool autoStart = AutoStartCheckBox.IsChecked == true;
             ConfigManager.Current.StartWithWindows = autoStart;
 
             ConfigManager.Save();
+
+            if (modelChanged)
+            {
+                OcrHelper.Dispose();
+            }
 
             // Handle registry for autostart
             SetAutoStart(autoStart);
@@ -169,6 +237,11 @@ namespace PixOcrSearch
             {
                 MessageBox.Show("设置开机启动失败:\n" + ex.Message, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SystemCommands.MinimizeWindow(this);
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

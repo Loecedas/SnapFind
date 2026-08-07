@@ -24,8 +24,22 @@ namespace PixOcrSearch
             OcrTextBox.Text = _initialText;
         }
 
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
+                {
+                    int preference = 2; // DWMWCP_ROUND
+                    DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+                }
+            }
+            catch { }
+
             // Dynamically refresh system theme resources before rendering
             App.ApplyTheme();
 
@@ -196,6 +210,29 @@ namespace PixOcrSearch
                 e.Handled = true;
                 HandleCopyAndClose();
             }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Close the current EditWindow (Figure 2) first
+            Close();
+
+            foreach (Window win in System.Windows.Application.Current.Windows)
+            {
+                if (win is SettingsWindow)
+                {
+                    win.Activate();
+                    return;
+                }
+            }
+
+            var settingsWin = new SettingsWindow();
+            settingsWin.Show();
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            SystemCommands.MinimizeWindow(this);
         }
 
         protected override void OnClosed(EventArgs e)

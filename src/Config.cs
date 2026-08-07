@@ -10,6 +10,7 @@ namespace PixOcrSearch
         public string HotkeyModifiers { get; set; } = "Control,Alt"; // Comma-separated modifiers
         public string HotkeyKey { get; set; } = "S";                // Main key
         public bool StartWithWindows { get; set; } = false;
+        public string OcrModel { get; set; } = "PP-OCRv6_tiny";
     }
 
     public static class ConfigManager

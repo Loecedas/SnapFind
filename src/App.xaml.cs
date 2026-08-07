@@ -21,6 +21,42 @@ namespace PixOcrSearch
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         private static extern bool SetDllDirectory(string lpPathName);
 
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr CreatePopupMenu();
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool AppendMenu(IntPtr hMenu, uint uFlags, uint uIDNewItem, string lpNewItem);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool DestroyMenu(IntPtr hMenu);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int TrackPopupMenu(IntPtr hMenu, uint uFlags, int x, int y, int nReserved, IntPtr hWnd, IntPtr prcRect);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT lpPoint);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        private const uint MF_STRING = 0x00000000;
+        private const uint MF_SEPARATOR = 0x00000800;
+        private const uint TPM_RETURNCMD = 0x0100;
+        private const uint TPM_RIGHTBUTTON = 0x0002;
+
         private static Mutex? _mutex;
         private NotifyIcon? _notifyIcon;
         private Window? _dummyHookWindow;
@@ -61,8 +97,10 @@ namespace PixOcrSearch
                 HealAutoStartRegistry();
             }
 
-            // Trim process working set on startup
-            OcrHelper.OptimizeMemory();
+            // Trim process working set on startup asynchronously after WPF loop starts
+            Dispatcher.BeginInvoke(new Action(() => {
+                OcrHelper.OptimizeMemory();
+            }), System.Windows.Threading.DispatcherPriority.Background);
 
             // 2. Initialize a dummy hidden window to receive hotkey window messages
             _dummyHookWindow = new Window
@@ -76,6 +114,7 @@ namespace PixOcrSearch
             // Force creation of handle in background silently without showing or flashing it
             var helper = new WindowInteropHelper(_dummyHookWindow);
             helper.EnsureHandle();
+            MainWindow = null;
 
             // 3. Initialize Tray Icon
             InitializeTrayIcon();
@@ -95,17 +134,59 @@ namespace PixOcrSearch
             _notifyIcon.Icon = icon;
             _notifyIcon.Visible = true;
 
-            // Context Menu
-            var contextMenu = new ContextMenuStrip();
-            contextMenu.Items.Add("📷 截图 OCR 搜索", null, (s, e) => StartScreenshot());
-            contextMenu.Items.Add(new ToolStripSeparator());
-            contextMenu.Items.Add("⚙ 设置", null, (s, e) => OpenSettings());
-            contextMenu.Items.Add("❌ 退出", null, (s, e) => ExitApp());
-
-            _notifyIcon.ContextMenuStrip = contextMenu;
+            // Handle Right Click for native context menu
+            _notifyIcon.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                {
+                    ShowNativeContextMenu();
+                }
+            };
 
             // Double click to trigger screenshot
             _notifyIcon.DoubleClick += (s, e) => StartScreenshot();
+        }
+
+        private void ShowNativeContextMenu()
+        {
+            IntPtr hMenu = CreatePopupMenu();
+            if (hMenu == IntPtr.Zero) return;
+
+            // Add standard items without emojis, completely plain text
+            AppendMenu(hMenu, MF_STRING, 1, "截图 OCR 搜索");
+            AppendMenu(hMenu, MF_SEPARATOR, 0, string.Empty);
+            AppendMenu(hMenu, MF_STRING, 2, "设置");
+            AppendMenu(hMenu, MF_STRING, 3, "退出");
+
+            // We need a window handle to own the popup menu and receive commands.
+            // We use our _dummyHookWindow handle.
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(_dummyHookWindow).Handle;
+
+            // Make sure the dummy window is active so the menu closes when clicking outside
+            SetForegroundWindow(hwnd);
+
+            GetCursorPos(out POINT pt);
+
+            // Show the native context menu
+            int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.X, pt.Y, 0, hwnd, IntPtr.Zero);
+            
+            DestroyMenu(hMenu);
+
+            PostMessage(hwnd, 0x0000, IntPtr.Zero, IntPtr.Zero); // WM_NULL = 0x0000
+
+            // Handle native menu click commands
+            switch (cmd)
+            {
+                case 1:
+                    StartScreenshot();
+                    break;
+                case 2:
+                    OpenSettings();
+                    break;
+                case 3:
+                    ExitApp();
+                    break;
+            }
         }
 
         private Icon CreateDynamicTrayIcon()
@@ -272,7 +353,7 @@ namespace PixOcrSearch
             }
 
             var settingsWin = new SettingsWindow();
-            settingsWin.ShowDialog();
+            settingsWin.Show();
         }
 
         private void ExitApp()
