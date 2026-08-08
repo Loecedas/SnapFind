@@ -533,12 +533,15 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> FetchReleaseFromGitHubAsync()
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(2500);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
                 string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
+                stopwatch.Stop();
                 using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
 
@@ -591,7 +594,8 @@ namespace PixOcrSearch
                     Body = body,
                     HtmlUrl = htmlUrl,
                     DownloadUrl = downloadUrl,
-                    Size = size
+                    Size = size,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
             catch
@@ -624,17 +628,28 @@ namespace PixOcrSearch
             {
                 return giteeRelease;
             }
-            return githubRelease;
+            else if (gitVer > giteeVer)
+            {
+                return githubRelease;
+            }
+            else
+            {
+                // Same version, return the faster one
+                return githubRelease.DurationMs <= giteeRelease.DurationMs ? githubRelease : giteeRelease;
+            }
         }
 
         private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(2500);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
                 string response = await client.GetStringAsync("https://gitee.com/api/v5/repos/loecedas/SnapFind/releases/latest");
+                stopwatch.Stop();
                 using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
 
@@ -678,7 +693,8 @@ namespace PixOcrSearch
                     Body = body,
                     HtmlUrl = htmlUrl,
                     DownloadUrl = downloadUrl,
-                    Size = size
+                    Size = size,
+                    DurationMs = stopwatch.ElapsedMilliseconds
                 };
             }
             catch

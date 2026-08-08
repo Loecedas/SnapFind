@@ -513,5 +513,6 @@ namespace PixOcrSearch
         public string HtmlUrl { get; set; } = "";
         public string DownloadUrl { get; set; } = "";
         public long Size { get; set; }
+        public long DurationMs { get; set; }
     }
 }
