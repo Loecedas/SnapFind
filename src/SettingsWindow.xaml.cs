@@ -63,9 +63,10 @@ namespace PixOcrSearch
                     DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
                 }
 
-                // Disable Maximize Box
+                // Disable Maximize Box and System Menu (to hide default caption buttons completely while keeping minimize animations)
                 int value = GetWindowLong(hwnd, GWL_STYLE);
-                SetWindowLong(hwnd, GWL_STYLE, value & ~WS_MAXIMIZEBOX);
+                const int WS_SYSMENU = 0x00080000;
+                SetWindowLong(hwnd, GWL_STYLE, value & ~WS_MAXIMIZEBOX & ~WS_SYSMENU);
             }
             catch { }
 
@@ -423,93 +424,38 @@ namespace PixOcrSearch
             AboutCheckUpdateButton.IsEnabled = false;
             AboutCheckUpdateButton.Content = "正在检查...";
             AboutStatusText.Visibility = Visibility.Visible;
-            AboutStatusText.Text = "正在连接 GitHub...";
+            AboutStatusText.Text = "正在检查更新...";
 
             try
             {
-                using var client = new HttpClient();
-                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
-                
-                string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
-                
-                using var doc = JsonDocument.Parse(response);
-                var root = doc.RootElement;
-                
-                string tagName = root.GetProperty("tag_name").GetString() ?? "";
-                string body = root.GetProperty("body").GetString() ?? "";
-                string htmlUrl = root.GetProperty("html_url").GetString() ?? "";
-                
-                string downloadUrl = "";
-                long size = 0;
-                
-                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
+                var release = await GetLatestReleaseFromAllSourcesAsync();
+                if (release != null)
                 {
-                    foreach (var asset in assetsVal.EnumerateArray())
+                    Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+                    string cleanTag = release.TagName.TrimStart('v', 'V');
+                    
+                    if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
                     {
-                        string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.Contains("Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                            size = asset.GetProperty("size").GetInt64();
-                            break;
-                        }
+                        AboutStatusText.Visibility = Visibility.Collapsed;
+                        SetReleaseInfo(release);
+                        SelectTab("notifications");
+                        return;
                     }
-                    if (string.IsNullOrEmpty(downloadUrl))
+                    else
                     {
-                        foreach (var asset in assetsVal.EnumerateArray())
-                        {
-                            string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                            {
-                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                                size = asset.GetProperty("size").GetInt64();
-                                break;
-                            }
-                        }
-                    }
-                    if (string.IsNullOrEmpty(downloadUrl))
-                    {
-                        foreach (var asset in assetsVal.EnumerateArray())
-                        {
-                            string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                            {
-                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                                size = asset.GetProperty("size").GetInt64();
-                                break;
-                            }
-                        }
+                        AboutStatusText.Visibility = Visibility.Collapsed;
+                        MessageBox.Show($"您当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})，无需更新。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
                     }
                 }
 
-                var release = new GitHubRelease
-                {
-                    TagName = tagName,
-                    Body = body,
-                    HtmlUrl = htmlUrl,
-                    DownloadUrl = downloadUrl,
-                    Size = size
-                };
-
-                Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
-                string cleanTag = tagName.TrimStart('v', 'V');
-                
-                if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
-                {
-                    AboutStatusText.Visibility = Visibility.Collapsed;
-                    SetReleaseInfo(release);
-                    SelectTab("notifications");
-                }
-                else
-                {
-                    AboutStatusText.Visibility = Visibility.Collapsed;
-                    MessageBox.Show($"您当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})，无需更新。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+                AboutStatusText.Visibility = Visibility.Collapsed;
+                MessageBox.Show("未能在 GitHub 或 Gitee 检测到发布版本，请检查您的网络连接或稍后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 AboutStatusText.Visibility = Visibility.Collapsed;
-                MessageBox.Show($"检查更新失败: {ex.Message}\n请检查您的网络连接或稍后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"检查更新发生异常: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -585,34 +531,34 @@ namespace PixOcrSearch
             return sb.ToString().Trim();
         }
 
-        private async void FetchLatestReleaseAsync()
+        private async Task<GitHubRelease?> FetchReleaseFromGitHubAsync()
         {
-            ChangelogTextBlock.Text = "正在从 GitHub 获取最新的更新日志...";
-            NotificationTitleText.Text = "正在获取最新版本信息...";
-
             try
             {
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
-                
+
                 string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
-                
                 using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
-                
+
                 string tagName = root.GetProperty("tag_name").GetString() ?? "";
                 string body = root.GetProperty("body").GetString() ?? "";
                 string htmlUrl = root.GetProperty("html_url").GetString() ?? "";
-                
+
                 string downloadUrl = "";
                 long size = 0;
-                
+
+                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
+                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
+                string targetExtension = isInstalled ? ".exe" : ".zip";
+
                 if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var asset in assetsVal.EnumerateArray())
                     {
                         string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.Contains("Setup", StringComparison.OrdinalIgnoreCase) && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
                         {
                             downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
                             size = asset.GetProperty("size").GetInt64();
@@ -624,20 +570,7 @@ namespace PixOcrSearch
                         foreach (var asset in assetsVal.EnumerateArray())
                         {
                             string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                            {
-                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                                size = asset.GetProperty("size").GetInt64();
-                                break;
-                            }
-                        }
-                    }
-                    if (string.IsNullOrEmpty(downloadUrl))
-                    {
-                        foreach (var asset in assetsVal.EnumerateArray())
-                        {
-                            string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                            if (name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
                             {
                                 downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
                                 size = asset.GetProperty("size").GetInt64();
@@ -647,7 +580,12 @@ namespace PixOcrSearch
                     }
                 }
 
-                _releaseInfo = new GitHubRelease
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    downloadUrl = htmlUrl;
+                }
+
+                return new GitHubRelease
                 {
                     TagName = tagName,
                     Body = body,
@@ -655,8 +593,117 @@ namespace PixOcrSearch
                     DownloadUrl = downloadUrl,
                     Size = size
                 };
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
-                DisplayReleaseInfo(_releaseInfo);
+        private async Task<GitHubRelease?> GetLatestReleaseFromAllSourcesAsync()
+        {
+            var githubTask = FetchReleaseFromGitHubAsync();
+            var giteeTask = FetchReleaseFromGiteeAsync();
+
+            GitHubRelease? githubRelease = null;
+            GitHubRelease? giteeRelease = null;
+
+            try { githubRelease = await githubTask; } catch { }
+            try { giteeRelease = await giteeTask; } catch { }
+
+            if (githubRelease == null) return giteeRelease;
+            if (giteeRelease == null) return githubRelease;
+
+            string cleanGit = githubRelease.TagName.TrimStart('v', 'V');
+            string cleanGitee = giteeRelease.TagName.TrimStart('v', 'V');
+
+            Version gitVer = Version.TryParse(cleanGit, out var gV) ? gV : new Version(0, 0, 0);
+            Version giteeVer = Version.TryParse(cleanGitee, out var tV) ? tV : new Version(0, 0, 0);
+
+            if (giteeVer > gitVer)
+            {
+                return giteeRelease;
+            }
+            return githubRelease;
+        }
+
+        private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+
+                string response = await client.GetStringAsync("https://gitee.com/api/v5/repos/loecedas/SnapFind/releases/latest");
+                using var doc = JsonDocument.Parse(response);
+                var root = doc.RootElement;
+
+                string tagName = root.GetProperty("tag_name").GetString() ?? "";
+                string body = root.GetProperty("body").GetString() ?? "";
+                string htmlUrl = $"https://gitee.com/loecedas/SnapFind/releases#release-{tagName}";
+
+                string downloadUrl = "";
+                long size = 0;
+
+                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
+                // Gitee release asset filenames might use Setup_v or Setup. Make it start with SnapFindSetup_ or SnapFindPortable_ for flexibility.
+                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
+                string targetExtension = isInstalled ? ".exe" : ".zip";
+
+                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var asset in assetsVal.EnumerateArray())
+                    {
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                            if (asset.TryGetProperty("size", out var sizeProp))
+                            {
+                                size = sizeProp.GetInt64();
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    downloadUrl = htmlUrl;
+                }
+
+                return new GitHubRelease
+                {
+                    TagName = tagName,
+                    Body = body,
+                    HtmlUrl = htmlUrl,
+                    DownloadUrl = downloadUrl,
+                    Size = size
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async void FetchLatestReleaseAsync()
+        {
+            ChangelogTextBlock.Text = "正在获取最新的更新日志...";
+            NotificationTitleText.Text = "正在获取最新版本信息...";
+
+            try
+            {
+                var release = await GetLatestReleaseFromAllSourcesAsync();
+                if (release != null)
+                {
+                    _releaseInfo = release;
+                    DisplayReleaseInfo(_releaseInfo);
+                }
+                else
+                {
+                    DisplayOfflineLog();
+                }
             }
             catch
             {
@@ -717,7 +764,31 @@ namespace PixOcrSearch
 
             if (_releaseInfo == null || string.IsNullOrEmpty(_releaseInfo.DownloadUrl))
             {
-                MessageBox.Show("获取下载链接失败，请手动访问 GitHub 获取更新。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                string fallbackUrl = _releaseInfo?.HtmlUrl ?? "https://github.com/Loecedas/SnapFind/releases/latest";
+                MessageBox.Show("获取下载链接失败，请尝试手动访问发布页面获取更新。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fallbackUrl) { UseShellExecute = true }); } catch { }
+                return;
+            }
+
+            if (_releaseInfo.DownloadUrl.Contains("gitee.com") && _releaseInfo.DownloadUrl.Contains("/releases") && !_releaseInfo.DownloadUrl.Contains("/download/"))
+            {
+                MessageBoxResult result = MessageBox.Show(
+                    "检测到新版本，但未能从 Gitee 解析出直链，请在浏览器中打开 Gitee 页面下载更新。\n\n点击“确定”将为您打开 Gitee 页面。",
+                    "提示",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Information);
+                
+                if (result == MessageBoxResult.OK)
+                {
+                    try
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_releaseInfo.DownloadUrl) { UseShellExecute = true });
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"无法打开网页: {ex.Message}\n请手动访问: {_releaseInfo.DownloadUrl}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
                 return;
             }
 
@@ -802,7 +873,7 @@ namespace PixOcrSearch
                     {
                         Process.Start(new ProcessStartInfo(filePath) 
                         { 
-                            Arguments = "/VERYSILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
+                            Arguments = "/SILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
                             UseShellExecute = true 
                         });
                         Application.Current.Shutdown();

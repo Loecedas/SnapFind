@@ -27,6 +27,15 @@ namespace PixOcrSearch
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        private const int GWL_STYLE = -16;
+        private const int WS_SYSMENU = 0x00080000;
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             try
@@ -37,6 +46,10 @@ namespace PixOcrSearch
                     int preference = 2; // DWMWCP_ROUND
                     DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
                 }
+
+                // Remove system menu and buttons to prevent default OS caption buttons from showing up on click/drag
+                int value = GetWindowLong(hwnd, GWL_STYLE);
+                SetWindowLong(hwnd, GWL_STYLE, value & ~WS_SYSMENU);
             }
             catch { }
 

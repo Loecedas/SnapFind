@@ -45,6 +45,13 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\SnapFind.exe"; Description: "{cm:LaunchProgram,SnapFind}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\SnapFind.exe"; Flags: nowait; Check: IsSilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\cache"
+
+[Code]
+function IsSilent: Boolean;
+begin
+  Result := WizardSilent;
+end;
