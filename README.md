@@ -19,6 +19,7 @@
 
 ### 统一控制中心与现代 UI
 - **三合一控制中心**：将“设置”、“关于”、“更新通知”融合为统一的控制中心窗口。拥有极简的 WinUI 侧边栏，支持无阻碍平滑切换。
+- **双源并发更新比对与流畅安装**：同时并发查询 GitHub 与 Gitee 更新，自动比对并获取最高版本。安装更新时自动展示进度条窗口，完成后自动退出并拉起新版本，体验连贯。
 - **自适应系统主题与圆角**：支持暗色/亮色主题及 Windows 11 原生 DWM 圆角与阴影特效。
 - **极细 Fluent 滚动条**：自定义了 6 像素极细半透明滚动条（普通悬浮低可见度， hover 状态渐显），带来极佳的系统原生感。
 - **100% Win32 原生系统托盘菜单**：精简托盘右键选项为“截图 OCR 搜索”、“控制面板”、“退出”，极简纯文字设计，完美适配 Windows 11 亚克力磨砂及云母毛玻璃特效。
@@ -117,8 +118,8 @@ dotnet run
 1. 自动读取 `releases/` 目录下的历史包计算并递增生成下一个版本号（符合 `x.y.z` 规则）。
 2. 调用 `dotnet publish` 进行单文件编译。
 3. 复制生成的程序覆盖根目录下的 `SnapFind.exe`。
-4. 复制 `libs/` 并清理其中的冗余大模型，然后生成 `releases/portables/SnapFindPortable_vX.Y.Z.zip` 压缩包。
-5. 自动调用 Inno Setup 编译器生成 `releases/installers/SnapFindSetup_vX.Y.Z.exe` 安装包（使用 LZMA2 Ultra 算法进行固实极致压缩）。
+4. 复制 `libs/` 并调用 7-Zip 启用 LZMA 算法进行超级固实压缩，生成 `releases/portables/SnapFindPortable_vX.Y.Z.zip` 压缩包，将免安装版体积完美控制在 100MB 以下。
+5. 自动调用 Inno Setup 编译器生成 `releases/installers/SnapFindSetup_vX.Y.Z.exe` 安装包（使用 LZMA2 Ultra 算法进行固实极致压缩，并内置更新时自动重启逻辑）。
 
 ### 一键打包命令
 只需在项目根目录下以管理员权限打开 PowerShell 并运行：

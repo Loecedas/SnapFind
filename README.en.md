@@ -19,6 +19,7 @@
 
 ### Unified Control Center & Modern UI
 - **Unified 3-in-1 Control Center**: Blends Settings, About, and Update Notifications into a single unified dashboard window with a clean WinUI-style navigation sidebar.
+- **Dual-Source Updates & Smooth Installation**: Queries both GitHub and Gitee concurrently to detect updates and fetch the highest version. Automatically displays a progress bar window during installation, then auto-closes and launches the new version smoothly.
 - **System Theme & Rounded Corners**: Supports light/dark themes and Windows 11 native rounded corners and dropshadows automatically.
 - **Ultra-thin Fluent Scrollbar**: Customizes scrollbars to a thin 6px width capsule shape with default semi-transparent opacity (0.4) that fades in (0.8) on mouse hover.
 - **100% Native Win32 System Tray Menu**: Simplified context menu options down to "截图 OCR 搜索" (Screenshot OCR), "控制面板" (Control Panel), and "退出" (Exit) for a clean visual alignment with Windows 11 Fluent Acrylic blur effects.
@@ -117,8 +118,8 @@ To simplify development workflows, a one-click automated packaging script `src/b
 1. Auto-calculating the next incremental version number based on existing packages in `releases/` (following `x.y.z` format).
 2. Running `dotnet publish` to compile a single-file executable.
 3. Overwriting `SnapFind.exe` in the repository root.
-4. Syncing DLL dependencies from `libs/` and cleaning up unused model folders, then generating `releases/portables/SnapFindPortable_vX.Y.Z.zip`.
-5. Generating the optimized installer package `releases/installers/SnapFindSetup_vX.Y.Z.exe` using LZMA2 Ultra solid compression.
+4. Syncing DLL dependencies from `libs/` and compressing them using 7-Zip with the LZMA algorithm to generate `releases/portables/SnapFindPortable_vX.Y.Z.zip`, keeping portable package size strictly under 100MB.
+5. Generating the optimized installer package `releases/installers/SnapFindSetup_vX.Y.Z.exe` using LZMA2 Ultra solid compression (with built-in silent update auto-restart logic).
 
 ### One-Click Packaging Command
 Simply run the following command in PowerShell with Administrator privileges:

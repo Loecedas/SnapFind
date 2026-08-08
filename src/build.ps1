@@ -80,8 +80,8 @@ if (-not $NoZip -and -not $ExeOnly) {
     # Use high-performance 7-Zip if available, fallback to Compress-Archive
     $exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
     if (Test-Path $exe7z) {
-        Write-Host "Compressing portable ZIP using 7-Zip (Ultra)..." -ForegroundColor Cyan
-        & $exe7z a -tzip -mx=9 "$zipDest" "$zipTempDir"
+        Write-Host "Compressing portable ZIP using 7-Zip (LZMA Ultra)..." -ForegroundColor Cyan
+        & $exe7z a -tzip -m0=lzma -mx=9 "$zipDest" "$zipTempDir"
     } else {
         Write-Host "Compressing portable ZIP using Compress-Archive..." -ForegroundColor Cyan
         Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
