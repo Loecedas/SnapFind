@@ -800,7 +800,11 @@ namespace PixOcrSearch
                 {
                     try
                     {
-                        Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+                        Process.Start(new ProcessStartInfo(filePath) 
+                        { 
+                            Arguments = "/VERYSILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
+                            UseShellExecute = true 
+                        });
                         Application.Current.Shutdown();
                     }
                     catch (Exception ex)

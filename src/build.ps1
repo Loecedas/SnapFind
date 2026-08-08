@@ -1,5 +1,9 @@
 # build.ps1
 # Automates the build and packaging process with dynamic versioning
+param(
+    [switch]$NoZip,
+    [switch]$ExeOnly
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -34,7 +38,7 @@ if (Test-Path $portablesDir) {
     }
 }
 
-$nextVersion = "2.3.0"
+$nextVersion = "2.3.1"
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 
@@ -60,40 +64,52 @@ Copy-Item $publishExe "$workspaceRoot\SnapFind.exe" -Force
 Get-ChildItem -Path "$workspaceRoot\SnapFind_*.exe" -ErrorAction Ignore | Remove-Item -Force
 
 # 5. Generate portable ZIP (without timestamp)
-Write-Host "Generating portable ZIP..." -ForegroundColor Cyan
-$zipTempDir = "$workspaceRoot\releases\portables\SnapFind"
-if (Test-Path $zipTempDir) { Remove-Item -Path $zipTempDir -Recurse -Force }
-New-Item -ItemType Directory -Path $zipTempDir | Out-Null
+if (-not $NoZip -and -not $ExeOnly) {
+    Write-Host "Generating portable ZIP..." -ForegroundColor Cyan
+    $zipTempDir = "$workspaceRoot\releases\portables\SnapFind"
+    if (Test-Path $zipTempDir) { Remove-Item -Path $zipTempDir -Recurse -Force }
+    New-Item -ItemType Directory -Path $zipTempDir | Out-Null
 
-# Copy published files into temp folder
-Copy-Item "$publishExe" "$zipTempDir\SnapFind.exe" -Force
-Copy-Item "$workspaceRoot\libs" "$zipTempDir\libs" -Recurse -Force
+    # Copy published files into temp folder
+    Copy-Item "$publishExe" "$zipTempDir\SnapFind.exe" -Force
+    Copy-Item "$workspaceRoot\libs" "$zipTempDir\libs" -Recurse -Force
 
-$zipDest = "$portablesDir\SnapFindPortable_v$nextVersion.zip"
-if (Test-Path $zipDest) { Remove-Item -Path $zipDest -Force }
+    $zipDest = "$portablesDir\SnapFindPortable_v$nextVersion.zip"
+    if (Test-Path $zipDest) { Remove-Item -Path $zipDest -Force }
 
-# Use high-performance 7-Zip if available, fallback to Compress-Archive
-$exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
-if (Test-Path $exe7z) {
-    Write-Host "Compressing portable ZIP using 7-Zip (Ultra)..." -ForegroundColor Cyan
-    & $exe7z a -tzip -mx=9 "$zipDest" "$zipTempDir"
+    # Use high-performance 7-Zip if available, fallback to Compress-Archive
+    $exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
+    if (Test-Path $exe7z) {
+        Write-Host "Compressing portable ZIP using 7-Zip (Ultra)..." -ForegroundColor Cyan
+        & $exe7z a -tzip -mx=9 "$zipDest" "$zipTempDir"
+    } else {
+        Write-Host "Compressing portable ZIP using Compress-Archive..." -ForegroundColor Cyan
+        Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
+    }
+
+    # Clean up temp folder
+    Remove-Item -Path $zipTempDir -Recurse -Force
+    Write-Host "Portable ZIP generated at: $zipDest" -ForegroundColor Green
 } else {
-    Write-Host "Compressing portable ZIP using Compress-Archive..." -ForegroundColor Cyan
-    Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
+    if ($ExeOnly) {
+        Write-Host "Skipping portable ZIP generation as requested (-ExeOnly is set)." -ForegroundColor Yellow
+    } else {
+        Write-Host "Skipping portable ZIP generation as requested (-NoZip is set)." -ForegroundColor Yellow
+    }
 }
 
-# Clean up temp folder
-Remove-Item -Path $zipTempDir -Recurse -Force
-Write-Host "Portable ZIP generated at: $zipDest" -ForegroundColor Green
-
 # 6. Generate installer using Inno Setup (without timestamp)
-Write-Host "Generating installer using Inno Setup..." -ForegroundColor Cyan
-$isccPath = "$workspaceRoot\cache\InnoSetup\ISCC.exe"
-if (Test-Path $isccPath) {
-    & $isccPath /dAppVersion=$nextVersion "$srcDir\setup.iss"
-    Write-Host "Installer generated successfully in: $installersDir" -ForegroundColor Green
+if (-not $ExeOnly) {
+    Write-Host "Generating installer using Inno Setup..." -ForegroundColor Cyan
+    $isccPath = "$workspaceRoot\cache\InnoSetup\ISCC.exe"
+    if (Test-Path $isccPath) {
+        & $isccPath /dAppVersion=$nextVersion "$srcDir\setup.iss"
+        Write-Host "Installer generated successfully in: $installersDir" -ForegroundColor Green
+    } else {
+        Write-Warning "Inno Setup compiler (ISCC.exe) not found at: $isccPath. Skipping installer generation."
+    }
 } else {
-    Write-Warning "Inno Setup compiler (ISCC.exe) not found at: $isccPath. Skipping installer generation."
+    Write-Host "Skipping installer generation as requested (-ExeOnly is set)." -ForegroundColor Yellow
 }
 
 Write-Host "Build complete! Compiled and packaged version v$nextVersion successfully." -ForegroundColor Green
