@@ -38,7 +38,7 @@ if (Test-Path $portablesDir) {
     }
 }
 
-$nextVersion = "2.3.4"
+$nextVersion = "2.3.5"
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 

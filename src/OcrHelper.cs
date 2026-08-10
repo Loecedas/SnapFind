@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Text;
+using System.Collections.Generic;
 using PaddleOCRSharp;
 
 namespace PixOcrSearch
@@ -166,7 +169,83 @@ namespace PixOcrSearch
                         var ocrResult = engine.DetectText(bitmap);
                         if (ocrResult != null)
                         {
-                            string text = ocrResult.Text?.Trim() ?? string.Empty;
+                            string text = string.Empty;
+                            if (ocrResult.TextBlocks != null && ocrResult.TextBlocks.Count > 0)
+                            {
+                                var lines = new List<List<TextBlock>>();
+                                var sortedByY = ocrResult.TextBlocks
+                                    .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Count > 0 ? b.BoxPoints[0].Y : 0)
+                                    .ToList();
+
+                                foreach (var block in sortedByY)
+                                {
+                                    if (block.BoxPoints == null || block.BoxPoints.Count == 0) continue;
+
+                                    double blockY = block.BoxPoints[0].Y;
+                                    double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
+                                    if (blockHeight == 0) blockHeight = 15;
+
+                                    bool added = false;
+                                    foreach (var line in lines)
+                                    {
+                                        double lineY = line.Average(b => b.BoxPoints[0].Y);
+                                        if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
+                                        {
+                                            line.Add(block);
+                                            added = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!added)
+                                    {
+                                        lines.Add(new List<TextBlock> { block });
+                                    }
+                                }
+
+                                var sortedLines = lines
+                                    .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
+                                    .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
+                                    .ToList();
+
+                                StringBuilder sb = new StringBuilder();
+                                foreach (var line in sortedLines)
+                                {
+                                    StringBuilder lineBuilder = new StringBuilder();
+                                    for (int i = 0; i < line.Count; i++)
+                                    {
+                                        var block = line[i];
+                                        if (i > 0)
+                                        {
+                                            string prev = line[i - 1].Text;
+                                            string curr = block.Text;
+                                            bool needSpace = false;
+                                            if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
+                                            {
+                                                char lastChar = prev[prev.Length - 1];
+                                                char firstChar = curr[0];
+                                                if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
+                                                    ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
+                                                {
+                                                    needSpace = true;
+                                                }
+                                            }
+                                            if (needSpace)
+                                            {
+                                                lineBuilder.Append(" ");
+                                            }
+                                        }
+                                        lineBuilder.Append(block.Text);
+                                    }
+                                    sb.AppendLine(lineBuilder.ToString());
+                                }
+                                text = sb.ToString().Trim();
+                            }
+                            else
+                            {
+                                text = ocrResult.Text?.Trim() ?? string.Empty;
+                            }
+
                             if (ocrResult is IDisposable disposable)
                             {
                                 disposable.Dispose();
@@ -254,11 +333,11 @@ namespace PixOcrSearch
             {
                 if (_disposeTimer == null)
                 {
-                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 5000, System.Threading.Timeout.Infinite);
+                    _disposeTimer = new System.Threading.Timer(OnDisposeTimerFired, null, 300000, System.Threading.Timeout.Infinite);
                 }
                 else
                 {
-                    _disposeTimer.Change(5000, System.Threading.Timeout.Infinite);
+                    _disposeTimer.Change(300000, System.Threading.Timeout.Infinite);
                 }
             }
         }

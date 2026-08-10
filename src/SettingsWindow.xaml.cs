@@ -537,7 +537,7 @@ namespace PixOcrSearch
             try
             {
                 using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMilliseconds(2500);
+                client.Timeout = TimeSpan.FromMilliseconds(8000);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
                 string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
@@ -606,37 +606,28 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> GetLatestReleaseFromAllSourcesAsync()
         {
-            var githubTask = FetchReleaseFromGitHubAsync();
-            var giteeTask = FetchReleaseFromGiteeAsync();
-
-            GitHubRelease? githubRelease = null;
-            GitHubRelease? giteeRelease = null;
-
-            try { githubRelease = await githubTask; } catch { }
-            try { giteeRelease = await giteeTask; } catch { }
-
-            if (githubRelease == null) return giteeRelease;
-            if (giteeRelease == null) return githubRelease;
-
-            string cleanGit = githubRelease.TagName.TrimStart('v', 'V');
-            string cleanGitee = giteeRelease.TagName.TrimStart('v', 'V');
-
-            Version gitVer = Version.TryParse(cleanGit, out var gV) ? gV : new Version(0, 0, 0);
-            Version giteeVer = Version.TryParse(cleanGitee, out var tV) ? tV : new Version(0, 0, 0);
-
-            if (giteeVer > gitVer)
+            var tasks = new System.Collections.Generic.List<Task<GitHubRelease?>>
             {
-                return giteeRelease;
-            }
-            else if (gitVer > giteeVer)
+                FetchReleaseFromGitHubAsync(),
+                FetchReleaseFromGiteeAsync()
+            };
+
+            while (tasks.Count > 0)
             {
-                return githubRelease;
+                var completedTask = await Task.WhenAny(tasks);
+                tasks.Remove(completedTask);
+                try
+                {
+                    var release = await completedTask;
+                    if (release != null)
+                    {
+                        return release;
+                    }
+                }
+                catch { }
             }
-            else
-            {
-                // Same version, return the faster one
-                return githubRelease.DurationMs <= giteeRelease.DurationMs ? githubRelease : giteeRelease;
-            }
+
+            return null;
         }
 
         private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
@@ -644,8 +635,11 @@ namespace PixOcrSearch
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMilliseconds(2500);
+                // Force disabling proxy for Gitee request so it always connects directly,
+                // bypassing any broken system proxy settings left over when a VPN is shut down.
+                using var handler = new HttpClientHandler { UseProxy = false };
+                using var client = new HttpClient(handler);
+                client.Timeout = TimeSpan.FromMilliseconds(8000);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
                 string response = await client.GetStringAsync("https://gitee.com/api/v5/repos/loecedas/SnapFind/releases/latest");
@@ -661,7 +655,6 @@ namespace PixOcrSearch
                 long size = 0;
 
                 bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
-                // Gitee release asset filenames might use Setup_v or Setup. Make it start with SnapFindSetup_ or SnapFindPortable_ for flexibility.
                 string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
                 string targetExtension = isInstalled ? ".exe" : ".zip";
 

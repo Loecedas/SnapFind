@@ -122,6 +122,9 @@ namespace PixOcrSearch
             // 4. Register Global Hotkey
             _hotkeyHelper = new HotkeyHelper();
             RegisterHotkey();
+
+            // 5. Warm up OCR engine in background to make the very first screenshot instant
+            Task.Run(() => OcrHelper.StartInitialize());
         }
 
         private void InitializeTrayIcon()
@@ -249,7 +252,7 @@ namespace PixOcrSearch
 
             bool success = _hotkeyHelper.Register(_dummyHookWindow, 
                 mods, key, StartScreenshot,
-                cpMods, cpKey, OpenSettings);
+                cpMods, cpKey, ToggleSettings);
 
             if (!success)
             {
@@ -267,9 +270,6 @@ namespace PixOcrSearch
         {
             if (_isCapturing) return;
             _isCapturing = true;
-
-            // Start loading PaddleOCR in the background while user is selecting screenshot area
-            OcrHelper.StartInitialize();
 
             _screenshotWindows.Clear();
 
@@ -322,6 +322,10 @@ namespace PixOcrSearch
                     win.Activate();
                     win.Focus(); // Force keyboard focus to ensure Esc key cancels immediately
                 }
+
+                // Start loading PaddleOCR in the background AFTER the screenshot windows are shown and rendered.
+                // This prevents disk and CPU initialization contention from stalling the UI thread's window rendering.
+                Task.Run(() => OcrHelper.StartInitialize());
             }
             catch (Exception ex)
             {
@@ -360,6 +364,22 @@ namespace PixOcrSearch
 
             var settingsWin = new SettingsWindow("settings");
             settingsWin.Show();
+        }
+
+        private void ToggleSettings()
+        {
+            foreach (Window win in Current.Windows)
+            {
+                if (win is SettingsWindow activeWin)
+                {
+                    activeWin.Close();
+                    return;
+                }
+            }
+
+            var settingsWin = new SettingsWindow("settings");
+            settingsWin.Show();
+            settingsWin.Activate();
         }
 
         public void OpenAbout()
