@@ -575,6 +575,14 @@
                                           FontSize="12"
                                           VerticalContentAlignment="Center"
                                           Margin="0,4,0,0"/>
+
+                                <!-- Auto Copy to Clipboard -->
+                                <CheckBox x:Name="AutoCopyCheckBox"
+                                          Content="识别后自动复制到剪贴板"
+                                          Foreground="{DynamicResource ThemeText}"
+                                          FontSize="12"
+                                          VerticalContentAlignment="Center"
+                                          Margin="0,8,0,0"/>
                             </StackPanel>
                         </ScrollViewer>
 

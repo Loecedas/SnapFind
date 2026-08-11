@@ -150,6 +150,7 @@ namespace PixOcrSearch
             UpdateHotkeyTextBoxDisplay();
             UpdateControlPanelHotkeyTextBoxDisplay();
             AutoStartCheckBox.IsChecked = ConfigManager.Current.StartWithWindows;
+            AutoCopyCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard;
         }
 
         public void SelectTab(string tabName)
@@ -363,6 +364,7 @@ namespace PixOcrSearch
             
             bool autoStart = AutoStartCheckBox.IsChecked == true;
             ConfigManager.Current.StartWithWindows = autoStart;
+            ConfigManager.Current.AutoCopyToClipboard = AutoCopyCheckBox.IsChecked == true;
 
             ConfigManager.Save();
 
@@ -804,7 +806,8 @@ namespace PixOcrSearch
             string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
             if (string.IsNullOrEmpty(ext)) ext = ".exe";
             string cacheDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache");
-            string fileName = $"SnapFindSetup_{_releaseInfo.TagName}{ext}";
+            string prefix = ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ? "SnapFindPortable_" : "SnapFindSetup_";
+            string fileName = $"{prefix}{_releaseInfo.TagName}{ext}";
             string filePath = Path.Combine(cacheDir, fileName);
 
             _isDownloading = true;
@@ -875,21 +878,55 @@ namespace PixOcrSearch
                 await fileStream.FlushAsync(token);
                 fileStream.Close();
 
-                // Run installer and exit
+                // Run installer or deploy portable zip, then exit
                 Dispatcher.Invoke(() =>
                 {
                     try
                     {
-                        Process.Start(new ProcessStartInfo(filePath) 
-                        { 
-                            Arguments = "/SILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
-                            UseShellExecute = true 
-                        });
+                        if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // Portable ZIP Update Flow via Self-Copy
+                            string currentDir = AppDomain.CurrentDomain.BaseDirectory;
+                            string cacheDir = Path.Combine(currentDir, "cache");
+                            string currentExe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
+                                ?? Path.Combine(currentDir, "SnapFind.exe");
+                            string tempUpdater = Path.Combine(cacheDir, "temp_updater.exe");
+
+                            if (!Directory.Exists(cacheDir))
+                            {
+                                Directory.CreateDirectory(cacheDir);
+                            }
+
+                            // 强力复制主程序自身为临时更新器
+                            File.Copy(currentExe, tempUpdater, true);
+
+                            int currentPid = System.Diagnostics.Process.GetCurrentProcess().Id;
+
+                            string safeDest = currentDir.TrimEnd('\\');
+                            string safeZip = filePath.TrimEnd('\\');
+
+                            // 启动临时更新器并传入更新任务的控制参数
+                            Process.Start(new ProcessStartInfo(tempUpdater)
+                            {
+                                Arguments = $"--update-mode --pid {currentPid} --zip \"{safeZip}\" --dest \"{safeDest}\"",
+                                UseShellExecute = true
+                            });
+                        }
+                        else
+                        {
+                            // Installer Exe Flow
+                            Process.Start(new ProcessStartInfo(filePath) 
+                            { 
+                                Arguments = "/SILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
+                                UseShellExecute = true 
+                            });
+                        }
                         Application.Current.Shutdown();
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"无法启动安装程序: {ex.Message}\n请手动运行: {filePath}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        string mode = filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? "自动部署便携包" : "启动安装程序";
+                        MessageBox.Show($"{mode}失败: {ex.Message}\n请手动操作文件: {filePath}", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 });
             }

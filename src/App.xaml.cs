@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -67,6 +70,13 @@ namespace PixOcrSearch
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            // 优先拦截更新部署模式，以防启动 WPF 和 Mutex 实例冲突
+            if (e.Args.Length > 0 && e.Args[0] == "--update-mode")
+            {
+                RunUpdateDeploymentFlow(e.Args);
+                return;
+            }
+
             // Set DLL search directory immediately to resolve native DLL dependencies
             try
             {
@@ -75,6 +85,49 @@ namespace PixOcrSearch
                 SetDllDirectory(libsDir);
             }
             catch { }
+
+            // 异步自动清理上一次更新遗留的临时更新器、PowerShell 脚本和临时解压目录
+            Task.Run(() =>
+            {
+                try
+                {
+                    string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                    string cacheDir = System.IO.Path.Combine(baseDir, "cache");
+                    string updaterExe = System.IO.Path.Combine(cacheDir, "temp_updater.exe");
+                    
+                    // 等待最多 5 秒，直到 temp_updater.exe 进程完全退出并释放文件锁
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (!System.IO.File.Exists(updaterExe)) break;
+                        try
+                        {
+                            System.IO.File.Delete(updaterExe);
+                            break;
+                        }
+                        catch
+                        {
+                            System.Threading.Thread.Sleep(500);
+                        }
+                    }
+
+                    string scriptPath = System.IO.Path.Combine(cacheDir, "update.ps1");
+                    if (System.IO.File.Exists(scriptPath))
+                    {
+                        try { System.IO.File.Delete(scriptPath); } catch { }
+                    }
+                    string logPath = System.IO.Path.Combine(cacheDir, "update.log");
+                    if (System.IO.File.Exists(logPath))
+                    {
+                        try { System.IO.File.Delete(logPath); } catch { }
+                    }
+                    string tempDir = System.IO.Path.Combine(cacheDir, "temp_update");
+                    if (System.IO.Directory.Exists(tempDir))
+                    {
+                        try { System.IO.Directory.Delete(tempDir, true); } catch { }
+                    }
+                }
+                catch { }
+            });
 
             // 1. Single Instance check
             _mutex = new Mutex(true, "SnapFind-SingleInstance-Mutex-Key", out bool isNewInstance);
@@ -523,6 +576,108 @@ namespace PixOcrSearch
                 }
             }
             catch { }
+        }
+
+        private void RunUpdateDeploymentFlow(string[] args)
+        {
+            int pid = 0;
+            string zipPath = "";
+            string destDir = "";
+
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i] == "--pid" && i + 1 < args.Length) pid = int.Parse(args[++i]);
+                else if (args[i] == "--zip" && i + 1 < args.Length) zipPath = args[++i];
+                else if (args[i] == "--dest" && i + 1 < args.Length) destDir = args[++i];
+            }
+
+            try
+            {
+                if (pid > 0)
+                {
+                    try
+                    {
+                        var process = System.Diagnostics.Process.GetProcessById(pid);
+                        process.WaitForExit(10000);
+                    }
+                    catch { }
+                }
+
+                string tempExtractDir = Path.Combine(destDir, "cache", "temp_update");
+                if (Directory.Exists(tempExtractDir))
+                {
+                    Directory.Delete(tempExtractDir, true);
+                }
+                Directory.CreateDirectory(tempExtractDir);
+
+                // 解压缩 zip 包
+                ZipFile.ExtractToDirectory(zipPath, tempExtractDir);
+
+                // 寻找源目录
+                string sourceDir = tempExtractDir;
+                string nestedDir = Path.Combine(tempExtractDir, "SnapFind");
+                if (File.Exists(Path.Combine(nestedDir, "SnapFind.exe")))
+                {
+                    sourceDir = nestedDir;
+                }
+
+                // 递归覆盖拷贝
+                CopyDirectoryRecursive(sourceDir, destDir);
+
+                try { Directory.Delete(tempExtractDir, true); } catch { }
+                try { File.Delete(zipPath); } catch { }
+
+                // 重启新版本
+                string mainExe = Path.Combine(destDir, "SnapFind.exe");
+                System.Diagnostics.Process.Start(new ProcessStartInfo(mainExe) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"SnapFind 自动更新覆盖失败：{ex.Message}\n\n请尝试手动解压 cache 目录下的压缩包进行覆盖。", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                try
+                {
+                    string mainExe = Path.Combine(destDir, "SnapFind.exe");
+                    System.Diagnostics.Process.Start(new ProcessStartInfo(mainExe) { UseShellExecute = true });
+                }
+                catch { }
+            }
+            finally
+            {
+                Shutdown();
+            }
+        }
+
+        private void CopyDirectoryRecursive(string source, string target)
+        {
+            foreach (string dirPath in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
+            {
+                Directory.CreateDirectory(dirPath.Replace(source, target));
+            }
+
+            foreach (string newPath in Directory.GetFiles(source, "*.*", SearchOption.AllDirectories))
+            {
+                string destFile = newPath.Replace(source, target);
+                bool copied = false;
+                string lastError = "";
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        File.Copy(newPath, destFile, true);
+                        copied = true;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = ex.Message;
+                        System.Threading.Thread.Sleep(500);
+                    }
+                }
+                if (!copied)
+                {
+                    throw new IOException($"无法写入文件，可能被占用：{destFile}。详细错误：{lastError}");
+                }
+            }
         }
     }
 

@@ -62,6 +62,18 @@ namespace PixOcrSearch
             // Focus text box and select all/place caret at the end
             OcrTextBox.Focus();
             OcrTextBox.SelectAll();
+
+            if (ConfigManager.Current.AutoCopyToClipboard)
+            {
+                try
+                {
+                    if (!string.IsNullOrEmpty(_initialText))
+                    {
+                        Clipboard.SetText(_initialText);
+                    }
+                }
+                catch { }
+            }
         }
 
         private void PositionWindow()

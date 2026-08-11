@@ -14,6 +14,7 @@ namespace PixOcrSearch
         public string IgnoredVersion { get; set; } = "";
         public string ControlPanelHotkeyModifiers { get; set; } = "Control,Alt";
         public string ControlPanelHotkeyKey { get; set; } = "C";
+        public bool AutoCopyToClipboard { get; set; } = false;
     }
 
     public static class ConfigManager
