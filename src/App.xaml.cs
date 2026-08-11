@@ -339,14 +339,6 @@ namespace PixOcrSearch
                         // Immediately close all screens to restore normal desktop view
                         CloseAllScreenshotWindows();
 
-                        // Debug save to verify cropping alignment
-                        try
-                        {
-                            string debugPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache", "debug_crop.png");
-                            bitmap.Save(debugPath, System.Drawing.Imaging.ImageFormat.Png);
-                        }
-                        catch { }
-
                         // Run OCR in background
                         string text = await OcrHelper.RecognizeTextAsync(bitmap);
                         bitmap.Dispose(); // Memory-only, release immediately

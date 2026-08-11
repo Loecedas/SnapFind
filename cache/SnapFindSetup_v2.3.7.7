@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang='zh-CN'>
+<head>
+<script>
+  // 立即应用主题，避免页面闪烁 (FOUC)
+  (function() {
+    function getCookieTheme() {
+      var match = document.cookie.match(/theme=(light|dark|system)/);
+      return match ? match[1] : null;
+    }
+  
+    function getCurrentTheme() {
+      var cookieTheme = getCookieTheme();
+      var savedTheme = localStorage.getItem('theme');
+  
+      // 优先使用 cookie 中的 theme
+      if (cookieTheme) {
+        // 如果 localStorage 里没有，就补回去
+        if (!savedTheme) {
+          localStorage.setItem('theme', cookieTheme);
+        }
+        return cookieTheme;
+      }
+  
+      // 如果 cookie 中没有 theme，则使用 localStorage 中的 theme
+      savedTheme = savedTheme && ['light', 'dark', 'system'].includes(savedTheme) ? savedTheme : 'system'; // 默认跟随系统
+  
+      return savedTheme;
+    }
+  
+    var savedTheme = getCurrentTheme();
+  
+    // 检测系统是否为暗黑模式
+    function isSystemDarkMode() {
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+  
+    if (savedTheme === 'system') {
+      // 系统模式：移除覆盖类，让CSS媒体查询自动处理
+      document.documentElement.classList.remove('dark-mode-override');
+      document.documentElement.classList.remove('dark-mode');
+    } else {
+      // 手动模式：添加覆盖类，禁用媒体查询
+      document.documentElement.classList.add('dark-mode-override');
+  
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark-mode');
+      } else {
+        document.documentElement.classList.remove('dark-mode');
+      }
+    }
+  })();
+</script>
+
+<link rel="alternate" type="application/atom+xml" title="Recent Releases to SnapFind" href="https://gitee.com/loecedas/SnapFind/releases.atom" />
+<link rel="alternate" type="application/atom+xml" title="Recent Tags to SnapFind" href="https://gitee.com/loecedas/SnapFind/tags.atom" />
+<title>SnapFind 发行版 - Gitee.com</title>
+<meta content='on' http-equiv='x-dns-prefetch-control'>
+<link href='//e.gitee.com' rel='dns-prefetch'>
+<link href='//files.gitee.com' rel='dns-prefetch'>
+<link href='//toscode.gitee.com' rel='dns-prefetch'>
+<link href='https://cn-assets.gitee.com' rel='dns-prefetch'>
+<link rel="shortcut icon" type="image/vnd.microsoft.icon" href="https://cn-assets.gitee.com/assets/favicon-9007bd527d8a7851c8330e783151df58.ico" />
+<link rel="canonical" href="https://gitee.com/loecedas/SnapFind" />
+<meta content='gitee.com/loecedas/SnapFind git https://gitee.com/loecedas/SnapFind.git' name='go-import'>
+<meta charset='utf-8'>
+<meta content='always' name='referrer'>
+<meta content='Gitee' property='og:site_name'>
+<meta content='Object' property='og:type'>
+<meta content='https://gitee.com/loecedas/SnapFind/releases' property='og:url'>
+<meta content='https://gitee.com/static/images/logo_themecolor_circle.png' itemprop='image' property='og:image'>
+<meta content='SnapFind 发行版 - Gitee.com' itemprop='name' property='og:title'>
+<meta content='仓库 loecedas/SnapFind 的 Releases' property='og:description'>
+<meta content='码云,Gitee,代码托管,Git,Git@OSC,Gitee.com,开源,内源,项目管理,版本控制,开源代码,代码分享,项目协作,开源项目托管,免费代码托管,Git代码托管,Git托管服务' name='Keywords'>
+<meta content='仓库 loecedas/SnapFind 的 Releases' itemprop='description' name='Description'>
+<meta content='pc,mobile' name='applicable-device'>
+
+<meta content="IE=edge" http-equiv="X-UA-Compatible" />
+<meta name="csrf-param" content="authenticity_token" />
+<meta name="csrf-token" content="0lXQ7QNTUabE2T6PPwjI7NJQxGZ/AlFBFT9T4PGPJqj21VDIxS877StqyZYGBtjooifZ9wmRd1NayH5U4rp1cw==" />
+
+<link rel="stylesheet" media="all" href="https://cn-assets.gitee.com/assets/application-e2d77161dd5b33485efad2f85ae00ef9.css" />
+<script>
+//<![CDATA[
+window.gon = {};gon.locale="zh-CN";gon.sentry_dsn=null;gon.baidu_register_hm_push=null;gon.info={"controller_path":"releases","action_name":"index","current_user":false};gon.tour_env={"current_user":null,"action_name":"index","original_url":"https://gitee.com/loecedas/SnapFind/releases","controller_path":"releases"};gon.http_clone="https://gitee.com/loecedas/SnapFind.git";gon.user_project="loecedas/SnapFind";gon.manage_branch="管理分支";gon.manage_tag="管理标签";gon.enterprise_id=0;gon.create_reaction_path="/loecedas/SnapFind/reactions";gon.ipipe_base_url="https://go-api.gitee.com";gon.artifact_base_url="https://go-repo.gitee.com";gon.gitee_go_remote_url="https://go.gitee.com/assets";gon.gitee_go_active=false;gon.current_project_is_mirror=false;gon.show_repo_comment=false;gon.diagram_viewer_path="https://diagram-viewer.giteeusercontent.com";gon.ent_host="e.gitee.com";
+//]]>
+</script>
+<script src="https://cn-assets.gitee.com/assets/application-db8a8c44993532253362392e72d8ef67.js"></script>
+<script src="https://cn-assets.gitee.com/assets/lib/jquery.timeago.zh-CN-4a4818e98c1978d2419ab19fabcba740.js"></script>
+
+<link rel="stylesheet" media="all" href="https://cn-assets.gitee.com/assets/projects/application-46b94c31ba11ae8c37eacce2bdb5603e.css" />
+<script src="https://cn-assets.gitee.com/assets/projects/app-0a3a796545bcb90da982bb1cfafd0f8a.js"></script>
+
+<script type='text/x-mathjax-config'>
+MathJax.Hub.Config({
+  tex2jax: {
+    inlineMath: [['$','$'], ['\\(','\\)']],
+    displayMath: [["$$","$$"],["\\[","\\]"]],
+    processEscapes: true,
+    skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+    ignoreClass: "container|files",
+    processClass: "markdown-body"
+  }
+});
+</script>
+<script src="https://cn-assets.gitee.com/uploads/resources/MathJax-2.7.2/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+<script>
+  (function () {
+    var messages = {
+      'zh-CN': {
+        addResult: '增加 <b>{term}</b>',
+        count: '已选择 {count}',
+        maxSelections: '最多 {maxCount} 个选择',
+        noResults: '未找到结果',
+        serverError: '连接服务器时发生错误'
+      },
+      'zh-TW': {
+        addResult: '增加 <b>{term}</b>',
+        count: '已選擇 {count}',
+        maxSelections: '最多 {maxCount} 個選擇',
+        noResults: '未找到結果',
+        serverError: '連接服務器時發生錯誤'
+      }
+    }
+  
+    if (messages[gon.locale]) {
+      $.fn.dropdown.settings.message = messages[gon.locale]
+    }
+  }());
+</script>
+
+<script>
+  var userAgent = navigator.userAgent;
+  var isLessIE11 = userAgent.indexOf('compatible') > -1 && userAgent.indexOf('MSIE') > -1;
+  if(isLessIE11){
+    var can_access = ""
+    if (can_access != "true"){
+      window.location.href = "/incompatible.html";
+    }
+  }
+  document.addEventListener("error", function (ev) {
+    var elem = ev.target;
+    if (elem.tagName.toLowerCase() === 'img') {
+      elem.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAAAAACIM/FCAAACh0lEQVR4Ae3ch5W0OgyG4dt/mQJ2xgQPzJoM1m3AbALrxzrf28FzsoP0HykJEEAAAUQTBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEkKK0789+GK/I2ezfQB522PnS1qc8pGgXvr4tE4aY0XOUWlGImThWgyCk6DleixzE7qwBkg/MGiDPlVVAyp1VQGrPKiACDhFI6VkF5LmzCki+sg7IwDoglnVAil0IMkeG9CyUiwsxLFUVFzJJOQaKCjFCDN9RXMjIX7W6ztZXZDKKCyn8sWJvH+nca7WHDN9lROlAliPH9iRKCPI4cswFJQWxB46toLQgQ9jhn5QYZA9DOkoMUoQde5YapAxDWkoNYsOQR3KQd9CxUnIQF4S49CB9ENKlBxmDEKsFUgMCCCCAAHIrSF61f6153Ajy8nyiPr8L5MXnmm4CyT2fzN4DUvHZ+ntA2tOQBRBAAAEEEEAAAQQQ7ZBaC6TwSiDUaYHQ2yuB0MN+ft+43whyrs4rgVCjBUKTFshLC6TUAjGA3AxSaYFYLZBOC2RUAsk8h5qTg9QcbEoOsoQhQ2qQhsO5xCD5dgB5JQaZ+KBKGtKecvR81Ic0ZDjByKdDx0rSEDZ/djQbH+bkIdvfJFm98BfV8hD2zprfVdlu9PxVeyYAkciREohRAplJCaRSAplJCcQogTjSAdlyHRBvSAekJR0QRzogA+mADJkOiCPSAPEtqYBshlRAXC43hxix2QiOuEZkVERykGyNo9idIZKE0HO7XrG6OiMShlDWjstVzdPgXtUH9v0CEidAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQAABBBBAAAEEEEAAAQQQQP4HgjZxTpdEii0AAAAASUVORK5CYII=";
+    }
+  }, true);
+</script>
+</head>
+
+<script src="//res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
+<script>
+  var title = document.title.replace(/( - Gitee| - 码云)$/, '')
+      imgUrl = '';
+  
+  document.addEventListener('DOMContentLoaded', function(event) {
+    var imgUrlEl = document.querySelector('.readme-box .markdown-body > img, .readme-box .markdown-body :not(a) > img');
+    imgUrl = imgUrlEl && imgUrlEl.getAttribute('src');
+  
+    if (!imgUrl) {
+      imgUrlEl = document.querySelector('meta[itemprop=image]');
+      imgUrl = imgUrlEl && imgUrlEl.getAttribute('content');
+      imgUrl = imgUrl || "https://gitee.com/static/images/logo_themecolor_circle.png";
+    }
+  
+    wx.config({
+      debug: false,
+      appId: "wx74f3fbb24061d30a",
+      timestamp: "1786432561",
+      nonceStr: "0edcf0464e78b1c8b0a720d90b1f5381",
+      signature: "50b6e354b25b64a142e752916328356103c20140",
+      jsApiList: [
+        'onMenuShareTimeline',
+        'onMenuShareAppMessage'
+      ]
+    });
+  
+    wx.ready(function () {
+      wx.onMenuShareTimeline({
+        title: title, // 分享标题
+        link: "https://gitee.com/loecedas/SnapFind/releases", // 分享链接，该链接域名或路径必须与当前页面对应的公众号JS安全域名一致
+        imgUrl: imgUrl // 分享图标
+      });
+      wx.onMenuShareAppMessage({
+        title: title, // 分享标题
+        link: "https://gitee.com/loecedas/SnapFind/releases", // 分享链接，该链接域名或路径必须与当前页面对应的公众号JS安全域名一致
+        desc: document.querySelector('meta[name=Description]').getAttribute('content'),
+        imgUrl: imgUrl // 分享图标
+      });
+    });
+    wx.error(function(res){
+      console.error('err', res)
+    });
+  })
+</script>
+
+<body class='git-project lang-zh-CN releases-site-content releases_index'>
+<header class='common-header fixed noborder' id='git-header-nav'>
+<div class='ui container'>
+<div class='ui menu header-menu header-container'>
+<div class='git-nav-expand-bar'>
+<i class='iconfont icon-mode-table'></i>
+</div>
+<div class='gitee-nav__sidebar'>
+<div class='gitee-nav__sidebar-container'>
+<div class='gitee-nav__sidebar-top'>
+<div class='gitee-nav__avatar-box'></div>
+<div class='gitee-nav__buttons-box'>
+<a class="ui button small fluid orange" href="/login">登录</a>
+<a class="ui button small fluid basic is-register" href="/signup">注册</a>
+</div>
+</div>
+<div class='gitee-nav__sidebar-middle'>
+<div class='gitee-nav__sidebar-list'>
+<ul>
+<li class='gitee-nav__sidebar-item'>
+<a href="/explore"><i class='iconfont icon-ic-discover'></i>
+<span class='gitee-nav__sidebar-name'>开源</span>
+</a></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/enterprises"><i class='iconfont icon-ic-enterprise'></i>
+<span class='gitee-nav__sidebar-name'>企业版</span>
+</a></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/education"><i class='iconfont icon-ic-education'></i>
+<span class='gitee-nav__sidebar-name'>高校版</span>
+</a></li>
+<li class='gitee-nav__sidebar-item split-line'></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/search"><i class='iconfont icon-ic-search'></i>
+<span class='gitee-nav__sidebar-name'>搜索</span>
+</a></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/help"><i class='iconfont icon-help-circle'></i>
+<span class='gitee-nav__sidebar-name'>帮助中心</span>
+</a></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/terms"><i class='iconfont icon-file'></i>
+<span class='gitee-nav__sidebar-name'>使用条款</span>
+</a></li>
+<li class='gitee-nav__sidebar-item'>
+<a href="/about_us"><i class='iconfont icon-issuepx'></i>
+<span class='gitee-nav__sidebar-name'>关于我们</span>
+</a></li>
+</ul>
+</div>
+</div>
+<div class='gitee-nav__sidebar-bottom'>
+<div class='gitee-nav__sidebar-close-button'>
+<i class='fa fa-angle-double-left'></i>
+</div>
+</div>
+</div>
+</div>
+
+<!-- /todo 10周年活动结束后 恢复 -->
+<div class='item gitosc-logo'>
+<a href="https://gitee.com"><img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='ui inline image light-mode-img' height='28' src='/static/images/logo-black.svg?t=158106664' title='Gitee - 基于 Git 的代码托管和研发协作平台' width='95'>
+<img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='ui inline image dark-mode-img' height='28' src='/static/images/logo.svg?t=158106664' title='Gitee - 基于 Git 的代码托管和研发协作平台' width='95'>
+</a></div>
+<a title="开源" class="item " href="/explore">开源
+</a><a title="企业版" class="item " href="/enterprises">企业版
+</a><a title="高校版" class="item " href="/education">高校版
+</a><a title="私有云" class="item" target="_blank" href="https://gitee.cn?utm_source=giteecom">私有云
+</a><a title="模力方舟" class="item" id="gitee-blog" target="_blank" href="https://moark.com/serverless-api/?utm_sources=site_nav"><span>
+模力方舟
+</span>
+<img alt='模力方舟' class='ui inline image' src='/static/images/notification-star.svg' style='transform: translate(-4.6px, -8.8px)' title='模力方舟'>
+</a><a title="AI 队友" class="item" id="gitee-ai-bot" target="_blank" href="https://gitee.com/ai-teammates"><span>AI 队友</span>
+</a><div class='center responsive-logo'>
+<a href="https://gitee.com"><img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='ui inline image' height='24' src='/static/images/logo.svg?t=158106664' title='Gitee - 基于 Git 的代码托管和研发协作平台' width='85'>
+<img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='ui inline black image' height='24' src='/static/images/logo-black.svg?t=158106664' title='Gitee - 基于 Git 的代码托管和研发协作平台' width='85'>
+</a></div>
+<div class='right menu userbar right-header' id='git-nav-user-bar'>
+<form class="ui item" id="navbar-search-form" data-text-require="搜索关键字不能少于1个" data-text-filter="搜索格式不正确" data-text-search-site-projects="在全站搜索 %{query} 相关项目" action="/search" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="&#x2713;" />
+<input type="hidden" name="type" id="navbar-search-type" />
+<input type="hidden" name="fork_filter" id="fork_filter" value="on" />
+<div class='ui search header-search' style='position: relative;'>
+<input type="text" name="q" id="navbar-search-input" value="" class="prompt" placeholder="搜开源" style="width: 100%; padding-right: 32px; box-sizing: border-box;" />
+<span class='iconify' data-icon='gitee:search' style='position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 16px; color:rgba(0, 0, 0, 0.88); pointer-events: none;'></span>
+</div>
+</form>
+
+<script>
+  var can_search_in_repo = 1,
+      repo = "VGtSck1VNTZUVEpOVkdSb1RucFplbHBuUFQxaE56WXpaZz09YTc2M2Y=",
+      reponame = "loecedas/SnapFind";
+  
+  $(function() {
+    var $search = $('#navbar-search-form .ui.search');
+    var $form = $('#navbar-search-form');
+    var searchSiteProjectsText = $form.data('text-search-site-projects');
+  
+    $form.on('submit', function(e) {
+      e.preventDefault(); // 防止默认提交
+      var query = $('#navbar-search-input').val();
+      if (query) {
+        window.location = '/search?fork_filter=on&q=' + encodeURIComponent(query);
+      }
+    });
+  
+    // 原有的搜索逻辑保持不变
+    $search.search({
+      apiSettings: {
+        url: '/search/relative_project?q=' + encodeURIComponent('{query}'),
+        onResponse: function (res) {
+          if (res && res.status === 200 && res.data) {
+            var query = htmlSafe($search.search('get value'));
+  
+            res.data.map(function (item) {
+              item.path_ns = '/' + item.path_ns;
+              item.icon = 'iconfont icon-project-public';
+            });
+            res.data.unshift({
+              name_ns: searchSiteProjectsText.replace('%{query}', "<b class='hl'>" + query + "</b>"),
+              path_ns: '/search?fork_filter=on&q=' + encodeURIComponent(query),
+              icon: 'iconfont icon-search'
+            });
+            return res;
+          } else {
+            return { data: [] };
+          }
+        }
+      },
+      fields: {
+        results: 'data',
+        description: 'name_ns',
+        url: 'path_ns',
+      },
+      minCharacters: 1,
+      maxResults: 10,
+      searchDelay: 250,
+      showNoResults: false,
+      transition: 'fade'
+    });
+  });
+</script>
+
+<script src="https://cn-assets.gitee.com/webpacks/gitee_icons-c083090a7801eb0b2ce7.bundle.js"></script>
+<script src="https://cn-assets.gitee.com/assets/theme_toggle-0c8215e3e0cd891c42ea4226ae882bfb.js"></script>
+<link rel="stylesheet" media="screen" href="https://cn-assets.gitee.com/assets/fonts/font-awesome-febf886370cf750ab95af17cede1d51f.css" />
+<a class="item git-nav-user__login-item" href="/login">登录
+</a><a class="item git-nav-user__register-item" href="/signup">注册
+</a><script>
+  $('.destroy-user-session').on('click', function() {
+    localStorage.setItem('theme', 'system');
+    $.cookie('access_token', null, { path: '/' });
+  })
+</script>
+
+</div>
+</div>
+</div>
+</header>
+<script>
+  Gitee.initNavbar()
+  Gitee.initRepoRemoteWay()
+  $.cookie('user_locale',null)
+</script>
+
+<script>
+  var userAgent = navigator.userAgent;
+  var isLessIE11 = userAgent.indexOf('compatible') > -1 && userAgent.indexOf('MSIE') > -1;
+  if(isLessIE11){
+    var can_access = ""
+    if (can_access != "true"){
+      window.location.href = "/incompatible.html";
+    }
+  }
+</script>
+
+<div class='fixed-notice-infos'>
+<div class='all-messages'>
+</div>
+<div class='ui container'>
+<div class='flash-messages' id='messages-container'></div>
+</div>
+<script>
+  (function() {
+    $(function() {
+      var $error_box, alertTip, notify_content, notify_options, template;
+      template = '<div data-notify="container" class="ui {0} message" role="alert">' + '<i data-notify="dismiss" class="close icon"></i>' + '<span data-notify="message">{2}</span>' + '</div>';
+      notify_content = null;
+      notify_options = {};
+      alertTip = '';
+      $error_box = $(".flash_error.flash_error_box");
+      if (notify_options.type === 'error' && $error_box.length > 0 && !$.isEmptyObject(notify_content.message)) {
+        if (notify_content.message === 'captcha_fail') {
+          alertTip = "验证码不正确";
+        } else if (notify_content.message === 'captcha_expired') {
+          alertTip = "验证码已过期，请点击刷新";
+        } else if (notify_content.message === 'not_found_in_database') {
+          alertTip = "帐号或者密码错误";
+        } else if (notify_content.message === 'not_found_and_show_captcha') {
+          alertTip = "帐号或者密码错误";
+        } else if (notify_content.message === 'phone_captcha_fail') {
+          alertTip = "手机验证码不通过";
+        } else {
+          alertTip = notify_content.message;
+        }
+        return $error_box.html(alertTip).show();
+      } else if (notify_content) {
+        if ("index" === 'third_party_binding') {
+          return $('#third_party_binding-message').html(notify_content.message).addClass('ui message red');
+        }
+        notify_options.delay = 3000;
+        notify_options.template = template;
+        notify_options.offset = {
+          x: 10,
+          y: 30
+        };
+        notify_options.element = '#messages-container';
+        return $.notify(notify_content, notify_options);
+      }
+    });
+  
+  }).call(this);
+</script>
+
+</div>
+<script>
+  (function() {
+    $(function() {
+      var setCookie;
+      setCookie = function(name, value) {
+        $.cookie(name, value, {
+          path: '/',
+          expires: 365
+        });
+      };
+      $('#remove-bulletin, #remove-bulletin-dashboard').on('click', function() {
+        setCookie('remove_bulletin', "gitee-maintain-1783670588");
+        $('#git-bulletin').hide();
+      });
+      $('#remove-member-bulletin').on('click', function() {
+        setCookie('remove_member_bulletin', "gitee_member_bulletin");
+        $(this).parent().hide();
+      });
+      return $('#remove-gift-bulletin').on('click', function() {
+        setCookie('remove_gift_bulletin', "gitee-gift-bulletin");
+        $(this).parent().hide();
+      });
+    });
+  
+  }).call(this);
+</script>
+<script>
+  function closeMessageBanner(pthis, type, val) {
+    var json = {}
+  
+    val = typeof val === 'undefined' ? null : val
+    $(pthis).parent().remove()
+    if (type === 'out_of_enterprise_member') {
+      json = {type: type, data: val}
+    } else if (type === 'enterprise_overdue') {
+      json = {type: type, data: val}
+    }
+    $.post('/profile/close_flash_tip', json)
+  }
+</script>
+
+<div class='site-content'>
+<div class='git-project-header'>
+<div class='fixed-notice-infos'>
+<div class='ui info icon floating message green' id='fetch-ok' style='display: none'>
+<div class='content'>
+<div class='header status-title'>
+<i class='info icon status-icon'></i>
+代码拉取完成，页面将自动刷新
+</div>
+</div>
+</div>
+<div class='ui info icon floating message error' id='fetch-error' style='display: none'>
+<div class='content'>
+<div class='header status-title'>
+<i class='info icon status-icon'></i>
+<span class='error_msg'></span>
+</div>
+</div>
+</div>
+</div>
+<div class='ui container'>
+
+<div class='git-project-header-details'>
+<div class='git-project-header-container'>
+<div class='git-project-header-actions'>
+<div class='tootip no-arrow' data-position='bottom center' data-tooltip='试试让马建仓 AI 助手来解读仓库吧～'>
+<div class='chat-button'>
+<a target="_blank" class="d-align-center" href="https://chat.gitee.com?repo_owner=loecedas&amp;repo_path=SnapFind"><img alt="richgiteeai" style="width:14px; height:14px;" src="https://cn-assets.gitee.com/assets/rich_giteeai-78477b2d4703c69031f90ac6a524c3e3.svg" />
+</a></div>
+</div>
+<span class='ui buttons basic watch-container'>
+<div class='ui dropdown button js-project-watch' data-watch-type='unwatch'>
+<input type='hidden' value=''>
+<i class='iconfont icon-watch'></i>
+<div class='text'>
+Watch
+</div>
+<i class='dropdown icon'></i>
+<div class='menu'>
+<a data-value="unwatch" class="item" rel="nofollow" data-method="post" href="/loecedas/SnapFind/unwatch"><i class='iconfont icon-msg-read'></i>
+不关注
+</a><a data-value="watching" class="item" rel="nofollow" data-method="post" href="/loecedas/SnapFind/watch"><i class='iconfont icon-msg-read'></i>
+关注所有动态
+</a><a data-value="releases_only" class="disabled item" rel="nofollow" data-method="post" href="/loecedas/SnapFind/release_only_watch"><i class='iconfont icon-msg-read'></i>
+仅关注版本发行动态
+</a><a data-value="ignoring" class="item" rel="nofollow" data-method="post" href="/loecedas/SnapFind/ignoring_watch"><i class='iconfont icon-msg-read'></i>
+关注但不提醒动态
+</a></div>
+</div>
+<style>
+  .js-project-watch .text .iconfont {
+    display: none; }
+  .js-project-watch a, .js-project-watch a:hover {
+    color: #000; }
+  .js-project-watch .item > .iconfont {
+    visibility: hidden;
+    margin-left: -10px; }
+  .js-project-watch .selected .iconfont {
+    visibility: visible; }
+  .js-project-watch .menu {
+    margin-top: 4px !important; }
+</style>
+<script>
+  $('.js-project-watch').dropdown({
+    action: 'select',
+    onChange: function(value, text, $selectedItem) {
+      var type = value === 'unwatch' ? 'Watch' : 'Watching';
+      $(this).children('.text').text(type);
+      $(this).dropdown('set selected', value)
+    }
+  });
+</script>
+
+<a class="ui button action-social-count" title="1" href="/loecedas/SnapFind/watchers">1
+</a></span>
+<span class='basic buttons star-container ui'>
+<a class="ui button star" href="/login"><i class='iconfont icon-star'></i>
+Star
+</a><a class="ui button action-social-count " title="0" href="/loecedas/SnapFind/stargazers">0
+</a></span>
+<span class='ui basic buttons fork-container' title='无权 Fork 此仓库'>
+<a class="ui button fork" title="你必须登录后才可以fork一个仓库" href="/login"><i class='iconfont icon-fork'></i>
+Fork
+</a><a class="ui button action-social-count disabled-style" title="0" href="/loecedas/SnapFind/members">0
+</a></span>
+</div>
+<h2 class='git-project-title mt-0 mb-0'>
+<span class="project-title"><i class="project-icon iconfont icon-project-public" style='margin-right: 4px' title="这是一个公开仓库"></i> <a title="loecedas" class="author" href="/loecedas">loecedas</a> / <a title="SnapFind" class="repository" target="" style="padding-bottom: 0px; margin-right: 4px" href="/loecedas/SnapFind">SnapFind</a></span><span class="project-badges"><style>
+  .gitee-modal {
+    width: 500px !important; }
+</style>
+</span>
+<input type="hidden" name="project_title" id="project_title" value="loecedas/SnapFind" />
+</h2>
+</div>
+</div>
+</div>
+<script>
+  var title_import_url = "https://github.com/Loecedas/SnapFind.git";
+  var title_post_url = "/loecedas/SnapFind/update_import";
+  var title_fork_url = "/loecedas/SnapFind/sync_fork";
+  var title_project_path = "SnapFind";
+  var title_p_name = "SnapFind";
+  var title_p_id= "49573617";
+  var title_description = null;
+  var title_form_authenticity_token = "2jumcM1nzY2+HebXdVI8VtBi8JJNwwfx1MUE2B1GvS/+uyZVCxunxlGuEc5MXCxSoBXtAztQIeObMilsDnPu9A==";
+  var watch_type = "unwatch";
+  var checkFirst = false;
+  
+  $('.js-project-watch').dropdown('set selected', watch_type);
+  $('.checkbox.sync-wiki').checkbox();
+  $('.checkbox.sync-prune').checkbox();
+  $('.checkbox.team-member-checkbox').checkbox();
+  $('.project-closed-label').popup({ 
+    popup: '.project-closed-popup', 
+    position: 'top center', 
+    hoverable: true,
+  });
+</script>
+<style>
+  i.loading, .icon-sync.loading {
+    -webkit-animation: icon-loading 1.2s linear infinite;
+    animation: icon-loading 1.2s linear infinite;
+  }
+  .qrcode_cs {
+    float: left;
+  }
+  .check-sync-wiki {
+    float: left;
+    height: 28px;
+    line-height: 28px;
+  }
+  .sync-wiki-warn {
+    color: #e28560;
+  }
+</style>
+
+<div class='git-project-nav'>
+<div class='ui container'>
+<div class='ui secondary pointing menu'>
+<a class="item active " href="/loecedas/SnapFind"><i class='iconfont icon-code'></i>
+代码
+</a><a class="item " href="/loecedas/SnapFind/issues"><i class='iconfont icon-task'></i>
+Issues
+<span class='ui mini circular label'>
+0
+</span>
+</a><a class="item " href="/loecedas/SnapFind/pulls"><i class='iconfont icon-pull-request'></i>
+Pull Requests
+<span class='ui mini circular label'>
+0
+</span>
+</a><a class="item " href="/loecedas/SnapFind/wikis"><i class='iconfont icon-wiki'></i>
+Wiki
+</a><a class="item  " href="/loecedas/SnapFind/graph/main"><i class='iconfont icon-statistics'></i>
+统计
+</a><a class="item " href="/loecedas/SnapFind/gitee_go"><i class='iconfont icon-workflow'></i>
+流水线
+</a><div class='item'>
+<div class='ui pointing top right dropdown git-project-service'>
+<div>
+<i class='iconfont icon-service'></i>
+服务
+<i class='dropdown icon'></i>
+</div>
+<div class='menu' style='display:none'>
+<a class="item" href="/loecedas/SnapFind/quality_analyses?platform=sonar_qube"><img src="https://cn-assets.gitee.com/assets/sonar_mini-5e1b54bb9f6c951d97fb778ef623afea.png" alt="Sonar mini" />
+<div class='item-title'>
+质量分析
+</div>
+</a><a class="item" target="_blank" href="https://gitee.com/help/articles/4193"><img src="https://cn-assets.gitee.com/assets/jenkins_for_gitee-554ec65c490d0f1f18de632c48acc4e7.png" alt="Jenkins for gitee" />
+<div class='item-title'>
+Jenkins for Gitee
+</div>
+</a><a class="item" target="_blank" href="https://gitee.com/help/articles/4318"><img src="https://cn-assets.gitee.com/assets/cloudbase-1197b95ea3398aff1df7fe17c65a6d42.png?20200925" alt="Cloudbase" />
+<div class='item-title'>
+腾讯云托管
+</div>
+</a><a class="item" target="_blank" href="https://gitee.com/help/articles/4330"><img src="https://cn-assets.gitee.com/assets/cloud_serverless-686cf926ced5d6d2f1d6e606d270b81e.png" alt="Cloud serverless" />
+<div class='item-title'>
+腾讯云 Serverless
+</div>
+</a><a class="item" href="/loecedas/SnapFind/open_sca"><img src="https://cn-assets.gitee.com/assets/open_sca/logo-9049ced662b2f9936b8001e6f9cc4952.png" alt="Logo" />
+<div class='item-title'>
+悬镜安全
+</div>
+</a><a class="item" target="_blank" href="https://help.gitee.com/devops/connect/Aliyun-SAE"><img src="https://cn-assets.gitee.com/assets/SAE-f3aa9366a1e2b7fff4747402eb8f10c3.png" alt="Sae" />
+<div class='item-title'>
+阿里云 SAE
+</div>
+</a><a class="item" id="update-codeblitz-link" target="_blank" href="https://gitee.com/link?target=https%3A%2F%2Fcodeblitz.cloud.alipay.com%2Fgitee%2Floecedas%2FSnapFind%2Ftree%2Fmain"><img style="width:100px;margin-top:4px" src="https://cn-assets.gitee.com/assets/Codeblitz-8824e38875a106e16e29ff57ec977b08.png" alt="Codeblitz" />
+<div class='item-title'>
+Codeblitz
+</div>
+</a><a class="item" id="update-codeblitz-link" target="_blank" href="/loecedas/SnapFind/sbom"><img style="width:30px;margin-top:4px" src="https://cn-assets.gitee.com/assets/SBOM-36dbd3141411c5c1e9095e8d1d21baf0.png" alt="Sbom" />
+<div class='item-title'>
+SBOM
+</div>
+</a><a class="item" href="/loecedas/SnapFind/qilin_profile"><img class="qilin-profile-nav-logo" src="https://cn-assets.gitee.com/assets/qilin_profile-a1a9c6fee979fdf21e79f25c1f1c18b2.png" alt="Qilin profile" />
+<div class='item-title'>
+开发画像分析
+</div>
+</a><button class='ui orange basic button quit-button' id='quiting-button'>
+我知道了，不再自动展开
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  $('.git-project-nav .ui.dropdown').dropdown({ action: 'nothing' });
+  $('.git-project-service').dropdown({
+    on: 'click',
+    action: 'nothing',
+    onShow: function () {
+      const branch = 'main'
+      let newUrl = `https://codeblitz.cloud.alipay.com/gitee/loecedas/SnapFind/tree/`
+      const url = decodeURIComponent(window.location.pathname);
+      const startIndex = url.indexOf('main');
+      if (startIndex !== -1) {
+        newUrl = newUrl + url.substring(startIndex); // 从分支名开始截取
+      }else{
+        newUrl = newUrl + branch
+      }
+      const linkElement = document.getElementById("update-codeblitz-link");
+      linkElement.setAttribute("href", window.location.origin + "/link?target=" + encodeURIComponent(newUrl));
+    },
+  })
+</script>
+<style>
+  .git-project-nav i.checkmark.icon {
+    color: green;
+  }
+  #quiting-button {
+    display: none;
+  }
+  
+  .git-project-nav .dropdown .menu.hidden:after {
+    visibility: hidden !important;
+  }
+</style>
+<script>
+  isSignIn = false
+  isClickGuide = false
+  $('#git-versions.dropdown').dropdown();
+  $.ajax({
+    url:"/loecedas/SnapFind/access/add_access_log",
+    type:"GET"
+  });
+  $('#quiting-button').on('click',function() {
+    $('.git-project-service').click();
+    if (isSignIn) {
+      $.post("/projects/set_service_guide")
+    }
+    $.cookie("Serve_State", true, { expires: 3650, path: '/'})
+    $('#quiting-button').hide();
+  });
+  if (!(isClickGuide || $.cookie("Serve_State") == 'true')) {
+    $('.git-project-service').click()
+    $('#quiting-button').show()
+  }
+</script>
+
+</div>
+<div class='ui container'>
+<div id='git-tags-container'>
+<div class='releases-tags-header'>
+<div class='ui menu project-statistics-menu' id='project-item-menu'>
+<div class='active item releases-tags-tab' data-tab='releases'>
+<a data-remote href='/loecedas/SnapFind/releases'>
+发行版
+</a>
+</div>
+<div class='item releases-tags-tab' data-tab='tags'>
+<a data-remote href='/loecedas/SnapFind/tags'>
+标签 (Tag)
+</a>
+</div>
+</div>
+<div class='releases-tags-actions'>
+<div class='releases-tags-filters'>
+<div class='ui selection dropdown compact releases-scope-dropdown js-releases-scope' data-value=''>
+<input name='scope' type='hidden' value=''>
+<i class='dropdown icon'></i>
+<div class='text'>全部</div>
+<div class='menu'>
+<div class='active item selected' data-value=''>
+全部
+</div>
+<div class='item' data-value='official'>
+正式版
+</div>
+<div class='item' data-value='preview'>
+预览版
+</div>
+</div>
+</div>
+<div class='ui icon input releases-tags-search'>
+<i class='search icon'></i>
+<input autocomplete='off' class='js-releases-tags-search' placeholder='搜索发行版标题或标签' type='text' value=''>
+</div>
+</div>
+<div class='releases-tags-create'>
+
+</div>
+
+</div>
+</div>
+
+<div id='releases-tags-list-content'>
+<div class='ui inverted dimmer js-releases-tags-loading'>
+<div class='ui loader'></div>
+</div>
+<div class='releases-tags-wrap' id='releases-index'>
+<div class='releases-tag-content'>
+<link rel="stylesheet" media="all" href="https://cn-assets.gitee.com/assets/markdown_preview-001478f1b12f2725f1b1f76f36b9ce4e.css" />
+<script src="https://cn-assets.gitee.com/assets/markdown_preview-12e9bbb4f1209300e326584772211018.js"></script>
+<script src="https://cn-assets.gitee.com/webpacks/markdown_render-dbca885dd09737e093a3.bundle.js" defer="defer"></script>
+<div class='releases-layout'>
+<div class='releases-sidebar-content'>
+<div class='releases-sidebar'>
+<div class='releases-sidebar-title'>发行版列表</div>
+<ul class='releases-sidebar-list'>
+<li class='active'>
+<a class='releases-sidebar-item' data-tag='v2.3.7' href='#release-v2.3.7'>
+<span class='tag-text' title='v2.3.7'>v2.3.7</span>
+<span class='ui label latest-version'>最新版</span>
+</a>
+</li>
+<li>
+<a class='releases-sidebar-item' data-tag='v2.3.5' href='#release-v2.3.5'>
+<span class='tag-text' title='v2.3.5'>v2.3.5</span>
+</a>
+</li>
+<li>
+<a class='releases-sidebar-item' data-tag='v2.3.4' href='#release-v2.3.4'>
+<span class='tag-text' title='v2.3.4'>v2.3.4</span>
+</a>
+</li>
+<li>
+<a class='releases-sidebar-item' data-tag='v2.3.3' href='#release-v2.3.3'>
+<span class='tag-text' title='v2.3.3'>v2.3.3</span>
+</a>
+</li>
+<li>
+<a class='releases-sidebar-item' data-tag='v2.3.2' href='#release-v2.3.2'>
+<span class='tag-text' title='v2.3.2'>v2.3.2</span>
+</a>
+</li>
+</ul>
+</div>
+</div>
+<div class='releases-timeline'>
+<div class='release-tag-item' data-tag='v2.3.7' id='release-v2.3.7'>
+<div class='release-body'>
+<div class='release-header'>
+<div class='release-header-main'>
+<a target="_blank" class="title" href="/loecedas/SnapFind/releases/tag/v2.3.7">v2.3.7</a>
+<div class='ui label latest-version'>
+<a href="/loecedas/SnapFind/releases/latest">最新版</a>
+</div>
+</div>
+<div class='release-header-actions'>
+<div class='ui top right pointing dropdown gradient button release_compare margin-0'>
+<div>
+<span></span>
+对比
+<i class='dropdown icon'></i>
+</div>
+<div class='menu pop-panel'>
+<div class='ui right icon search input'>
+<div class='iconfont icon-search'></div>
+<input placeholder='搜索标签' type='text'>
+</div>
+<div class='scrolling menu padding-0'>
+<div class='item'></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div class='release-meta-row'>
+<span class='author js-popover-card' data-username='loecedas'>
+<a href="/loecedas"><img class="ui avatar image mini" width="16" avatar="loecedas-loecedas" /></a>
+<span class='name'>loecedas</span>
+</span>
+<span class='release-time' data-commit-date='2026-08-07 03:12:37 +0000'>
+2026-08-11 15:15
+</span>
+<span class='tag-name' data-tag-name='v2.3.7'>
+<a target="_blank" href="/loecedas/SnapFind/tree/v2.3.7"><i class='iconfont icon-tag'></i>
+<span>v2.3.7</span>
+</a>
+</span>
+<span class='commit-info' data-commit-id='b5dc529873218c9301ca6a5b25080c9162a8dc1d'>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d"><span class='octicon octicon-git-commit'></span>
+b5dc529
+</a>
+</span>
+</div>
+<div class='content'>
+<div class='markdown-body'>
+<rich-markdown-renderer data-enterprise-id='' data-project-id='49573617'>&#x000A;<textarea class='content' style='display:none;'>none</textarea>&#x000A;<div class='loader-wrapper'>&#x000A;<div class='ui inline mini active loader'></div>&#x000A;</div></rich-markdown-renderer>&#x000A;</div>
+<div class='committed-info'>
+<span class='text-muted'>最后提交信息为：</span>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d">add LICENSE.</a>
+</div>
+</div>
+<div class='footer'>
+<div class='title'>下载</div>
+<div class='ui celled list releases-download-list'>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.7/SnapFindSetup_v2.3.7.exe"><i class='file archive outline icon'></i>
+SnapFindSetup_v2.3.7.exe
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.7" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="zip" href="/loecedas/SnapFind/archive/refs/tags/v2.3.7.zip"><i class='file archive outline icon'></i>
+下载
+Source code (zip)
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.7" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="tar.gz" href="/loecedas/SnapFind/archive/refs/tags/v2.3.7.tar.gz"><i class='file archive outline icon'></i>
+下载
+Source code (tar.gz)
+</a></div>
+</div>
+</div>
+</div>
+
+</div>
+<div class='release-tag-item' data-tag='v2.3.5' id='release-v2.3.5'>
+<div class='release-body'>
+<div class='release-header'>
+<div class='release-header-main'>
+<a target="_blank" class="title" href="/loecedas/SnapFind/releases/tag/v2.3.5">v2.3.5</a>
+</div>
+<div class='release-header-actions'>
+<div class='ui top right pointing dropdown gradient button release_compare margin-0'>
+<div>
+<span></span>
+对比
+<i class='dropdown icon'></i>
+</div>
+<div class='menu pop-panel'>
+<div class='ui right icon search input'>
+<div class='iconfont icon-search'></div>
+<input placeholder='搜索标签' type='text'>
+</div>
+<div class='scrolling menu padding-0'>
+<div class='item'></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div class='release-meta-row'>
+<span class='author js-popover-card' data-username='loecedas'>
+<a href="/loecedas"><img class="ui avatar image mini" width="16" avatar="loecedas-loecedas" /></a>
+<span class='name'>loecedas</span>
+</span>
+<span class='release-time' data-commit-date='2026-08-07 03:12:37 +0000'>
+2026-08-10 20:09
+</span>
+<span class='tag-name' data-tag-name='v2.3.5'>
+<a target="_blank" href="/loecedas/SnapFind/tree/v2.3.5"><i class='iconfont icon-tag'></i>
+<span>v2.3.5</span>
+</a>
+</span>
+<span class='commit-info' data-commit-id='b5dc529873218c9301ca6a5b25080c9162a8dc1d'>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d"><span class='octicon octicon-git-commit'></span>
+b5dc529
+</a>
+</span>
+</div>
+<div class='content'>
+<div class='markdown-body'>
+<rich-markdown-renderer data-enterprise-id='' data-project-id='49573617'>&#x000A;<textarea class='content' style='display:none;'>&lt;details open&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇨🇳 点击展开中文更新日志 (Chinese)&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;✨ 新特性与优化 (v2.3.5)&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;段落排版优化&lt;/b&gt;：OCR 识别输出的文本会按照原始版面的分行进行排布，不再挤在一起。&lt;/li&gt;&#x000A;    &lt;li&gt;&lt;b&gt;界面视觉调整&lt;/b&gt;：控制中心界面样式全面替换为极简灰色风格，剔除了 Windows 原生所有的蓝色高亮。&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;&#x000A;&lt;br/&gt;&#x000A;&lt;details&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇺🇸 Click to expand English Changelog&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;✨ New Features &amp; Optimizations (v2.3.5)&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Layout-Preserving OCR&lt;/b&gt;: Formats OCR output text line-by-line based on spatial alignment.&lt;/li&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Clean Design&lt;/b&gt;: Replaces default Windows blue highlights with neutral gray-toned borders and styles.&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;</textarea>&#x000A;<div class='loader-wrapper'>&#x000A;<div class='ui inline mini active loader'></div>&#x000A;</div></rich-markdown-renderer>&#x000A;</div>
+<div class='committed-info'>
+<span class='text-muted'>最后提交信息为：</span>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d">add LICENSE.</a>
+</div>
+</div>
+<div class='footer'>
+<div class='title'>下载</div>
+<div class='ui celled list releases-download-list'>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.5/SnapFindSetup_v2.3.5.exe"><i class='file archive outline icon'></i>
+SnapFindSetup_v2.3.5.exe
+</a></div>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.5/SnapFindPortable_v2.3.5.zip"><i class='file archive outline icon'></i>
+SnapFindPortable_v2.3.5.zip
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.5" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="zip" href="/loecedas/SnapFind/archive/refs/tags/v2.3.5.zip"><i class='file archive outline icon'></i>
+下载
+Source code (zip)
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.5" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="tar.gz" href="/loecedas/SnapFind/archive/refs/tags/v2.3.5.tar.gz"><i class='file archive outline icon'></i>
+下载
+Source code (tar.gz)
+</a></div>
+</div>
+</div>
+</div>
+
+</div>
+<div class='release-tag-item' data-tag='v2.3.4' id='release-v2.3.4'>
+<div class='release-body'>
+<div class='release-header'>
+<div class='release-header-main'>
+<a target="_blank" class="title" href="/loecedas/SnapFind/releases/tag/v2.3.4">v2.3.4</a>
+</div>
+<div class='release-header-actions'>
+<div class='ui top right pointing dropdown gradient button release_compare margin-0'>
+<div>
+<span></span>
+对比
+<i class='dropdown icon'></i>
+</div>
+<div class='menu pop-panel'>
+<div class='ui right icon search input'>
+<div class='iconfont icon-search'></div>
+<input placeholder='搜索标签' type='text'>
+</div>
+<div class='scrolling menu padding-0'>
+<div class='item'></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div class='release-meta-row'>
+<span class='author js-popover-card' data-username='loecedas'>
+<a href="/loecedas"><img class="ui avatar image mini" width="16" avatar="loecedas-loecedas" /></a>
+<span class='name'>loecedas</span>
+</span>
+<span class='release-time' data-commit-date='2026-08-07 03:12:37 +0000'>
+2026-08-08 20:39
+</span>
+<span class='tag-name' data-tag-name='v2.3.4'>
+<a target="_blank" href="/loecedas/SnapFind/tree/v2.3.4"><i class='iconfont icon-tag'></i>
+<span>v2.3.4</span>
+</a>
+</span>
+<span class='commit-info' data-commit-id='b5dc529873218c9301ca6a5b25080c9162a8dc1d'>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d"><span class='octicon octicon-git-commit'></span>
+b5dc529
+</a>
+</span>
+</div>
+<div class='content'>
+<div class='markdown-body'>
+<rich-markdown-renderer data-enterprise-id='' data-project-id='49573617'>&#x000A;<textarea class='content' style='display:none;'>&lt;details open&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇨🇳 点击展开中文更新日志 (Chinese)&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;SnapFind v2.3.4 更新日志&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;并发检测与测速择优&lt;/b&gt;：检查更新时会同时向 GitHub 和 Gitee 发起请求。若两者均返回最新版，会自动测量响应延迟并下载速度最快平台的文件。&lt;/li&gt;&#x000A;    &lt;li&gt;&lt;b&gt;智能超时回退机制&lt;/b&gt;：为更新请求设置了 2.5 秒的硬超时阈值。在 GitHub 访问受限的地区可迅速触发超时，无缝回退到 Gitee 源，避免程序界面长时间卡死挂起。&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;&#x000A;&lt;br/&gt;&#x000A;&lt;details&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇺🇸 Click to expand English Changelog&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;SnapFind v2.3.4 Changelog&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Parallel Update Verification&lt;/b&gt;: Concurrently queries GitHub and Gitee APIs. If both resolve to the latest version, it automatically downloads from the source with the lower latency.&lt;/li&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Optimized Timeout &amp; Fallback&lt;/b&gt;: Introduces a strict 2.5-second timeout on updater requests to quickly fallback to the Gitee mirror, eliminating UI freezes when GitHub is unreachable.&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;</textarea>&#x000A;<div class='loader-wrapper'>&#x000A;<div class='ui inline mini active loader'></div>&#x000A;</div></rich-markdown-renderer>&#x000A;</div>
+<div class='committed-info'>
+<span class='text-muted'>最后提交信息为：</span>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d">add LICENSE.</a>
+</div>
+</div>
+<div class='footer'>
+<div class='title'>下载</div>
+<div class='ui celled list releases-download-list'>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.4/SnapFindSetup_v2.3.4.exe"><i class='file archive outline icon'></i>
+SnapFindSetup_v2.3.4.exe
+</a></div>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.4/SnapFindPortable_v2.3.4.zip"><i class='file archive outline icon'></i>
+SnapFindPortable_v2.3.4.zip
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.4" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="zip" href="/loecedas/SnapFind/archive/refs/tags/v2.3.4.zip"><i class='file archive outline icon'></i>
+下载
+Source code (zip)
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.4" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="tar.gz" href="/loecedas/SnapFind/archive/refs/tags/v2.3.4.tar.gz"><i class='file archive outline icon'></i>
+下载
+Source code (tar.gz)
+</a></div>
+</div>
+</div>
+</div>
+
+</div>
+<div class='release-tag-item' data-tag='v2.3.3' id='release-v2.3.3'>
+<div class='release-body'>
+<div class='release-header'>
+<div class='release-header-main'>
+<a target="_blank" class="title" href="/loecedas/SnapFind/releases/tag/v2.3.3">v2.3.3</a>
+</div>
+<div class='release-header-actions'>
+<div class='ui top right pointing dropdown gradient button release_compare margin-0'>
+<div>
+<span></span>
+对比
+<i class='dropdown icon'></i>
+</div>
+<div class='menu pop-panel'>
+<div class='ui right icon search input'>
+<div class='iconfont icon-search'></div>
+<input placeholder='搜索标签' type='text'>
+</div>
+<div class='scrolling menu padding-0'>
+<div class='item'></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div class='release-meta-row'>
+<span class='author js-popover-card' data-username='loecedas'>
+<a href="/loecedas"><img class="ui avatar image mini" width="16" avatar="loecedas-loecedas" /></a>
+<span class='name'>loecedas</span>
+</span>
+<span class='release-time' data-commit-date='2026-08-07 03:12:37 +0000'>
+2026-08-08 14:46
+</span>
+<span class='tag-name' data-tag-name='v2.3.3'>
+<a target="_blank" href="/loecedas/SnapFind/tree/v2.3.3"><i class='iconfont icon-tag'></i>
+<span>v2.3.3</span>
+</a>
+</span>
+<span class='commit-info' data-commit-id='b5dc529873218c9301ca6a5b25080c9162a8dc1d'>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d"><span class='octicon octicon-git-commit'></span>
+b5dc529
+</a>
+</span>
+</div>
+<div class='content'>
+<div class='markdown-body'>
+<rich-markdown-renderer data-enterprise-id='' data-project-id='49573617'>&#x000A;<textarea class='content' style='display:none;'>&lt;details open&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇨🇳 点击展开中文更新日志 (Chinese)&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;SnapFind v2.3.3 更新日志&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;发布 2.3.3 正式版&lt;/b&gt;：统一打包并发布了全新的 2.3.3 版本，功能与 2.3.2 完全一致，保留了进度条更新安装与自动拉起主程序等最新特性。&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;&#x000A;&lt;br/&gt;&#x000A;&lt;details&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇺🇸 Click to expand English Changelog&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;h3&gt;SnapFind v2.3.3 Changelog&lt;/h3&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Release version 2.3.3&lt;/b&gt;: Packaged and released the new 2.3.3 version, keeping all features and optimizations identical to 2.3.2 (including silent update progress bar and auto-start logic).&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;</textarea>&#x000A;<div class='loader-wrapper'>&#x000A;<div class='ui inline mini active loader'></div>&#x000A;</div></rich-markdown-renderer>&#x000A;</div>
+<div class='committed-info'>
+<span class='text-muted'>最后提交信息为：</span>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d">add LICENSE.</a>
+</div>
+</div>
+<div class='footer'>
+<div class='title'>下载</div>
+<div class='ui celled list releases-download-list'>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.3/SnapFindSetup_v2.3.3.exe"><i class='file archive outline icon'></i>
+SnapFindSetup_v2.3.3.exe
+</a></div>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.3/SnapFindPortable_v2.3.3.zip"><i class='file archive outline icon'></i>
+SnapFindPortable_v2.3.3.zip
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.3" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="zip" href="/loecedas/SnapFind/archive/refs/tags/v2.3.3.zip"><i class='file archive outline icon'></i>
+下载
+Source code (zip)
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.3" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="tar.gz" href="/loecedas/SnapFind/archive/refs/tags/v2.3.3.tar.gz"><i class='file archive outline icon'></i>
+下载
+Source code (tar.gz)
+</a></div>
+</div>
+</div>
+</div>
+
+</div>
+<div class='release-tag-item' data-tag='v2.3.2' id='release-v2.3.2'>
+<div class='release-body'>
+<div class='release-header'>
+<div class='release-header-main'>
+<a target="_blank" class="title" href="/loecedas/SnapFind/releases/tag/v2.3.2">v2.3.2</a>
+</div>
+<div class='release-header-actions'>
+<div class='ui top right pointing dropdown gradient button release_compare margin-0'>
+<div>
+<span></span>
+对比
+<i class='dropdown icon'></i>
+</div>
+<div class='menu pop-panel'>
+<div class='ui right icon search input'>
+<div class='iconfont icon-search'></div>
+<input placeholder='搜索标签' type='text'>
+</div>
+<div class='scrolling menu padding-0'>
+<div class='item'></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+<div class='release-meta-row'>
+<span class='author js-popover-card' data-username='loecedas'>
+<a href="/loecedas"><img class="ui avatar image mini" width="16" avatar="loecedas-loecedas" /></a>
+<span class='name'>loecedas</span>
+</span>
+<span class='release-time' data-commit-date='2026-08-07 03:12:37 +0000'>
+2026-08-08 14:42
+</span>
+<span class='tag-name' data-tag-name='v2.3.2'>
+<a target="_blank" href="/loecedas/SnapFind/tree/v2.3.2"><i class='iconfont icon-tag'></i>
+<span>v2.3.2</span>
+</a>
+</span>
+<span class='commit-info' data-commit-id='b5dc529873218c9301ca6a5b25080c9162a8dc1d'>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d"><span class='octicon octicon-git-commit'></span>
+b5dc529
+</a>
+</span>
+</div>
+<div class='content'>
+<div class='markdown-body'>
+<rich-markdown-renderer data-enterprise-id='' data-project-id='49573617'>&#x000A;<textarea class='content' style='display:none;'>&lt;details open&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇨🇳 点击展开中文更新日志 (Chinese)&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;优化更新流程&lt;/b&gt;：升级安装时显示进度条窗口，完成后自动关闭并拉起新版软件。&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;&#x000A;&lt;br/&gt;&#x000A;&lt;details&gt;&#x000A;  &lt;summary&gt;&lt;b&gt;🇺🇸 Click to expand English Changelog&lt;/b&gt;&lt;/summary&gt;&#x000A;  &lt;br/&gt;&#x000A;  &lt;ul&gt;&#x000A;    &lt;li&gt;&lt;b&gt;Optimize Update Flow&lt;/b&gt;: Display progress bar during update installation, then auto-close and run the new version on completion.&lt;/li&gt;&#x000A;  &lt;/ul&gt;&#x000A;&lt;/details&gt;</textarea>&#x000A;<div class='loader-wrapper'>&#x000A;<div class='ui inline mini active loader'></div>&#x000A;</div></rich-markdown-renderer>&#x000A;</div>
+<div class='committed-info'>
+<span class='text-muted'>最后提交信息为：</span>
+<a href="/loecedas/SnapFind/commit/b5dc529873218c9301ca6a5b25080c9162a8dc1d">add LICENSE.</a>
+</div>
+</div>
+<div class='footer'>
+<div class='title'>下载</div>
+<div class='ui celled list releases-download-list'>
+<div class='item'>
+<a href="/loecedas/SnapFind/releases/download/v2.3.2/SnapFindSetup_v2.3.2.exe"><i class='file archive outline icon'></i>
+SnapFindSetup_v2.3.2.exe
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.2" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="zip" href="/loecedas/SnapFind/archive/refs/tags/v2.3.2.zip"><i class='file archive outline icon'></i>
+下载
+Source code (zip)
+</a></div>
+<div class='item'>
+<a class="download-archive" data-ref="v2.3.2" data-sha="b5dc529873218c9301ca6a5b25080c9162a8dc1d" data-format="tar.gz" href="/loecedas/SnapFind/archive/refs/tags/v2.3.2.tar.gz"><i class='file archive outline icon'></i>
+下载
+Source code (tar.gz)
+</a></div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+<div class='ui mini modal project-archive-modal'>
+<i class='iconfont icon-close close'></i>
+<div class='header'>
+<span class='title'>下载</span>
+<span class='name'></span>
+</div>
+<div class='content ui custom form'>
+<div class='ui message form-message error'></div>
+<div class='field'>
+请输入验证码，防止盗链导致资源被占用
+</div>
+<div class='field captcha'>
+<div class='input wrapper'>
+<div class='ui input input-content'>
+<input type="text" name="captcha" id="captcha" value="" placeholder="验证码" autocomplete="off" />
+<img class='captcha_img' height='37'>
+</div>
+<div class='ui small error text message'></div>
+</div>
+</div>
+</div>
+<div class='actions'>
+<button class='ui button blank cancel'>取消</button>
+<button class='ui button orange download-btn disabled'>下载</button>
+</div>
+</div>
+<script>
+  $(function() {
+    var $mountedElem  = $('.download-archive'),
+        $archiveModal = $('.project-archive-modal'),
+        $archiveName  = $archiveModal.find('.header .name'),
+        $downloadBtn  = $archiveModal.find('.download-btn'),
+        $captchaInput = $archiveModal.find('#captcha'),
+        $captchaImg   = $archiveModal.find('.captcha_img'),
+        $message      = $archiveModal.find('.form-message'),
+        isLogin       = false,
+        loginUrl      = '/login',
+        archiveUrl    = null,
+        ref           = null,
+        sha           = null,
+        captcha       = null,
+        format        = 'zip',
+        delayTimers   = {}
+  
+    // 下载文件
+    $downloadBtn.on('click', function() {
+      captcha = $captchaInput.val()
+      downloadArchive()
+      return false
+    })
+  
+    function downloadArchive() {
+      $.ajax({
+        type: 'POST',
+        url: '/loecedas/SnapFind/repository/download',
+        data: { sha: sha, format: format, captcha: captcha },
+        beforeSend: function() {
+          $downloadBtn.addClass('loading')
+          $message.removeClass('info error').hide()
+        },
+        success: function(data) {
+          $downloadBtn.removeClass('loading')
+          if (data.code == 200) {
+            location.href = archiveUrl + '&captcha=' + captcha
+            $archiveModal.modal('hide')
+          } else if (data.code == 201) {
+            delayTimers['checkArchive'] = setInterval(checkArchive, 3000)
+            $downloadBtn.addClass('disabled')
+            $message.addClass('info').text(data.msg).show()
+            $captchaImg.trigger('click')
+          } else if (data.code == 401) {
+            $message.addClass('error').text(data.msg).show()
+          }
+        }
+      })
+    }
+  
+    function checkArchive() {
+      $.get('/loecedas/SnapFind/repository/check_archive', { sha: sha, format: format }, function(data) {
+        if (data.code == 200) {
+          location.href = archiveUrl + '&captcha=' + captcha
+          clearInterval(delayTimers['checkArchive'])
+          $archiveModal.modal('hide')
+        } else if (data.code == 401) {
+          $message.removeClass('info').addClass('error').text(data.msg)
+          clearInterval(delayTimers['checkArchive'])
+        }
+      })
+    }
+  
+    // 检验验证码
+    $captchaInput.on('keyup', function() {
+      delayRun('captcha', checkCaptcha)
+    })
+  
+    $captchaImg.on('click', function() {
+      $captchaInput.val('')
+      $captchaInput.closest('.field').removeClass('error')
+      $downloadBtn.addClass('disabled')
+    })
+  
+    function checkCaptcha() {
+      var $field  = $captchaInput.closest('.field')
+          captcha = $captchaInput.val()
+  
+      if (captcha.length < 6) {
+        $downloadBtn.addClass('disabled')
+        $field.removeClass('error')
+        return
+      }
+  
+      $.ajax({
+        type: 'POST',
+        url: '/check',
+        data: { do: 'captcha', val: captcha },
+        success: function(data) {
+          if (data == 1) {
+            $field.removeClass('error')
+            $downloadBtn.removeClass('disabled')
+          } else {
+            $field.addClass('error')
+            $field.find('.message').text(data)
+            $downloadBtn.addClass('disabled')
+          }
+        }
+      })
+    }
+  
+    function stopDelayRun(task) {
+      if (delayTimers[task]) {
+        clearTimeout(delayTimers[task])
+        delayTimers[task] = null
+      }
+    }
+  
+    function delayRun(task, callback) {
+      stopDelayRun(task)
+      delayTimers[task] = setTimeout(callback, 1000)
+    }
+  })
+</script>
+
+<script>
+  (function() {
+    var $items, $links, $panel, $sidebar, e, err, firstTag, initHash, maxWidthPercentage, observer, scrollToRelease, setActive, setHash, tagFromHash;
+  
+    $('.edit-releases-btn').popup({
+      position: 'bottom center'
+    });
+  
+    $('.remove-the-release').popup({
+      position: 'bottom center'
+    });
+  
+    $('.js-commit-signature').popup({
+      inline: true,
+      hoverable: true
+    });
+  
+    $sidebar = $('.releases-sidebar-list');
+  
+    $items = $('.release-tag-item');
+  
+    $links = $sidebar.find('.releases-sidebar-item');
+  
+    setActive = function(tag) {
+      $sidebar.find('li').removeClass('active');
+      return $sidebar.find(".releases-sidebar-item").filter(function() {
+        return String($(this).data('tag')) === String(tag);
+      }).closest('li').addClass('active');
+    };
+  
+    setHash = function(hash) {
+      var ref;
+      if (!hash) {
+        return;
+      }
+      if (hash.charAt(0) !== '#') {
+        hash = '#' + hash;
+      }
+      if (((ref = window.history) != null ? ref.replaceState : void 0) != null) {
+        return window.history.replaceState(null, '', window.location.pathname + window.location.search + hash);
+      } else {
+        return window.location.hash = hash;
+      }
+    };
+  
+    scrollToRelease = function(tag, animate) {
+      var $target, top;
+      if (animate == null) {
+        animate = true;
+      }
+      $target = $items.filter(function() {
+        return String($(this).data('tag')) === String(tag);
+      });
+      if (!$target.length) {
+        return false;
+      }
+      setActive(tag);
+      top = $target.offset().top - 80;
+      if (animate) {
+        $('html, body').animate({
+          scrollTop: top
+        }, 200);
+      } else {
+        $('html, body').scrollTop(top);
+      }
+      return true;
+    };
+  
+    $links.on('click', function(e) {
+      var hash, tag;
+      e.preventDefault();
+      tag = $(this).data('tag');
+      hash = $(this).attr('href') || ('#release-' + tag);
+      if (!scrollToRelease(tag, true)) {
+        return;
+      }
+      return setHash(hash);
+    });
+  
+    initHash = window.location.hash;
+  
+    if (initHash && initHash.indexOf('#release-') === 0) {
+      tagFromHash = initHash.slice('#release-'.length);
+      try {
+        tagFromHash = decodeURIComponent(tagFromHash);
+      } catch (error) {
+        e = error;
+        void 0;
+      }
+      if (!scrollToRelease(tagFromHash, false)) {
+        firstTag = $items.first().data('tag');
+        if (firstTag != null) {
+          setHash('#release-' + firstTag);
+          scrollToRelease(firstTag, false);
+        }
+      }
+    } else if ($items.length) {
+      firstTag = $items.first().data('tag');
+      if (firstTag != null) {
+        setHash('#release-' + firstTag);
+        setActive(firstTag);
+      }
+    }
+  
+    if ($items.length && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver((function(entries) {
+        return entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            return setActive(entry.target.dataset.tag);
+          }
+        });
+      }), {
+        rootMargin: '-20% 0px -60% 0px',
+        threshold: 0
+      });
+      $items.each(function() {
+        return observer.observe(this);
+      });
+    }
+  
+    try {
+      $panel = $('.releases-layout .releases-sidebar-content');
+      if ($panel.length && $panel.resizable && $(window).width() > 768) {
+        try {
+          $panel.resizable('destroy');
+        } catch (error) {
+          e = error;
+          void 0;
+        }
+        maxWidthPercentage = 0.5;
+        $panel.resizable({
+          handles: 'e',
+          minWidth: 160,
+          resize: function(event, ui) {
+            var maxWidthSidebar, newWidthSidebar, newWidthTimeline, parentWidth, percentageSidebar, percentageTimeline;
+            parentWidth = $(this).parent().width();
+            newWidthSidebar = ui.size.width;
+            newWidthTimeline = parentWidth - newWidthSidebar;
+            maxWidthSidebar = parentWidth * maxWidthPercentage;
+            newWidthSidebar = Math.min(newWidthSidebar, maxWidthSidebar);
+            newWidthTimeline = Math.max(parentWidth - newWidthSidebar, 400);
+            percentageSidebar = (newWidthSidebar / parentWidth) * 100;
+            percentageTimeline = (newWidthTimeline / parentWidth) * 100;
+            $(this).css({
+              width: percentageSidebar + '%',
+              height: ''
+            });
+            return $(this).siblings('.releases-timeline').css({
+              width: percentageTimeline + '%'
+            });
+          }
+        });
+      }
+    } catch (error) {
+      err = error;
+      if (typeof console !== "undefined" && console !== null) {
+        console.error(err);
+      }
+    }
+  
+  }).call(this);
+</script>
+
+</div>
+</div>
+<div class='releases-tags-compare'>
+<script>
+  $(function () {
+    var flag_is_loading = false;
+    var flag_search_text = "";
+    var flag_page_number = 1;
+    var flag_total_pager = 1;
+  
+    function toggleNoResultView(that, show) {
+      var popPanel = $(that).find(".menu.pop-panel");
+      var hasNoResult = popPanel.find('.message').hasClass('no-result')
+  
+      if (show && !hasNoResult) {
+        popPanel.append('<div class="message no-result">暂无数据</div>');
+      } else {
+        popPanel.find(".no-result").remove();
+      }
+    }
+  
+    function toggleLoadingView(that, show, clearItems) {
+      var popPanel = $(that).find(".menu.pop-panel");
+      var scrollingView = $(that).find(".scrolling.menu");
+      var hasLoading = popPanel.find('.message').hasClass('loading')
+  
+      if (show && !hasLoading) {
+        if (clearItems) scrollingView.html("");
+        popPanel.append('<div class="message loading">加载中...</div>');
+        toggleNoResultView(that, false);
+      } else {
+        popPanel.find(".loading").remove();
+      }
+    }
+  
+    function fetchTags(that, search, page) {
+      var searchParams = search || "";
+      var pageParams = page || 1;
+  
+      if (flag_is_loading) return;
+      flag_is_loading = true;
+  
+      var clearItems = pageParams === 1;
+      toggleLoadingView(that, true, clearItems);
+  
+      $.ajax({
+        url: "/" + gon.user_project + "/tags.json",
+        data: {
+          search: searchParams,
+          page: pageParams,
+        },
+        type: "GET",
+        xhrFields: {
+          withCredentials: true,
+        },
+        success: function (data) {
+          var _scrollingView = $(that).find(".scrolling.menu");
+          flag_total_pager = data.total_pages;
+          if (data.tags && data.count > 0) {
+            if (pageParams === 1) {
+              _scrollingView.html('');
+            }
+            data.tags.forEach((tag) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('item');
+                itemDiv.setAttribute('data-value', tag.name);
+                itemDiv.setAttribute('title', tag.name);
+                itemDiv.innerText = window.filterXSS(tag.name);
+                _scrollingView.append(itemDiv)
+            });
+            return;
+          }
+  
+          // 无数据
+          if (pageParams === 1 && data.count === 0) {
+            toggleNoResultView(that, true);
+          }
+        },
+        error: function () {
+          toggleNoResultView(that, true);
+        },
+        complete: function () {
+          flag_is_loading = false;
+          toggleLoadingView(that, false);
+        },
+      });
+    }
+  
+    var debounceFetch = window.globalUtils.debouce(function (search, page) {
+      fetchTags(this, search, page);
+    }, 350);
+  
+    var debounceLoadMore = window.globalUtils.debouce(function () {
+      if (flag_is_loading) return;
+      flag_page_number += 1;
+      if (flag_page_number > flag_total_pager) return;
+      fetchTags(this, flag_search_text, flag_page_number);
+    }, 350);
+  
+    function scrollLoadMore(that) {
+      var scrollingView = $(that).find(".scrolling.menu");
+  
+      scrollingView.on("scroll", function () {
+        var containerHeight = scrollingView.height();
+        var totalHeight = 0; // 所有子元素总高度
+        scrollingView.children().each(function () {
+          totalHeight += $(this).outerHeight(true); // 将子元素高度相加
+        });
+        var scrollTopVal = scrollingView.scrollTop();
+  
+        if (totalHeight - containerHeight - scrollTopVal <= 30) {
+          debounceLoadMore.call(that);
+        }
+      });
+    }
+  
+    function resetFlagVal() {
+      flag_is_loading = false;
+      flag_search_text = "";
+      flag_page_number = 1;
+      flag_total_pager = 1;
+    }
+  
+    function onEventInputChange(e) {
+      resetFlagVal();
+      flag_search_text = e.target.value;
+      debounceFetch.call(this, flag_search_text, 1);
+    }
+  
+    $(".release_compare.ui.dropdown").dropdown({
+      forceSelection: false,
+      selectOnKeydown: false,
+      selector: { search: ".none" },
+      onShow: function () {
+        resetFlagVal();
+        fetchTags(this);
+        scrollLoadMore(this);
+  
+        var searchInput = $(this).find(".search.input input");
+        searchInput.on("input", onEventInputChange.bind(this));
+      },
+      onHide: function () {
+        resetFlagVal();
+        var searchInput = $(this).find(".search.input input");
+        searchInput.off("input", onEventInputChange.bind(this));
+        searchInput.val("");
+  
+        var scrollingView = $(this).find(".scrolling.menu");
+        scrollingView.append('<div class="item"/>');
+      },
+      onChange: function (tag) {
+        var compareTag = tag;
+        var curTag = $(this).parents(".release-tag-item, .release-body").find(".tag-name").attr("data-tag-name");
+        var slug = [compareTag, curTag].join('...');
+        window.location.href = "/" + gon.user_project + "/compare/" + slug;
+      }
+    });
+  });
+</script>
+
+</div>
+<footer class='releases-tags-pagination ui grid page'>
+<div class='column center aligned'>
+
+</div>
+</footer>
+</div>
+
+</div>
+
+</div>
+<script>
+  (function() {
+    Gitee.modalHelper = new GiteeModalHelper({
+      alertText: '提示',
+      okText: '确定'
+    });
+  
+  }).call(this);
+</script>
+<script>
+  Tree.initHighlightTheme('white')
+</script>
+
+
+</div>
+<div class='gitee-project-extension'>
+<div class='extension lang'>C#</div>
+<div class='extension public'>1</div>
+<div class='extension https'>https://gitee.com/loecedas/SnapFind.git</div>
+<div class='extension ssh'>git@gitee.com:loecedas/SnapFind.git</div>
+<div class='extension namespace'>loecedas</div>
+<div class='extension repo'>SnapFind</div>
+<div class='extension name'>SnapFind</div>
+<div class='extension branch'></div>
+</div>
+
+<script>
+  $(function() {
+    GitLab.GfmAutoComplete.dataSource = "/loecedas/SnapFind/autocomplete_sources"
+    GitLab.GfmAutoComplete.Emoji.assetBase = '/assets/emoji'
+    GitLab.GfmAutoComplete.setup();
+  });
+</script>
+
+<footer id='git-footer-main'>
+<div class='ui container'>
+<div class='logo-row'>
+<a href="https://gitee.com"><img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='logo-img logo-light' src='/static/images/logo-black.svg?t=158106666'>
+<img alt='Gitee - 基于 Git 的代码托管和研发协作平台' class='logo-img logo-dark' src='/static/images/logo-white-next.svg?t=158106666'>
+</a></div>
+<div class='name-important'>
+北京奥思研工智能科技有限公司版权所有
+</div>
+<div class='ui two column grid d-flex-center'>
+<div class='eight wide column git-footer-left'>
+<div class='ui four column grid' id='footer-left'>
+<div class='column'>
+<div class='ui link list'>
+<div class='item'>
+<a class="item" href="/all-about-git">Git 大全</a>
+</div>
+<div class='item'>
+<a class="item" rel="nofollow" href="https://help.gitee.com/learn-Git-Branching/">Git 命令学习</a>
+</div>
+<div class='item'>
+<a class="item" rel="nofollow" href="https://copycat.gitee.com/">CopyCat 代码克隆检测</a>
+</div>
+<div class='item'>
+<a class="item" href="/appclient">APP与插件下载</a>
+</div>
+</div>
+</div>
+<div class='column'>
+<div class='ui link list'>
+<div class='item'>
+<a class="item" href="/gitee-stars">Gitee 封面人物</a>
+</div>
+<div class='item'>
+<a class="item" href="/gvp">GVP 项目</a>
+</div>
+<div class='item'>
+<a class="item" rel="nofollow" href="https://blog.gitee.com/">Gitee 博客</a>
+</div>
+<div class='item'>
+<a class="item" href="/enterprises#nonprofit-plan">Gitee 公益计划</a>
+</div>
+<div class='item'>
+<a class="item" href="https://gitee.com/features/gitee-go">Gitee 持续集成</a>
+</div>
+</div>
+</div>
+<div class='column'>
+<div class='ui link list'>
+<div class='item'>
+<a class="item" href="/api/v5/swagger">OpenAPI</a>
+</div>
+<div class='item'>
+<a class="item" href="https://gitee.com/oschina/mcp-gitee">MCP Server</a>
+</div>
+<div class='item'>
+<a class="item" href="https://help.gitee.com">帮助文档</a>
+</div>
+<div class='item'>
+<a class="item" href="/self_services">在线自助服务</a>
+</div>
+<div class='item'>
+<a class="item" href="/help/articles/4378">更新日志</a>
+</div>
+</div>
+</div>
+<div class='column'>
+<div class='ui link list'>
+<div class='item'>
+<a class="item" href="/about_us">关于我们</a>
+</div>
+<div class='item'>
+<a class="item" rel="nofollow" href=" https://gitee.com/oschina/jobs">加入我们</a>
+</div>
+<div class='item'>
+<a class="item" href="/terms">使用条款</a>
+</div>
+<div class='item'>
+<a class="item" href="/oschina/git-osc/issues">意见建议</a>
+</div>
+<div class='item'>
+<a class="item" href="/links.html">合作伙伴</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class='eight wide column right aligned followus git-footer-right'>
+<div class='qrcode mr-1'>
+<div class='qrcode-box'>
+<img alt="技术交流QQ群" src="https://cn-assets.gitee.com/assets/communication_QR-3b8de44bedfd3cf6c52c96b1a05771c6.png" />
+</div>
+<p class='mt-1 mini_app-text'>技术交流QQ群</p>
+</div>
+<div class='qrcode'>
+<div class='qrcode-box'>
+<img alt="微信服务号" class="weixin-qr" src="https://cn-assets.gitee.com/assets/qrcode-weixin-260803-3cfc55f0e5e92feab6cf176e2d5df4b3.jpg" />
+</div>
+<p class='mt-1 weixin-text'>微信服务号</p>
+</div>
+<div class='phone-and-qq column'>
+<div class='ui list official-support-container'>
+<div class='item'></div>
+<div class='item mail-and-zhihu'>
+<a rel="nofollow" href="mailto: client@oschina.cn"><i class='iconfont icon-msg-mail'></i>
+<span id='git-footer-email'>client#oschina.cn</span>
+</a></div>
+<div class='item tel'>
+<a>
+<i class='iconfont icon-tel'></i>
+<span>企业版在线使用：400-606-0201</span>
+</a>
+</div>
+<div class='item tel'>
+<a class='d-flex'>
+<i class='iconfont icon-tel mt-05 mr-05'></i>
+<span>专业版私有部署：</span>
+<div>
+赖经理 13058176526
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class='bottombar'>
+<div class='ui container'>
+<div class='ui d-flex d-flex-between'>
+<div class='seven wide column partner d-flex'>
+<div class='open-atom d-flex-center'>
+<img class="logo-openatom mr-1" alt="开放原子开源基金会" src="https://cn-assets.gitee.com/assets/logo-openatom-new-955174a984c899d2e230d052bdc237cf.svg" />
+<a target="_blank" rel="nofollow" href="https://www.openatom.org/">开放原子开源基金会</a>
+<div class='sub-title ml-1'>合作代码托管平台</div>
+</div>
+<div class='report-12377 d-flex-center ml-3'>
+<img class="report-12377__logo mr-1" alt="违法和不良信息举报中心" src="https://cn-assets.gitee.com/assets/12377@2x-1aa42ed2d2256f82a61ecf57be1ec244.png" />
+<a target="_blank" rel="nofollow" href="https://www.12377.cn">违法和不良信息举报中心</a>
+</div>
+<div class='copyright ml-3'>
+<a rel="nofollow" href="http://beian.miit.gov.cn/">京ICP备2025119063号</a>
+</div>
+<div class='beian d-flex-center ml-2'>
+<img class="report-12377__logo ml-1" alt="京公网安备11011502039387号" src="https://cn-assets.gitee.com/assets/beian-30b2e25c5da148efae50f89073b26816.png" />
+<a target="_blank" rel="nofollow" href="https://beian.mps.gov.cn/#/query/webSearch?code=11011502039387">京公网安备11011502039387号</a>
+</div>
+</div>
+<div class='nine wide column right aligned'>
+<i class='icon world'></i>
+<a href="/language/zh-CN">简 体</a>
+/
+<a href="/language/zh-TW">繁 體</a>
+/
+<a href="/language/en">English</a>
+</div>
+</div>
+</div>
+</div>
+</footer>
+
+<script>
+  var officialEmail = $('#git-footer-email').text()
+  $('#git-footer-main .icon-popup').popup({ position: 'bottom center' })
+  $('#git-footer-email').text(officialEmail.replace('#', '@'))
+  window.gon.popover_card_locale = {
+    follow:"关注",
+    unfollow:"已关注",
+    gvp_title: "GVP - Gitee 最有价值开源项目",
+    project: "项目",
+    org: "开源组织",
+    member: "",
+    author: "作者",
+    user_blocked: "该用户已被屏蔽或已注销",
+    net_error: "网络错误",
+    unknown_exception: "未知异常"
+  }
+  window.gon.select_message = {
+    placeholder: "请输入个人空间地址或完整的邮箱地址"
+  }
+</script>
+<script src="https://cn-assets.gitee.com/webpacks/popover_card-3077dc4b85a8925d8087.bundle.js"></script>
+<link rel="stylesheet" media="all" href="https://cn-assets.gitee.com/webpacks/css/gitee_nps-ae0dbee40f6ddc72015a.css" />
+<script src="https://cn-assets.gitee.com/webpacks/gitee_nps-03ff804099144a49b055.bundle.js"></script>
+<script src="https://cn-assets.gitee.com/webpacks/gitee_icons-c083090a7801eb0b2ce7.bundle.js"></script>
+
+
+
+<div class='side-toolbar'>
+<div class='button toolbar-help'>
+<i class='iconfont icon-help'></i>
+</div>
+<div class='ui popup left center dark'>点此查找更多帮助</div>
+<div class='toolbar-help-dialog'>
+<div class='toolbar-dialog-header'>
+<h3 class='toolbar-dialog-title'>搜索帮助</h3>
+<form class="toolbar-help-search-form" action="/help/load_keywords_data" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="&#x2713;" />
+<div class='ui icon input fluid toolbar-help-search'>
+<input name='keywords' placeholder='请输入产品名称或问题' type='text'>
+<i class='icon search'></i>
+</div>
+</form>
+
+<i class='iconfont icon-close toolbar-dialog-close-icon'></i>
+</div>
+<div class='toolbar-dialog-content'>
+<div class='toolbar-help-hot-search'>
+<div class='toolbar-roll'>
+<a class="init active" title="Git 命令在线学习" href="https://help.gitee.com/learn-git-branching/?utm_source==gitee-help-widget"><i class='Blue icon icon-command iconfont'></i>
+<span>Git 命令在线学习</span>
+</a><a class="init " title="如何在 Gitee 导入 GitHub 仓库" href="https://gitee.com/help/articles/4261?utm_source==gitee-help-widget"><i class='icon icon-clipboard iconfont orange'></i>
+<span>如何在 Gitee 导入 GitHub 仓库</span>
+</a></div>
+<div class='toolbar-list'>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4114">Git 仓库基础操作</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4166">企业版和社区版功能对比</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4191">SSH 公钥设置</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4194">如何处理代码冲突</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4232">仓库体积过大，如何减小？</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4279">如何找回被删除的仓库数据</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4283">Gitee 产品配额说明</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4284">GitHub仓库快速导入Gitee及同步更新</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4328">什么是 Release（发行版）</a>
+</div>
+<div class='toolbar-list-item'>
+<a href="/help/articles/4354">将 PHP 项目自动发布到 packagist.org</a>
+</div>
+</div>
+</div>
+<div class='toolbar-help-search-reseult'></div>
+</div>
+</div>
+<script>
+  var opt = { position: 'left center'};
+  var $helpSideToolbar = $('.button.toolbar-help');
+  var $toolbarRoll = $('.toolbar-roll');
+  
+  $(function() {
+    if (false) {
+      $helpSideToolbar.popup(opt).popup({lastResort:'left center'})
+    } else {
+      $helpSideToolbar.popup({lastResort:'left center'}).popup('show', opt);
+      setTimeout(function() {
+        $helpSideToolbar.popup('hide', opt);
+      }, 3000);
+    }
+  
+    if ($toolbarRoll.length) {
+      setInterval(function() {
+        var $nextActiveLink = $toolbarRoll.find('a.active').next();
+        if (!$nextActiveLink.length) {
+          $nextActiveLink = $toolbarRoll.find('a:first-child');
+        }
+        $nextActiveLink.attr('class', 'active').siblings().removeClass('active init');
+      }, 5000);
+    }
+  })
+</script>
+
+<div class='popup button' id='home-comment'>
+<i class='iconfont icon-comment'></i>
+</div>
+<div class='ui popup dark'>评论</div>
+<div class='toolbar-appeal popup button'>
+<i class='iconfont icon-report'></i>
+</div>
+<div class='ui popup dark'>
+仓库举报
+</div>
+<script>
+  $('.toolbar-appeal').popup({ position: 'left center' });
+</script>
+
+<div class='button gotop popup' id='gotop'>
+<i class='iconfont icon-top'></i>
+</div>
+<div class='ui popup dark'>回到顶部</div>
+</div>
+<div class='form modal normal-modal tiny ui' id='unlanding-complaint-modal'>
+<i class='iconfont icon-close close'></i>
+<div class='header'>
+登录提示
+</div>
+<div class='container actions'>
+<div class='content'>
+该操作需登录 Gitee 帐号，请先登录后再操作。
+</div>
+<div class='ui orange icon large button ok'>
+立即登录
+</div>
+<div class='ui button blank cancel'>
+没有帐号，去注册
+</div>
+</div>
+</div>
+<script>
+  var $elm = $('.toolbar-appeal');
+  
+  $elm.on('click', function() {
+    var modals = $("#unlanding-complaint-modal.normal-modal");
+    if (modals.length > 1) {
+      modals.eq(0).modal('show');
+    } else {
+      modals.modal('show');
+    }
+  })
+  $("#unlanding-complaint-modal.normal-modal").modal({
+    onDeny: function() {
+      window.location.href = "/signup?from=";
+    },
+    onApprove: function() {
+      window.location.href = "/login?from=";
+    }
+  })
+</script>
+
+<style>
+  .side-toolbar .bdsharebuttonbox a {
+    font-size: 24px;
+    color: white !important;
+    opacity: 0.9;
+    margin: 6px 6px 0px 6px;
+    background-image: none;
+    text-indent: 0;
+    height: auto;
+    width: auto;
+  }
+</style>
+<style>
+  #udesk_btn a {
+    margin: 0px 20px 167px 0px !important;
+  }
+</style>
+<script>
+  (function() {
+    $('#project-user-message').popup({
+      position: 'left center'
+    });
+  
+  }).call(this);
+</script>
+<script>
+  Gitee.initSideToolbar({
+    hasComment: true,
+    commentUrl: '/loecedas/SnapFind#tree_comm_title'
+  })
+</script>
+
+
+
+
+
+<script>
+  (function() {
+    this.__gac = {
+      domain: 'www.oschina.net'
+    };
+  
+  }).call(this);
+</script>
+
+<script src="https://cn-assets.gitee.com/webpacks/build_status-46162970b132c470ce23.bundle.js"></script>
+<script src="https://cn-assets.gitee.com/webpacks/scan_status-a09a698039ce5c5dad61.bundle.js"></script>
+<script src="https://cn-assets.gitee.com/webpacks/mermaid_render-e708d712dc28da655877.bundle.js"></script>
+<script src="https://cn-assets.gitee.com/webpacks/check_runs-38a77b2935928fc688b6.bundle.js"></script>
+</body>
+</html>

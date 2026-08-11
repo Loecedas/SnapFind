@@ -78,13 +78,13 @@ if (-not $NoZip -and -not $ExeOnly) {
     $zipDest = "$portablesDir\SnapFindPortable_v$nextVersion.zip"
     if (Test-Path $zipDest) { Remove-Item -Path $zipDest -Force }
 
-    # Use high-performance 7-Zip if available, fallback to Compress-Archive
+    # Use 7-Zip Deflate Ultra if available (ZIP format, .NET ZipFile compatible), fallback to Compress-Archive
     $exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
     if (Test-Path $exe7z) {
-        Write-Host "Compressing portable ZIP using 7-Zip (Deflate Ultra)..." -ForegroundColor Cyan
-        & $exe7z a -tzip -m0=deflate -mx=9 "$zipDest" "$zipTempDir"
+        Write-Host "Compressing portable ZIP using 7-Zip (Deflate mx=9)..." -ForegroundColor Cyan
+        & $exe7z a -tzip -m0=Deflate -mx=9 -mmt=on "$zipDest" "$zipTempDir"
     } else {
-        Write-Host "Compressing portable ZIP using Compress-Archive..." -ForegroundColor Cyan
+        Write-Host "7-Zip not found, falling back to Compress-Archive (.zip)..." -ForegroundColor Yellow
         Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
     }
 

@@ -421,6 +421,48 @@ namespace PixOcrSearch
             e.Handled = true;
         }
 
+
+        private async Task<bool> IsChinaIpAsync()
+        {
+            // 使用 Cloudflare 全球 Anycast 接口检测出口 IP 归属地
+            // 此接口会跟随系统代理（VPN）走：开了全局VPN返回境外IP，未开返回真实国内IP
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(3000);
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                string result = await client.GetStringAsync("https://cloudflare.com/cdn-cgi/trace");
+                // 查找 loc= 字段，格式如 loc=CN 或 loc=US
+                foreach (var line in result.Split('\n'))
+                {
+                    if (line.StartsWith("loc=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string country = line.Substring(4).Trim();
+                        return country.Equals("CN", StringComparison.OrdinalIgnoreCase);
+                    }
+                }
+            }
+            catch { }
+
+            // Cloudflare 探测失败时用备用接口 ip-api.com
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(3000);
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                string result = await client.GetStringAsync("http://ip-api.com/json/?fields=countryCode");
+                using var doc = JsonDocument.Parse(result);
+                if (doc.RootElement.TryGetProperty("countryCode", out var code))
+                {
+                    return code.GetString()?.Equals("CN", StringComparison.OrdinalIgnoreCase) == true;
+                }
+            }
+            catch { }
+
+            // 两个接口均失败时，保守默认为中国用户（走 Gitee 更稳妥）
+            return true;
+        }
+
         private async void AboutCheckUpdateButton_Click(object sender, RoutedEventArgs e)
         {
             AboutCheckUpdateButton.IsEnabled = false;
@@ -540,29 +582,12 @@ namespace PixOcrSearch
             try
             {
                 using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMilliseconds(3000); // 3秒快速直连超时
+                client.Timeout = TimeSpan.FromMilliseconds(8000);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
                 response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
-            }
-            catch
-            {
-                try
-                {
-                    // 3秒直连失败，立即切换到国内高可用的 API 加速代理
-                    using var client = new HttpClient();
-                    client.Timeout = TimeSpan.FromMilliseconds(6000);
-                    client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
-                    response = await client.GetStringAsync("https://api.ghp.ci/repos/Loecedas/SnapFind/releases/latest");
-                }
-                catch (Exception ex)
-                {
-                    stopwatch.Stop();
-                    throw new Exception("更新服务器连接超时，请检查网络设置。" + ex.Message);
-                }
-            }
 
-            stopwatch.Stop();
-            using var doc = JsonDocument.Parse(response);
+                stopwatch.Stop();
+                using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
 
                 string tagName = root.GetProperty("tag_name").GetString() ?? "";
@@ -624,9 +649,82 @@ namespace PixOcrSearch
             }
         }
 
+        private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(8000);
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+
+                string response = await client.GetStringAsync("https://gitee.com/api/v5/repos/loecedas/SnapFind/releases/latest");
+                stopwatch.Stop();
+                using var doc = JsonDocument.Parse(response);
+                var root = doc.RootElement;
+
+                string tagName = root.GetProperty("tag_name").GetString() ?? "";
+                string body = root.GetProperty("body").GetString() ?? "";
+                string htmlUrl = "https://gitee.com/loecedas/SnapFind/releases";
+
+                string downloadUrl = "";
+                long size = 0;
+
+                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
+                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
+                string targetExtension = isInstalled ? ".exe" : ".zip";
+
+                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var asset in assetsVal.EnumerateArray())
+                    {
+                        string name = asset.GetProperty("name").GetString() ?? "";
+                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
+                        {
+                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
+                            if (asset.TryGetProperty("size", out var sizeProp))
+                            {
+                                size = sizeProp.GetInt64();
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(downloadUrl))
+                {
+                    downloadUrl = htmlUrl;
+                }
+
+                return new GitHubRelease
+                {
+                    TagName = tagName,
+                    Body = body,
+                    HtmlUrl = htmlUrl,
+                    DownloadUrl = downloadUrl,
+                    Size = size,
+                    DurationMs = stopwatch.ElapsedMilliseconds
+                };
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private async Task<GitHubRelease?> GetLatestReleaseFromAllSourcesAsync()
         {
-            return await FetchReleaseFromGitHubAsync();
+            // 通过出口 IP 精准判断：中国 IP 走 Gitee，境外 IP 走 GitHub
+            // Cloudflare trace 接口会跟随 VPN 走，开了全局 VPN 自动切 GitHub
+            bool isChinaIp = await IsChinaIpAsync();
+            if (isChinaIp)
+            {
+                return await FetchReleaseFromGiteeAsync();
+            }
+            else
+            {
+                return await FetchReleaseFromGitHubAsync();
+            }
         }
 
         private async void FetchLatestReleaseAsync()
@@ -745,27 +843,16 @@ namespace PixOcrSearch
 
             string downloadUrl = url;
 
-            // 3秒高速直连下载测速与超时自动反代加速切换
+            // 如果是中国国内用户，且链接包含 github.com，直接采用国内高速 CDN 代理，不再进行无意义的官方直连测速以防止因 Header 误判卡在慢速通道
             try
             {
                 using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMilliseconds(3000);
-                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
-                using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
-                response.EnsureSuccessStatusCode();
-            }
-            catch
-            {
-                if (url.Contains("github.com"))
+                // 伪装成高拟真浏览器请求头以确保通过 Gitee 防盗链/防机器人人机验证检测
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                if (downloadUrl.Contains("gitee.com"))
                 {
-                    downloadUrl = "https://ghp.ci/" + url;
+                    client.DefaultRequestHeaders.Add("Referer", "https://gitee.com/loecedas/SnapFind/releases");
                 }
-            }
-
-            try
-            {
-                using var client = new HttpClient();
-                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
                 using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
