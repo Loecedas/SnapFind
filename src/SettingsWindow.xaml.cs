@@ -536,15 +536,33 @@ namespace PixOcrSearch
         private async Task<GitHubRelease?> FetchReleaseFromGitHubAsync()
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            string response = "";
             try
             {
                 using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromMilliseconds(8000);
+                client.Timeout = TimeSpan.FromMilliseconds(3000); // 3秒快速直连超时
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
+            }
+            catch
+            {
+                try
+                {
+                    // 3秒直连失败，立即切换到国内高可用的 API 加速代理
+                    using var client = new HttpClient();
+                    client.Timeout = TimeSpan.FromMilliseconds(6000);
+                    client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                    response = await client.GetStringAsync("https://api.ghp.ci/repos/Loecedas/SnapFind/releases/latest");
+                }
+                catch (Exception ex)
+                {
+                    stopwatch.Stop();
+                    throw new Exception("更新服务器连接超时，请检查网络设置。" + ex.Message);
+                }
+            }
 
-                string response = await client.GetStringAsync("https://api.github.com/repos/Loecedas/SnapFind/releases/latest");
-                stopwatch.Stop();
-                using var doc = JsonDocument.Parse(response);
+            stopwatch.Stop();
+            using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
 
                 string tagName = root.GetProperty("tag_name").GetString() ?? "";
@@ -832,12 +850,31 @@ namespace PixOcrSearch
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
 
+            string downloadUrl = url;
+
+            // 3秒高速直连下载测速与超时自动反代加速切换
+            try
+            {
+                using var client = new HttpClient();
+                client.Timeout = TimeSpan.FromMilliseconds(3000);
+                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
+                using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
+                response.EnsureSuccessStatusCode();
+            }
+            catch
+            {
+                if (url.Contains("github.com"))
+                {
+                    downloadUrl = "https://ghp.ci/" + url;
+                }
+            }
+
             try
             {
                 using var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
 
-                using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+                using var response = await client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
                 response.EnsureSuccessStatusCode();
 
                 long? totalBytes = response.Content.Headers.ContentLength;
