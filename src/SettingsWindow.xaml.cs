@@ -626,94 +626,7 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> GetLatestReleaseFromAllSourcesAsync()
         {
-            var tasks = new System.Collections.Generic.List<Task<GitHubRelease?>>
-            {
-                FetchReleaseFromGitHubAsync(),
-                FetchReleaseFromGiteeAsync()
-            };
-
-            while (tasks.Count > 0)
-            {
-                var completedTask = await Task.WhenAny(tasks);
-                tasks.Remove(completedTask);
-                try
-                {
-                    var release = await completedTask;
-                    if (release != null)
-                    {
-                        return release;
-                    }
-                }
-                catch { }
-            }
-
-            return null;
-        }
-
-        private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
-        {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            try
-            {
-                // Force disabling proxy for Gitee request so it always connects directly,
-                // bypassing any broken system proxy settings left over when a VPN is shut down.
-                using var handler = new HttpClientHandler { UseProxy = false };
-                using var client = new HttpClient(handler);
-                client.Timeout = TimeSpan.FromMilliseconds(8000);
-                client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
-
-                string response = await client.GetStringAsync("https://gitee.com/api/v5/repos/loecedas/SnapFind/releases/latest");
-                stopwatch.Stop();
-                using var doc = JsonDocument.Parse(response);
-                var root = doc.RootElement;
-
-                string tagName = root.GetProperty("tag_name").GetString() ?? "";
-                string body = root.GetProperty("body").GetString() ?? "";
-                string htmlUrl = $"https://gitee.com/loecedas/SnapFind/releases#release-{tagName}";
-
-                string downloadUrl = "";
-                long size = 0;
-
-                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
-                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
-                string targetExtension = isInstalled ? ".exe" : ".zip";
-
-                if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var asset in assetsVal.EnumerateArray())
-                    {
-                        string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                            if (asset.TryGetProperty("size", out var sizeProp))
-                            {
-                                size = sizeProp.GetInt64();
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                if (string.IsNullOrEmpty(downloadUrl))
-                {
-                    downloadUrl = htmlUrl;
-                }
-
-                return new GitHubRelease
-                {
-                    TagName = tagName,
-                    Body = body,
-                    HtmlUrl = htmlUrl,
-                    DownloadUrl = downloadUrl,
-                    Size = size,
-                    DurationMs = stopwatch.ElapsedMilliseconds
-                };
-            }
-            catch
-            {
-                return null;
-            }
+            return await FetchReleaseFromGitHubAsync();
         }
 
         private async void FetchLatestReleaseAsync()
@@ -799,27 +712,7 @@ namespace PixOcrSearch
                 return;
             }
 
-            if (_releaseInfo.DownloadUrl.Contains("gitee.com") && _releaseInfo.DownloadUrl.Contains("/releases") && !_releaseInfo.DownloadUrl.Contains("/download/"))
-            {
-                MessageBoxResult result = MessageBox.Show(
-                    "检测到新版本，但未能从 Gitee 解析出直链，请在浏览器中打开 Gitee 页面下载更新。\n\n点击“确定”将为您打开 Gitee 页面。",
-                    "提示",
-                    MessageBoxButton.OKCancel,
-                    MessageBoxImage.Information);
-                
-                if (result == MessageBoxResult.OK)
-                {
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_releaseInfo.DownloadUrl) { UseShellExecute = true });
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"无法打开网页: {ex.Message}\n请手动访问: {_releaseInfo.DownloadUrl}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                }
-                return;
-            }
+
 
             string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
             if (string.IsNullOrEmpty(ext)) ext = ".exe";
