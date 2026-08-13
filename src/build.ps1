@@ -39,7 +39,7 @@ if (Test-Path $portablesDir) {
     }
 }
 
-$nextVersion = "2.3.7"
+$nextVersion = "2.3.9"
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 
@@ -81,8 +81,8 @@ if (-not $NoZip -and -not $ExeOnly) {
     # Use 7-Zip Deflate Ultra if available (ZIP format, .NET ZipFile compatible), fallback to Compress-Archive
     $exe7z = "C:\Program Files\AMD\CIM\Bin64\7z.exe"
     if (Test-Path $exe7z) {
-        Write-Host "Compressing portable ZIP using 7-Zip (Deflate mx=9)..." -ForegroundColor Cyan
-        & $exe7z a -tzip -m0=Deflate -mx=9 -mmt=on "$zipDest" "$zipTempDir"
+        Write-Host "Compressing portable ZIP using 7-Zip (Deflate mx=5)..." -ForegroundColor Cyan
+        & $exe7z a -tzip -m0=Deflate -mx=5 -mmt=on "$zipDest" "$zipTempDir"
     } else {
         Write-Host "7-Zip not found, falling back to Compress-Archive (.zip)..." -ForegroundColor Yellow
         Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal

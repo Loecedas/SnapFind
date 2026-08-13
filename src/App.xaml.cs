@@ -125,6 +125,16 @@ namespace PixOcrSearch
                     {
                         try { System.IO.Directory.Delete(tempDir, true); } catch { }
                     }
+
+                    // 清理安装版更新完成后遗留在 cache 目录下的安装包 (SnapFindSetup_*.exe)
+                    if (System.IO.Directory.Exists(cacheDir))
+                    {
+                        string[] setupFiles = System.IO.Directory.GetFiles(cacheDir, "SnapFindSetup_*.exe");
+                        foreach (string setupFile in setupFiles)
+                        {
+                            try { System.IO.File.Delete(setupFile); } catch { }
+                        }
+                    }
                 }
                 catch { }
             });
