@@ -15,6 +15,7 @@ namespace PixOcrSearch
         public string ControlPanelHotkeyModifiers { get; set; } = "Control,Alt";
         public string ControlPanelHotkeyKey { get; set; } = "C";
         public bool AutoCopyToClipboard { get; set; } = false;
+        public string Language { get; set; } = "zh-CN";
     }
 
     public static class ConfigManager

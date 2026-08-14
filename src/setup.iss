@@ -28,9 +28,15 @@ OutputDir=e:\SnapFind\releases\installers
 Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[CustomMessages]
+chinesesimplified.StartupProgram=开机自启动 SnapFind
+chinesesimplified.OtherTasks=其他任务
+english.StartupProgram=Start SnapFind on Windows startup
+english.OtherTasks=Other tasks
+
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "startup"; Description: "开机自启动 SnapFind"; GroupDescription: "其他任务"
+Name: "startup"; Description: "{cm:StartupProgram}"; GroupDescription: "{cm:OtherTasks}"
 
 [Files]
 Source: "e:\SnapFind\src\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\SnapFind.exe"; DestDir: "{app}"; Flags: ignoreversion

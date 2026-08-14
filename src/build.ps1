@@ -39,7 +39,12 @@ if (Test-Path $portablesDir) {
     }
 }
 
-$nextVersion = "2.3.9"
+if ($versions.Count -gt 0) {
+    $maxVersion = ($versions | Sort-Object -Descending)[0]
+    $nextVersion = "$($maxVersion.Major).$($maxVersion.Minor).$($maxVersion.Build + 1)"
+} else {
+    $nextVersion = "2.3.9"
+}
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green
 
@@ -58,6 +63,10 @@ if (Test-Path $unusedInferenceDir) {
 
 # 4. Copy SnapFind.exe to root folder
 Write-Host "Copying executable to root..." -ForegroundColor Cyan
+# Gracefully terminate running SnapFind instance to avoid file lock during copy
+Get-Process -Name "SnapFind" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 200
+
 $publishExe = "$publishDir\SnapFind.exe"
 Copy-Item $publishExe "$workspaceRoot\SnapFind.exe" -Force
 

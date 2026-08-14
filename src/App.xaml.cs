@@ -143,7 +143,7 @@ namespace PixOcrSearch
             _mutex = new Mutex(true, "SnapFind-SingleInstance-Mutex-Key", out bool isNewInstance);
             if (!isNewInstance)
             {
-                MessageBox.Show("SnapFind 已经在后台运行中！", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Localization.MsgAlreadyRunning, Localization.TitleInfo, MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
             }
@@ -193,7 +193,7 @@ namespace PixOcrSearch
         private void InitializeTrayIcon()
         {
             _notifyIcon = new NotifyIcon();
-            _notifyIcon.Text = "SnapFind - 截图 OCR 搜索";
+            _notifyIcon.Text = Localization.TrayToolTip;
             
             // Generate icon
             Icon icon = CreateDynamicTrayIcon();
@@ -213,16 +213,24 @@ namespace PixOcrSearch
             _notifyIcon.DoubleClick += (s, e) => StartScreenshot();
         }
 
+        public void UpdateTrayMenuLanguage()
+        {
+            if (_notifyIcon != null)
+            {
+                _notifyIcon.Text = Localization.TrayToolTip;
+            }
+        }
+
         private void ShowNativeContextMenu()
         {
             IntPtr hMenu = CreatePopupMenu();
             if (hMenu == IntPtr.Zero) return;
 
             // Add standard items without emojis, completely plain text
-            AppendMenu(hMenu, MF_STRING, 1, "截图 OCR 搜索");
+            AppendMenu(hMenu, MF_STRING, 1, Localization.TrayMenuScreenshot);
             AppendMenu(hMenu, MF_SEPARATOR, 0, string.Empty);
-            AppendMenu(hMenu, MF_STRING, 2, "控制面板");
-            AppendMenu(hMenu, MF_STRING, 3, "退出");
+            AppendMenu(hMenu, MF_STRING, 2, Localization.TrayMenuControlPanel);
+            AppendMenu(hMenu, MF_STRING, 3, Localization.TrayMenuExit);
 
             // We need a window handle to own the popup menu and receive commands.
             // We use our _dummyHookWindow handle.
@@ -319,7 +327,7 @@ namespace PixOcrSearch
 
             if (!success)
             {
-                MessageBox.Show($"无法注册全局快捷键。\n主截图快捷键: {mods} + {key}\n控制面板快捷键: {cpMods} + {cpKey}\n请在设置中修改，避免与其他程序冲突。", "快捷键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgHotkeyRegisterFailed(mods, key, cpMods, cpKey), Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -385,7 +393,7 @@ namespace PixOcrSearch
             catch (Exception ex)
             {
                 CloseAllScreenshotWindows();
-                MessageBox.Show("启动截图失败:\n" + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Localization.MsgScreenshotFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

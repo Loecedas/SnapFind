@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Navigation;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -28,6 +29,7 @@ namespace PixOcrSearch
         private CancellationTokenSource? _cts;
         private bool _isDownloading = false;
         private string _currentActiveTab = "settings";
+        private bool _isInitializing = true;
 
         public SettingsWindow() : this("settings", null)
         {
@@ -76,19 +78,38 @@ namespace PixOcrSearch
             // Load current config settings
             LoadSettingsConfig();
 
-            // Setup Version Text in About Page
-            Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
-            AboutVersionText.Text = $"版本: v{version.Major}.{version.Minor}.{version.Build}";
+            // Apply localization
+            ApplyLocalization();
 
             // Select default tab
             SelectTab(_currentActiveTab);
+
+            _isInitializing = false;
         }
 
         private void LoadSettingsConfig()
         {
+            // Language
+            string currentLang = ConfigManager.Current.Language ?? "zh-CN";
+            bool langFound = false;
+            foreach (ComboBoxItem item in LanguageComboBox.Items)
+            {
+                if (string.Equals(item.Tag?.ToString(), currentLang, StringComparison.OrdinalIgnoreCase))
+                {
+                    LanguageComboBox.SelectedItem = item;
+                    langFound = true;
+                    break;
+                }
+            }
+            if (!langFound)
+            {
+                LanguageComboBox.SelectedIndex = 0;
+            }
+
+            // Search engine
             string currentUrl = ConfigManager.Current.SearchEngineUrl;
             bool found = false;
-            foreach (System.Windows.Controls.ComboBoxItem item in SearchEngineComboBox.Items)
+            foreach (ComboBoxItem item in SearchEngineComboBox.Items)
             {
                 if (item.Tag?.ToString() == currentUrl)
                 {
@@ -109,8 +130,8 @@ namespace PixOcrSearch
             bool tinyExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_tiny_rec_infer"));
             bool smallExists = Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_det_infer")) && Directory.Exists(Path.Combine(inferenceDir, "PP-OCRv6_small_rec_infer"));
 
-            var itemsToRemove = new System.Collections.Generic.List<System.Windows.Controls.ComboBoxItem>();
-            foreach (System.Windows.Controls.ComboBoxItem item in OcrModelComboBox.Items)
+            var itemsToRemove = new System.Collections.Generic.List<ComboBoxItem>();
+            foreach (ComboBoxItem item in OcrModelComboBox.Items)
             {
                 string tag = item.Tag?.ToString() ?? "";
                 if (tag == "PP-OCRv6_tiny" && !tinyExists) itemsToRemove.Add(item);
@@ -123,7 +144,7 @@ namespace PixOcrSearch
 
             string currentModel = ConfigManager.Current.OcrModel;
             bool modelFound = false;
-            foreach (System.Windows.Controls.ComboBoxItem item in OcrModelComboBox.Items)
+            foreach (ComboBoxItem item in OcrModelComboBox.Items)
             {
                 if (item.Tag?.ToString() == currentModel)
                 {
@@ -151,6 +172,90 @@ namespace PixOcrSearch
             UpdateControlPanelHotkeyTextBoxDisplay();
             AutoStartCheckBox.IsChecked = ConfigManager.Current.StartWithWindows;
             AutoCopyCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard;
+        }
+
+        public void ApplyLocalization()
+        {
+            WindowTitleText.Text = Localization.ControlCenterTitle;
+            RadioSettings.Content = Localization.TabSettings;
+            RadioNotifications.Content = Localization.TabUpdates;
+            RadioAbout.Content = Localization.TabAbout;
+
+            LabelLanguageText.Text = Localization.LabelLanguage;
+            LabelSearchEngineText.Text = Localization.LabelSearchEngine;
+            LabelOcrModelText.Text = Localization.LabelOcrModel;
+            LabelScreenshotHotkeyText.Text = Localization.LabelScreenshotHotkey;
+            LabelScreenshotHotkeyText.ToolTip = Localization.HotkeyTooltip;
+            LabelControlPanelHotkeyText.Text = Localization.LabelControlPanelHotkey;
+            LabelControlPanelHotkeyText.ToolTip = Localization.HotkeyTooltip;
+
+            AutoStartCheckBox.Content = Localization.CheckAutoStart;
+            AutoCopyCheckBox.Content = Localization.CheckAutoCopy;
+            SettingsCancelButton.Content = Localization.BtnCancel;
+            SettingsSaveButton.Content = Localization.BtnSave;
+
+            // Search Engine items
+            if (SearchEngineComboBox.Items.Count >= 2)
+            {
+                if (SearchEngineComboBox.Items[0] is ComboBoxItem item0) item0.Content = Localization.SearchGoogle;
+                if (SearchEngineComboBox.Items[1] is ComboBoxItem item1) item1.Content = Localization.SearchBing;
+            }
+
+            // OCR Model items
+            foreach (ComboBoxItem item in OcrModelComboBox.Items)
+            {
+                string tag = item.Tag?.ToString() ?? "";
+                if (tag == "PP-OCRv6_tiny") item.Content = Localization.OcrModelTiny;
+                else if (tag == "PP-OCRv6_small") item.Content = Localization.OcrModelSmall;
+            }
+
+            UpdateHotkeyTextBoxDisplay();
+            UpdateControlPanelHotkeyTextBoxDisplay();
+
+            // About Panel
+            Version version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
+            AboutVersionText.Text = Localization.AboutVersion($"{version.Major}.{version.Minor}.{version.Build}");
+            AboutIntroTitleText.Text = Localization.AboutIntroTitle;
+            AboutIntroContentText.Text = Localization.AboutIntroText;
+            AboutUsageTitleText.Text = Localization.AboutUsageTitle;
+            AboutUsageContentText.Text = Localization.AboutUsageText;
+            AboutLinksTitleText.Text = Localization.AboutLinksTitle;
+            AboutGithubRun.Text = Localization.AboutGithubLabel;
+            AboutWebsiteRun.Text = Localization.AboutWebsiteLabel;
+            AboutCheckUpdateButton.Content = Localization.BtnCheckUpdate;
+            AboutCloseButton.Content = Localization.BtnClose;
+
+            // Notifications / Updates Panel
+            if (_releaseInfo != null)
+            {
+                DisplayReleaseInfo(_releaseInfo);
+            }
+            else
+            {
+                NotificationTitleText.Text = Localization.UpdateTitleLatest;
+                DownloadButton.Content = Localization.BtnDownloadNow;
+                IgnoreButton.Content = Localization.BtnIgnoreVersion;
+                CancelNotifBtn.Content = Localization.BtnNotNow;
+            }
+        }
+
+        private void LanguageComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing) return;
+
+            if (LanguageComboBox.SelectedItem is ComboBoxItem item && item.Tag != null)
+            {
+                string selectedLang = item.Tag.ToString() ?? "zh-CN";
+                if (ConfigManager.Current.Language != selectedLang)
+                {
+                    ConfigManager.Current.Language = selectedLang;
+                    ApplyLocalization();
+                    if (Application.Current is App app)
+                    {
+                        app.UpdateTrayMenuLanguage();
+                    }
+                }
+            }
         }
 
         public void SelectTab(string tabName)
@@ -216,7 +321,7 @@ namespace PixOcrSearch
         {
             if (string.IsNullOrEmpty(_recordedKey))
             {
-                HotkeyTextBox.Text = "无快捷键";
+                HotkeyTextBox.Text = Localization.NoHotkey;
                 return;
             }
             string mods = _recordedModifiers.Replace(",", " + ");
@@ -271,7 +376,7 @@ namespace PixOcrSearch
         {
             if (string.IsNullOrEmpty(_recordedControlPanelKey))
             {
-                ControlPanelHotkeyTextBox.Text = "无快捷键";
+                ControlPanelHotkeyTextBox.Text = Localization.NoHotkey;
                 return;
             }
             string mods = _recordedControlPanelModifiers.Replace(",", " + ");
@@ -326,35 +431,42 @@ namespace PixOcrSearch
         {
             if (string.IsNullOrEmpty(_recordedModifiers))
             {
-                MessageBox.Show("快捷键必须包含修饰键 (如 Ctrl, Alt, Shift 等)！以防键盘普通按键被系统全局拦截冲突。", "设置无效", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (string.IsNullOrEmpty(_recordedControlPanelModifiers))
             {
-                MessageBox.Show("控制面板快捷键必须包含修饰键 (如 Ctrl, Alt, Shift 等)！以防键盘普通按键被系统全局拦截冲突。", "设置无效", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (_recordedModifiers == _recordedControlPanelModifiers && _recordedKey == _recordedControlPanelKey)
             {
-                MessageBox.Show("截图快捷键与控制面板快捷键不能相同！请设置不同的快捷键组合以防冲突。", "快捷键冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgHotkeyConflict, Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
+            string lang = "zh-CN";
+            if (LanguageComboBox.SelectedItem is ComboBoxItem selectedLangItem)
+            {
+                lang = selectedLangItem.Tag?.ToString() ?? "zh-CN";
+            }
+
             string url = "https://www.google.com/search?q=";
-            if (SearchEngineComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem selectedItem)
+            if (SearchEngineComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
                 url = selectedItem.Tag?.ToString() ?? "https://www.google.com/search?q=";
             }
 
             string model = "PP-OCRv6_small";
-            if (OcrModelComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem selectedModelItem)
+            if (OcrModelComboBox.SelectedItem is ComboBoxItem selectedModelItem)
             {
                 model = selectedModelItem.Tag?.ToString() ?? "PP-OCRv6_small";
             }
 
             bool modelChanged = ConfigManager.Current.OcrModel != model;
 
+            ConfigManager.Current.Language = lang;
             ConfigManager.Current.SearchEngineUrl = url;
             ConfigManager.Current.HotkeyModifiers = _recordedModifiers;
             ConfigManager.Current.HotkeyKey = _recordedKey;
@@ -378,6 +490,7 @@ namespace PixOcrSearch
             if (Application.Current is App app)
             {
                 app.ReRegisterHotkey();
+                app.UpdateTrayMenuLanguage();
             }
 
             Close();
@@ -405,7 +518,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show("设置开机启动失败:\n" + ex.Message, "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgAutoStartFailed + ex.Message, Localization.TitleWarning, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -421,18 +534,14 @@ namespace PixOcrSearch
             e.Handled = true;
         }
 
-
         private async Task<bool> IsChinaIpAsync()
         {
-            // 使用 Cloudflare 全球 Anycast 接口检测出口 IP 归属地
-            // 此接口会跟随系统代理（VPN）走：开了全局VPN返回境外IP，未开返回真实国内IP
             try
             {
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromMilliseconds(3000);
                 client.DefaultRequestHeaders.Add("User-Agent", "SnapFind-Updater");
                 string result = await client.GetStringAsync("https://cloudflare.com/cdn-cgi/trace");
-                // 查找 loc= 字段，格式如 loc=CN 或 loc=US
                 foreach (var line in result.Split('\n'))
                 {
                     if (line.StartsWith("loc=", StringComparison.OrdinalIgnoreCase))
@@ -444,7 +553,6 @@ namespace PixOcrSearch
             }
             catch { }
 
-            // Cloudflare 探测失败时用备用接口 ip-api.com
             try
             {
                 using var client = new HttpClient();
@@ -459,16 +567,15 @@ namespace PixOcrSearch
             }
             catch { }
 
-            // 两个接口均失败时，保守默认为中国用户（走 Gitee 更稳妥）
             return true;
         }
 
         private async void AboutCheckUpdateButton_Click(object sender, RoutedEventArgs e)
         {
             AboutCheckUpdateButton.IsEnabled = false;
-            AboutCheckUpdateButton.Content = "正在检查...";
+            AboutCheckUpdateButton.Content = Localization.CheckingUpdates;
             AboutStatusText.Visibility = Visibility.Visible;
-            AboutStatusText.Text = "正在检查更新...";
+            AboutStatusText.Text = Localization.CheckingUpdatesStatus;
 
             try
             {
@@ -488,76 +595,101 @@ namespace PixOcrSearch
                     else
                     {
                         AboutStatusText.Visibility = Visibility.Collapsed;
-                        MessageBox.Show($"您当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})，无需更新。", "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(Localization.MsgAlreadyLatest($"{currentVer.Major}.{currentVer.Minor}.{currentVer.Build}"), Localization.BtnCheckUpdate, MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
 
                 AboutStatusText.Visibility = Visibility.Collapsed;
-                MessageBox.Show("未能在 GitHub 或 Gitee 检测到发布版本，请检查您的网络连接或稍后再试。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Localization.MsgNoReleaseFound, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 AboutStatusText.Visibility = Visibility.Collapsed;
-                MessageBox.Show($"检查更新发生异常: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
                 AboutCheckUpdateButton.IsEnabled = true;
-                AboutCheckUpdateButton.Content = "检查更新";
+                AboutCheckUpdateButton.Content = Localization.BtnCheckUpdate;
             }
         }
 
-        private static string ExtractChineseChangelog(string rawBody)
+        private static string ExtractLocalizedChangelog(string rawBody)
         {
             if (string.IsNullOrEmpty(rawBody)) return "";
 
-            string cnContent = rawBody;
-            
-            int startDetails = rawBody.IndexOf("<details", StringComparison.OrdinalIgnoreCase);
-            if (startDetails != -1)
+            bool isEn = Localization.IsEnglish;
+            string content = rawBody;
+
+            if (isEn)
             {
-                int endDetails = rawBody.IndexOf("</details>", startDetails, StringComparison.OrdinalIgnoreCase);
-                if (endDetails != -1)
+                int enIdx = rawBody.IndexOf("English", StringComparison.OrdinalIgnoreCase);
+                if (enIdx != -1)
                 {
-                    cnContent = rawBody.Substring(startDetails, endDetails - startDetails);
+                    int startDetails = rawBody.LastIndexOf("<details", enIdx, StringComparison.OrdinalIgnoreCase);
+                    if (startDetails != -1)
+                    {
+                        int endDetails = rawBody.IndexOf("</details>", enIdx, StringComparison.OrdinalIgnoreCase);
+                        if (endDetails != -1)
+                        {
+                            content = rawBody.Substring(startDetails, (endDetails + 10) - startDetails);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                int cnIdx = rawBody.IndexOf("Chinese", StringComparison.OrdinalIgnoreCase);
+                if (cnIdx == -1) cnIdx = rawBody.IndexOf("中文", StringComparison.OrdinalIgnoreCase);
+                if (cnIdx != -1)
+                {
+                    int startDetails = rawBody.LastIndexOf("<details", cnIdx, StringComparison.OrdinalIgnoreCase);
+                    if (startDetails != -1)
+                    {
+                        int endDetails = rawBody.IndexOf("</details>", cnIdx, StringComparison.OrdinalIgnoreCase);
+                        if (endDetails != -1)
+                        {
+                            content = rawBody.Substring(startDetails, (endDetails + 10) - startDetails);
+                        }
+                    }
                 }
             }
 
-            int startSummary = cnContent.IndexOf("<summary>", StringComparison.OrdinalIgnoreCase);
+            int startSummary = content.IndexOf("<summary>", StringComparison.OrdinalIgnoreCase);
             if (startSummary != -1)
             {
-                int endSummary = cnContent.IndexOf("</summary>", startSummary, StringComparison.OrdinalIgnoreCase);
+                int endSummary = content.IndexOf("</summary>", startSummary, StringComparison.OrdinalIgnoreCase);
                 if (endSummary != -1)
                 {
-                    cnContent = cnContent.Remove(startSummary, (endSummary + 10) - startSummary);
+                    content = content.Remove(startSummary, (endSummary + 10) - startSummary);
                 }
             }
 
-            cnContent = cnContent.Replace("<br/>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<br>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<p>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</p>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<ul>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</ul>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<li>", "• ", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</li>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<b>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</b>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<strong>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</strong>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<h3>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</h3>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<h2>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</h2>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<h1>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</h1>", "\n", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("<code>", "", StringComparison.OrdinalIgnoreCase);
-            cnContent = cnContent.Replace("</code>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<br/>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<br>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<p>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</p>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<ul>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</ul>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<li>", "• ", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</li>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<b>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</b>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<strong>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</strong>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<h3>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</h3>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<h2>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</h2>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<h1>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</h1>", "\n", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<code>", "", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("</code>", "", StringComparison.OrdinalIgnoreCase);
 
-            cnContent = System.Text.RegularExpressions.Regex.Replace(cnContent, @"<[^>]+>", "");
+            content = System.Text.RegularExpressions.Regex.Replace(content, @"<[^>]+>", "");
 
-            var lines = cnContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             var sb = new StringBuilder();
             foreach (var line in lines)
             {
@@ -577,7 +709,7 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> FetchReleaseFromGitHubAsync()
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var stopwatch = Stopwatch.StartNew();
             string response = "";
             try
             {
@@ -597,7 +729,7 @@ namespace PixOcrSearch
                 string downloadUrl = "";
                 long size = 0;
 
-                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
+                bool isInstalled = File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
                 string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
                 string targetExtension = isInstalled ? ".exe" : ".zip";
 
@@ -651,7 +783,7 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> FetchReleaseFromGiteeAsync()
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var stopwatch = Stopwatch.StartNew();
             try
             {
                 using var client = new HttpClient();
@@ -670,7 +802,7 @@ namespace PixOcrSearch
                 string downloadUrl = "";
                 long size = 0;
 
-                bool isInstalled = System.IO.File.Exists(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
+                bool isInstalled = File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
                 string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
                 string targetExtension = isInstalled ? ".exe" : ".zip";
 
@@ -714,8 +846,6 @@ namespace PixOcrSearch
 
         private async Task<GitHubRelease?> GetLatestReleaseFromAllSourcesAsync()
         {
-            // 通过出口 IP 精准判断：中国 IP 走 Gitee，境外 IP 走 GitHub
-            // Cloudflare trace 接口会跟随 VPN 走，开了全局 VPN 自动切 GitHub
             bool isChinaIp = await IsChinaIpAsync();
             if (isChinaIp)
             {
@@ -729,8 +859,8 @@ namespace PixOcrSearch
 
         private async void FetchLatestReleaseAsync()
         {
-            ChangelogTextBlock.Text = "正在获取最新的更新日志...";
-            NotificationTitleText.Text = "正在获取最新版本信息...";
+            ChangelogTextBlock.Text = Localization.IsEnglish ? "Fetching latest release notes..." : "正在获取最新的更新日志...";
+            NotificationTitleText.Text = Localization.IsEnglish ? "Fetching latest version information..." : "正在获取最新版本信息...";
 
             try
             {
@@ -756,42 +886,54 @@ namespace PixOcrSearch
             Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
             string cleanTag = release.TagName.TrimStart('v', 'V');
             
-            ChangelogTextBlock.Text = ExtractChineseChangelog(release.Body);
+            ChangelogTextBlock.Text = ExtractLocalizedChangelog(release.Body);
 
             if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
             {
-                NotificationTitleText.Text = $"发现新版本: {release.TagName}";
+                NotificationTitleText.Text = Localization.UpdateTitleNew(release.TagName);
                 DownloadButton.Visibility = Visibility.Visible;
+                DownloadButton.Content = Localization.BtnDownloadNow;
                 IgnoreButton.Visibility = Visibility.Visible;
-                CancelNotifBtn.Content = "暂不更新";
+                IgnoreButton.Content = Localization.BtnIgnoreVersion;
+                CancelNotifBtn.Content = Localization.BtnNotNow;
             }
             else
             {
-                NotificationTitleText.Text = $"当前已是最新版本 (v{currentVer.Major}.{currentVer.Minor}.{currentVer.Build})";
+                NotificationTitleText.Text = Localization.UpdateTitleUpToDate;
                 DownloadButton.Visibility = Visibility.Collapsed;
                 IgnoreButton.Visibility = Visibility.Collapsed;
-                CancelNotifBtn.Content = "关闭";
+                CancelNotifBtn.Content = Localization.BtnClose;
             }
         }
 
         private void DisplayOfflineLog()
         {
-            NotificationTitleText.Text = "最新更新日志 (离线)";
-            ChangelogTextBlock.Text = "v2.3.0 更新日志\n" +
-                               "• 控制中心支持拖拽拉伸调整窗口尺寸，并原生适配任务栏最小化缩回操作。\n" +
-                               "• 移除了结果展示窗口（EditWindow）醒目的蓝色边框线，改为系统主题自适应灰色。\n\n" +
-                               "v2.2.0 更新日志\n" +
-                               "• 控制面板整合侧栏切换，移除了冗余的独立关于和通知窗口。\n" +
-                               "• 新增全局控制中心呼出热键（默认 Ctrl+Alt+C），自带快捷键冲突防重校验机制。\n" +
-                               "• 精简系统托盘右键选项为：截图 OCR 搜索、控制面板、退出。\n" +
-                               "• 引入 6 像素极细半透明 Fluent 滚动条，悬停时自动渐显。\n\n" +
-                               "v2.1.0 更新日志\n" +
-                               "• 移除了 OCR 结果窗口底部“设置”、“复制”和“搜索”按钮的 Emoji 图标。\n" +
-                               "• 支持检查更新及本地直接下载更新包。";
+            NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
+            ChangelogTextBlock.Text = Localization.IsEnglish
+                ? "v2.3.9 Changelog\n" +
+                  "• Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
+                  "• Fixed English installer translation coverage in setup wizard.\n\n" +
+                  "v2.3.0 Changelog\n" +
+                  "• Control Center window now supports drag resizing and native taskbar minimize animations.\n" +
+                  "• Removed bright blue border around EditWindow, replaced with adaptive system theme border.\n\n" +
+                  "v2.2.0 Changelog\n" +
+                  "• Unified Control Center navigation sidebar.\n" +
+                  "• Added global hotkey for Control Center (default Ctrl+Alt+C).\n" +
+                  "• Streamlined tray context menu."
+                : "v2.3.9 更新日志\n" +
+                  "• 设置面板新增界面语言切换选项（支持简体中文与 English）。\n" +
+                  "• 修复英文安装向导界面残留中文的问题，实现全英文覆盖。\n\n" +
+                  "v2.3.0 更新日志\n" +
+                  "• 控制中心支持拖拽拉伸调整窗口尺寸，并原生适配任务栏最小化缩回操作。\n" +
+                  "• 移除了结果展示窗口（EditWindow）醒目的蓝色边框线，改为系统主题自适应灰色。\n\n" +
+                  "v2.2.0 更新日志\n" +
+                  "• 控制面板整合侧栏切换，移除了冗余的独立关于和通知窗口。\n" +
+                  "• 新增全局控制中心呼出热键（默认 Ctrl+Alt+C），自带快捷键冲突防重校验机制。\n" +
+                  "• 精简系统托盘右键选项为：截图 OCR 搜索、控制面板、退出。";
             
             DownloadButton.Visibility = Visibility.Collapsed;
             IgnoreButton.Visibility = Visibility.Collapsed;
-            CancelNotifBtn.Content = "关闭";
+            CancelNotifBtn.Content = Localization.BtnClose;
         }
 
         private async void DownloadButton_Click(object sender, RoutedEventArgs e)
@@ -805,12 +947,10 @@ namespace PixOcrSearch
             if (_releaseInfo == null || string.IsNullOrEmpty(_releaseInfo.DownloadUrl))
             {
                 string fallbackUrl = _releaseInfo?.HtmlUrl ?? "https://github.com/Loecedas/SnapFind/releases/latest";
-                MessageBox.Show("获取下载链接失败，请尝试手动访问发布页面获取更新。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(fallbackUrl) { UseShellExecute = true }); } catch { }
+                MessageBox.Show(Localization.IsEnglish ? "Failed to retrieve download link. Please visit the release page manually." : "获取下载链接失败，请尝试手动访问发布页面获取更新。", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                try { Process.Start(new ProcessStartInfo(fallbackUrl) { UseShellExecute = true }); } catch { }
                 return;
             }
-
-
 
             string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
             if (string.IsNullOrEmpty(ext)) ext = ".exe";
@@ -820,13 +960,13 @@ namespace PixOcrSearch
             string filePath = Path.Combine(cacheDir, fileName);
 
             _isDownloading = true;
-            DownloadButton.Content = "取消下载";
+            DownloadButton.Content = Localization.BtnCancel;
             IgnoreButton.IsEnabled = false;
             CancelNotifBtn.IsEnabled = false;
             ProgressPanel.Visibility = Visibility.Visible;
             DownloadProgressBar.Value = 0;
-            ProgressPercentText.Text = "下载进度: 0%";
-            ProgressBytesText.Text = "正在连接服务器...";
+            ProgressPercentText.Text = Localization.UpdateProgressPercent(0);
+            ProgressBytesText.Text = Localization.UpdateConnecting;
 
             // Disable sidebar radio buttons to prevent switching tabs mid-download
             RadioNotifications.IsEnabled = false;
@@ -843,11 +983,9 @@ namespace PixOcrSearch
 
             string downloadUrl = url;
 
-            // 如果是中国国内用户，且链接包含 github.com，直接采用国内高速 CDN 代理，不再进行无意义的官方直连测速以防止因 Header 误判卡在慢速通道
             try
             {
                 using var client = new HttpClient();
-                // 伪装成高拟真浏览器请求头以确保通过 Gitee 防盗链/防机器人人机验证检测
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                 if (downloadUrl.Contains("gitee.com"))
                 {
@@ -883,7 +1021,7 @@ namespace PixOcrSearch
                         Dispatcher.Invoke(() =>
                         {
                             DownloadProgressBar.Value = progress;
-                            ProgressPercentText.Text = $"下载进度: {(int)progress}%";
+                            ProgressPercentText.Text = Localization.UpdateProgressPercent((int)progress);
                             
                             double readMb = (double)totalReadBytes / (1024 * 1024);
                             double totalMb = (double)totalBytes.Value / (1024 * 1024);
@@ -902,10 +1040,9 @@ namespace PixOcrSearch
                     {
                         if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                         {
-                            // Portable ZIP Update Flow via Self-Copy
                             string currentDir = AppDomain.CurrentDomain.BaseDirectory;
                             string cacheDir = Path.Combine(currentDir, "cache");
-                            string currentExe = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName 
+                            string currentExe = Process.GetCurrentProcess().MainModule?.FileName 
                                 ?? Path.Combine(currentDir, "SnapFind.exe");
                             string tempUpdater = Path.Combine(cacheDir, "temp_updater.exe");
 
@@ -914,15 +1051,12 @@ namespace PixOcrSearch
                                 Directory.CreateDirectory(cacheDir);
                             }
 
-                            // 强力复制主程序自身为临时更新器
                             File.Copy(currentExe, tempUpdater, true);
 
-                            int currentPid = System.Diagnostics.Process.GetCurrentProcess().Id;
-
+                            int currentPid = Process.GetCurrentProcess().Id;
                             string safeDest = currentDir.TrimEnd('\\');
                             string safeZip = filePath.TrimEnd('\\');
 
-                            // 启动临时更新器并传入更新任务的控制参数
                             Process.Start(new ProcessStartInfo(tempUpdater)
                             {
                                 Arguments = $"--update-mode --pid {currentPid} --zip \"{safeZip}\" --dest \"{safeDest}\"",
@@ -931,7 +1065,6 @@ namespace PixOcrSearch
                         }
                         else
                         {
-                            // Installer Exe Flow
                             Process.Start(new ProcessStartInfo(filePath) 
                             { 
                                 Arguments = "/SILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
@@ -942,8 +1075,10 @@ namespace PixOcrSearch
                     }
                     catch (Exception ex)
                     {
-                        string mode = filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) ? "自动部署便携包" : "启动安装程序";
-                        MessageBox.Show($"{mode}失败: {ex.Message}\n请手动操作文件: {filePath}", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                        string mode = filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) 
+                            ? (Localization.IsEnglish ? "Auto deploy portable package" : "自动部署便携包") 
+                            : (Localization.IsEnglish ? "Launch installer" : "启动安装程序");
+                        MessageBox.Show($"{mode} {(Localization.IsEnglish ? "failed" : "失败")}: {ex.Message}\n{(Localization.IsEnglish ? "Please operate file manually" : "请手动操作文件")}: {filePath}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 });
             }
@@ -960,7 +1095,7 @@ namespace PixOcrSearch
                 {
                     try { File.Delete(filePath); } catch { }
                 }
-                MessageBox.Show($"下载更新失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{Localization.UpdateDownloadFailed}{ex.Message}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -985,7 +1120,7 @@ namespace PixOcrSearch
 
         private void ResetUiAfterDownload()
         {
-            DownloadButton.Content = "立即下载";
+            DownloadButton.Content = Localization.BtnDownloadNow;
             IgnoreButton.IsEnabled = true;
             CancelNotifBtn.IsEnabled = true;
             ProgressPanel.Visibility = Visibility.Collapsed;
@@ -1027,7 +1162,7 @@ namespace PixOcrSearch
 
         private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (!_isDownloading && e.OriginalSource != SearchEngineComboBox && e.OriginalSource != OcrModelComboBox)
+            if (!_isDownloading && e.OriginalSource != SearchEngineComboBox && e.OriginalSource != OcrModelComboBox && e.OriginalSource != LanguageComboBox)
             {
                 DragMove();
             }

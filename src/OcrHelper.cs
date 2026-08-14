@@ -141,7 +141,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show("PaddleOCR 引擎初始化失败:\n" + ex.Message + "\n\n请确保 \"libs\" 目录及其中的依赖 DLL 和 inference 文件夹完整。", "OCR 错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                System.Windows.MessageBox.Show(Localization.MsgOcrInitFailed(ex.Message), Localization.TitleOcrError, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
 
@@ -256,7 +256,7 @@ namespace PixOcrSearch
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show("OCR 识别发生错误:\n" + ex.Message, "OCR 错误", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    System.Windows.MessageBox.Show(Localization.MsgOcrRecognitionFailed(ex.Message), Localization.TitleOcrError, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
                 finally
                 {

@@ -320,11 +320,12 @@
 
             <!-- 1. Header (Title and Close Button) -->
             <Grid Grid.Row="0" Margin="16,8,16,0" Height="30" Cursor="SizeAll">
-                <TextBlock Text="SnapFind 控制中心" 
-                            Foreground="{DynamicResource ThemeText}" 
-                            FontSize="12" 
-                            FontWeight="Bold"
-                            VerticalAlignment="Center"/>
+                <TextBlock x:Name="WindowTitleText"
+                           Text="SnapFind 控制中心" 
+                           Foreground="{DynamicResource ThemeText}" 
+                           FontSize="12" 
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Click="MinimizeButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
@@ -472,7 +473,8 @@
 
                                     <!-- Search Engine -->
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="搜索引擎" 
+                                        <TextBlock x:Name="LabelSearchEngineText"
+                                                   Text="搜索引擎" 
                                                    Foreground="{DynamicResource ThemeSubText}" 
                                                    FontSize="11" 
                                                    Margin="0,0,0,4"/>
@@ -493,7 +495,8 @@
 
                                     <!-- OCR Model -->
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="OCR 识别模型" 
+                                        <TextBlock x:Name="LabelOcrModelText"
+                                                   Text="OCR 识别模型" 
                                                    Foreground="{DynamicResource ThemeSubText}" 
                                                    FontSize="11" 
                                                    Margin="0,0,0,4"/>
@@ -523,7 +526,8 @@
 
                                     <!-- Screenshot Hotkey -->
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="全局截图快捷键" 
+                                        <TextBlock x:Name="LabelScreenshotHotkeyText"
+                                                   Text="全局截图快捷键" 
                                                    ToolTip="点击文本框后直接按键盘设置"
                                                    Foreground="{DynamicResource ThemeSubText}" 
                                                    FontSize="11" 
@@ -546,7 +550,8 @@
 
                                     <!-- Control Panel Hotkey -->
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Text="控制面板快捷键" 
+                                        <TextBlock x:Name="LabelControlPanelHotkeyText"
+                                                   Text="控制面板快捷键" 
                                                    ToolTip="点击文本框后直接按键盘设置"
                                                    Foreground="{DynamicResource ThemeSubText}" 
                                                    FontSize="11" 
@@ -565,6 +570,38 @@
                                                  Cursor="Hand"
                                                  Text="Control,Alt + C"
                                                  PreviewKeyDown="ControlPanelHotkeyTextBox_PreviewKeyDown"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Row 3: Language -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Language -->
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock x:Name="LabelLanguageText"
+                                                   Text="界面语言" 
+                                                   Foreground="{DynamicResource ThemeSubText}" 
+                                                   FontSize="11" 
+                                                   Margin="0,0,0,4"/>
+                                        <ComboBox x:Name="LanguageComboBox"
+                                                  Height="32"
+                                                  Background="{DynamicResource ThemeInputBg}"
+                                                  Foreground="{DynamicResource ThemeInputFg}"
+                                                  BorderBrush="{DynamicResource ThemeInputBorder}"
+                                                  BorderThickness="1"
+                                                  Padding="6,0,0,0"
+                                                  FontSize="12"
+                                                  FontFamily="Segoe UI, Microsoft YaHei UI"
+                                                  Template="{StaticResource ThemeComboBoxTemplate}"
+                                                  SelectionChanged="LanguageComboBox_SelectionChanged">
+                                            <ComboBoxItem Content="简体中文" Tag="zh-CN"/>
+                                            <ComboBoxItem Content="English" Tag="en-US"/>
+                                        </ComboBox>
                                     </StackPanel>
                                 </Grid>
 
@@ -590,11 +627,13 @@
                         <StackPanel Grid.Row="1" 
                                     Orientation="Horizontal" 
                                     HorizontalAlignment="Right">
-                            <Button Content="取消" 
+                            <Button x:Name="SettingsCancelButton"
+                                    Content="取消" 
                                     Click="CancelButton_Click"
                                     Style="{StaticResource ModernButton}" 
                                     Margin="0,0,8,0"/>
-                            <Button Content="保存" 
+                            <Button x:Name="SettingsSaveButton"
+                                    Content="保存" 
                                     Click="SaveButton_Click"
                                     Style="{StaticResource PrimaryButton}"/>
                         </StackPanel>
@@ -624,30 +663,23 @@
                         <!-- Descriptions and Links -->
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
                             <StackPanel>
-                                <TextBlock Text="项目简介与声明" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
-                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8">
-                                    SnapFind 是一款专为 Windows 系统度身定制的高性能、纯本地截图 OCR 识别与搜索工具。<LineBreak/>
-                                    所有截取的图片与识别结果完全保存在本地进行推理，绝不上传云端，彻底保护您的隐私安全。
-                                </TextBlock>
+                                <TextBlock x:Name="AboutIntroTitleText" Text="项目简介与声明" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
+                                <TextBlock x:Name="AboutIntroContentText" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8"/>
                                 
-                                <TextBlock Text="操作方法" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
-                                <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8">
-                                    • 截图：按快捷键选定屏幕区域后松开，即刻唤起 OCR 识别结果。<LineBreak/>
-                                    • 快速复制：在结果文本卡片中，直接按 Ctrl + C 拷贝内容，软件会自动拷贝到剪贴板并关闭窗口。<LineBreak/>
-                                    • 网页检索：按 Enter 键或点击结果框中“搜索”按钮，拉起浏览器一键检索。
-                                </TextBlock>
+                                <TextBlock x:Name="AboutUsageTitleText" Text="操作方法" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
+                                <TextBlock x:Name="AboutUsageContentText" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8"/>
 
                                 <Separator Background="{DynamicResource ThemeWindowBorder}" Margin="0,8,0,8"/>
 
-                                <TextBlock Text="官方渠道" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="AboutLinksTitleText" Text="官方渠道" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,4"/>
                                 <TextBlock FontSize="11" Margin="0,2">
-                                    <Run Text="GitHub 地址: " Foreground="{DynamicResource ThemeSubText}"/>
+                                    <Run x:Name="AboutGithubRun" Text="GitHub 地址: " Foreground="{DynamicResource ThemeSubText}"/>
                                     <Hyperlink NavigateUri="https://github.com/Loecedas/SnapFind" RequestNavigate="Hyperlink_RequestNavigate">
                                         <Run Text="https://github.com/Loecedas/SnapFind"/>
                                     </Hyperlink>
                                 </TextBlock>
                                 <TextBlock FontSize="11" Margin="0,2,0,4">
-                                    <Run Text="官方网站: " Foreground="{DynamicResource ThemeSubText}"/>
+                                    <Run x:Name="AboutWebsiteRun" Text="官方网站: " Foreground="{DynamicResource ThemeSubText}"/>
                                     <Hyperlink NavigateUri="https://snapfind.baseye.org/" RequestNavigate="Hyperlink_RequestNavigate">
                                         <Run Text="https://snapfind.baseye.org/"/>
                                     </Hyperlink>
@@ -663,7 +695,8 @@
                                         Click="AboutCheckUpdateButton_Click"
                                         Style="{StaticResource PrimaryButton}" 
                                         Margin="0,0,8,0"/>
-                                <Button Content="关闭" 
+                                <Button x:Name="AboutCloseButton"
+                                        Content="关闭" 
                                         Click="CancelButton_Click"
                                         Style="{StaticResource ModernButton}"/>
                             </StackPanel>

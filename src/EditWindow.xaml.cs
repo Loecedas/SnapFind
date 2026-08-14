@@ -56,6 +56,9 @@ namespace PixOcrSearch
             // Dynamically refresh system theme resources before rendering
             App.ApplyTheme();
 
+            // Apply localized text
+            ApplyLocalization();
+
             // Position the window near the selection
             PositionWindow();
 
@@ -74,6 +77,14 @@ namespace PixOcrSearch
                 }
                 catch { }
             }
+        }
+
+        private void ApplyLocalization()
+        {
+            TitleTextBlock.Text = Localization.EditResultTitle;
+            SettingsBtn.Content = Localization.BtnSettings;
+            CopyBtn.Content = Localization.BtnCopy;
+            SearchBtn.Content = Localization.BtnSearch;
         }
 
         private void PositionWindow()
@@ -152,7 +163,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show("复制到剪贴板失败:\n" + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgCopyFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             Close();
         }
@@ -183,7 +194,7 @@ namespace PixOcrSearch
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("无法启动默认浏览器进行搜索:\n" + ex.Message, "搜索失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(Localization.MsgSearchFailed + ex.Message, Localization.TitleSearchFailed, MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             Close();
@@ -205,7 +216,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show("复制到剪贴板失败:\n" + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Localization.MsgCopyFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             Close();
         }

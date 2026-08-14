@@ -19,6 +19,7 @@
 
 ### 统一控制中心与现代 UI
 - **三合一控制中心**：将“设置”、“关于”、“更新通知”融合为统一的控制中心窗口。拥有极简的 WinUI 侧边栏，支持无阻碍平滑切换。
+- **多语言无缝切换**：原生内置“简体中文”与“English”双语界面热切换，设置面板、系统托盘、结果卡片及安装向导实现 100% 全面覆盖。
 - **双源并发更新比对与流畅安装**：同时并发查询 GitHub 与 Gitee 更新，自动比对并获取最高版本。安装更新时自动展示进度条窗口，完成后自动退出并拉起新版本，体验连贯。
 - **自适应系统主题与圆角**：支持暗色/亮色主题及 Windows 11 原生 DWM 圆角与阴影特效。
 - **极细 Fluent 滚动条**：自定义了 6 像素极细半透明滚动条（普通悬浮低可见度， hover 状态渐显），带来极佳的系统原生感。
@@ -45,6 +46,7 @@ SnapFind/
 │   ├── EditWindow.xaml              # 识别结果展示、编辑、复制与搜索 UI 布局
 │   ├── EditWindow.xaml.cs           # 结果窗口定位、Ctrl+C 拦截自动复制关闭、浏览器检索
 │   ├── HotkeyHelper.cs              # Win32 RegisterHotkey / UnregisterHotkey 热键钩子底层封装
+│   ├── Localization.cs              # 全局中英文多语言与本地化文本管理器
 │   ├── OcrHelper.cs                 # PaddleOCR 引擎生命周期控制、空闲定时内存优化压缩
 │   ├── ScreenshotWindow.xaml        # 截图遮罩层 XAML 布局
 │   ├── ScreenshotWindow.xaml.cs     # 多屏幕截图绘制、框选、DPI 换算与位图切片处理
@@ -64,8 +66,11 @@ SnapFind/
 ├── backup/                          # 备份专用工具目录（仅用于清理项目临时文件，固定存放）
 │   ├── backup.ps1                   # 一键清理临时编译文件及发布包的 PowerShell 脚本
 │   └── BACKUP_GUIDE.md              # 备份安全清理与保留指南
+├── LICENSE.md                       # 官方开源许可证 (英文版，供 GitHub 自动识别)
+├── LICENSE.zh.md                    # 开源许可证 (中文对照翻译)
 ├── SnapFind.exe                     # 项目根目录下的绿色版直接启动程序 (Git 过滤)
 ├── .gitignore                       # Git 忽略配置文件
+├── README.en.md                     # 自述文件 (英文)
 └── README.md                        # 自述文件 (中文)
 ```
 
@@ -90,9 +95,13 @@ cd SnapFind
   "SearchEngineUrl": "https://www.google.com/search?q=",
   "HotkeyModifiers": "Control,Alt",
   "HotkeyKey": "S",
+  "StartWithWindows": false,
+  "OcrModel": "PP-OCRv6_tiny",
+  "IgnoredVersion": "",
   "ControlPanelHotkeyModifiers": "Control,Alt",
   "ControlPanelHotkeyKey": "C",
-  "StartWithWindows": false
+  "AutoCopyToClipboard": false,
+  "Language": "zh-CN"
 }
 ```
 
@@ -104,6 +113,9 @@ cd SnapFind
 | `ControlPanelHotkeyModifiers` | String | `Control,Alt` | 唤起控制面板的全局热键修饰键 |
 | `ControlPanelHotkeyKey` | String | `C` | 唤起控制面板的主键 |
 | `StartWithWindows`| Boolean| `false` | 是否开启 Windows 开机自启动 |
+| `OcrModel` | String | `PP-OCRv6_tiny` | 当前选用的 OCR 识别模型（可选 `PP-OCRv6_tiny` 或 `PP-OCRv6_small`） |
+| `AutoCopyToClipboard` | Boolean | `false` | 截图识别完成后是否自动将文本复制到剪贴板 |
+| `Language` | String | `zh-CN` | 界面语言代码（支持 `zh-CN` 简体中文与 `en-US` English） |
 
 ### 3. 开发运行与调试
 在项目 `src/` 目录下运行 .NET SDK 调试指令：
@@ -181,12 +193,11 @@ graph TD
 
 ## 许可证
 
-基于 [MIT License](LICENSE) 许可协议开源。
+基于 [MIT License](LICENSE.md)（[中文版](LICENSE.zh.md)）许可协议开源。
 
 ## 致谢
 
 - [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) — 卓越的开源 OCR 推理框架。
-- [PaddleOCRSharp](https://github.com/sdcb/PaddleOCRSharp) — 为 .NET 社区开发的方便易用的 PaddleOCR 封装库。
 - [Inno Setup](https://jrsoftware.org/isinfo.php) — 功能强大且完全免费的安装程序制作工具。
 
 ---

@@ -80,11 +80,12 @@
 
             <!-- Top Header (Title and Close Icon) -->
             <Grid Grid.Row="0" Margin="0,0,0,8" Cursor="SizeAll">
-                <TextBlock Text="OCR 识别结果" 
-                            Foreground="{DynamicResource ThemeSubText}" 
-                            FontSize="10" 
-                            FontWeight="Bold"
-                            VerticalAlignment="Center"/>
+                <TextBlock x:Name="TitleTextBlock"
+                           Text="OCR 识别结果" 
+                           Foreground="{DynamicResource ThemeSubText}" 
+                           FontSize="10" 
+                           FontWeight="Bold"
+                           VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Button Click="MinimizeButton_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True"
@@ -161,16 +162,19 @@
 
             <!-- Bottom Actions -->
             <Grid Grid.Row="2" Margin="0,10,0,0">
-                <Button Content="设置" 
+                <Button x:Name="SettingsBtn"
+                        Content="设置" 
                         Click="SettingsButton_Click"
                         Style="{StaticResource ModernButton}" 
                         HorizontalAlignment="Left"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="复制" 
+                    <Button x:Name="CopyBtn"
+                            Content="复制" 
                             Click="CopyButton_Click"
                             Style="{StaticResource ModernButton}" 
                             Margin="0,0,8,0"/>
-                    <Button Content="搜索" 
+                    <Button x:Name="SearchBtn"
+                            Content="搜索" 
                             Click="SearchButton_Click"
                             Style="{StaticResource PrimaryButton}"/>
                 </StackPanel>

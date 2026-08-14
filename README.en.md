@@ -19,6 +19,7 @@
 
 ### Unified Control Center & Modern UI
 - **Unified 3-in-1 Control Center**: Blends Settings, About, and Update Notifications into a single unified dashboard window with a clean WinUI-style navigation sidebar.
+- **Seamless Bilingual Localization**: Supports real-time dynamic switching between "Simplified Chinese" and "English", fully covering the Control Center, tray menus, result cards, and Inno Setup installer wizard.
 - **Dual-Source Updates & Smooth Installation**: Queries both GitHub and Gitee concurrently to detect updates and fetch the highest version. Automatically displays a progress bar window during installation, then auto-closes and launches the new version smoothly.
 - **System Theme & Rounded Corners**: Supports light/dark themes and Windows 11 native rounded corners and dropshadows automatically.
 - **Ultra-thin Fluent Scrollbar**: Customizes scrollbars to a thin 6px width capsule shape with default semi-transparent opacity (0.4) that fades in (0.8) on mouse hover.
@@ -45,6 +46,7 @@ SnapFind/
 │   ├── EditWindow.xaml              # Result display, text box editing, copy & search UI layout
 │   ├── EditWindow.xaml.cs           # Positioning logic, Ctrl+C shortcut handler, default browser search
 │   ├── HotkeyHelper.cs              # Bottom-level wrapper for Win32 RegisterHotkey / UnregisterHotkey
+│   ├── Localization.cs              # Global bilingual localization and string dictionary manager
 │   ├── OcrHelper.cs                 # PaddleOCR lifecycle driver, idle timer memory cleanup
 │   ├── ScreenshotWindow.xaml        # Capture overlay window XAML
 │   ├── ScreenshotWindow.xaml.cs     # Multi-monitor rendering, region selecting, DPI scale mapping, and bitmap cropping
@@ -64,8 +66,11 @@ SnapFind/
 ├── backup/                          # Dedicated backup cleanup tools folder (Fixed)
 │   ├── backup.ps1                   # One-click PowerShell script to clean up compilation caches & builds
 │   └── BACKUP_GUIDE.md              # Backup cleanup guidelines documentation
+├── LICENSE.md                       # Official Open Source License (English for GitHub auto-detection)
+├── LICENSE.zh.md                    # Open Source License (Chinese translation)
 ├── SnapFind.exe                     # Compiled program launcher in the workspace root (Git Ignored)
 ├── .gitignore                       # Git ignore rules configuration
+├── README.en.md                     # Readme documentation (English)
 └── README.md                        # Self-description document (Chinese)
 ```
 
@@ -90,9 +95,13 @@ On startup, a default configuration file will be auto-generated in `cache/config
   "SearchEngineUrl": "https://www.google.com/search?q=",
   "HotkeyModifiers": "Control,Alt",
   "HotkeyKey": "S",
+  "StartWithWindows": false,
+  "OcrModel": "PP-OCRv6_tiny",
+  "IgnoredVersion": "",
   "ControlPanelHotkeyModifiers": "Control,Alt",
   "ControlPanelHotkeyKey": "C",
-  "StartWithWindows": false
+  "AutoCopyToClipboard": false,
+  "Language": "zh-CN"
 }
 ```
 
@@ -104,6 +113,9 @@ On startup, a default configuration file will be auto-generated in `cache/config
 | `ControlPanelHotkeyModifiers` | String | `Control,Alt` | Modifier keys for control panel hotkey |
 | `ControlPanelHotkeyKey` | String | `C` | Primary activator key for control panel hotkey |
 | `StartWithWindows`| Boolean| `false` | Enable boot launch with Windows |
+| `OcrModel` | String | `PP-OCRv6_tiny` | Selected OCR model (`PP-OCRv6_tiny` or `PP-OCRv6_small`) |
+| `AutoCopyToClipboard` | Boolean | `false` | Automatically copy recognized text to clipboard upon OCR completion |
+| `Language` | String | `zh-CN` | Interface language code (`zh-CN` for Simplified Chinese, `en-US` for English) |
 
 ### 3. Run and Debug
 Run the standard SDK command inside the `src/` directory:
@@ -181,12 +193,11 @@ To maintain a small footprint on user machines, SnapFind applies an aggressive c
 
 ## License
 
-Distributed under the [MIT License](LICENSE).
+Distributed under the [MIT License](LICENSE.md) ([Chinese translation](LICENSE.zh.md)).
 
 ## Acknowledgments
 
 - [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) — Superb OCR architecture.
-- [PaddleOCRSharp](https://github.com/sdcb/PaddleOCRSharp) — Wrapper library bringing PaddleOCR easily into C#/.NET.
 - [Inno Setup](https://jrsoftware.org/isinfo.php) — Fully featured installation builder.
 
 ---
