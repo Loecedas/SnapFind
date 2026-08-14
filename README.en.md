@@ -17,6 +17,12 @@
 - **Multi-Monitor & High DPI Adaptation**: Traverses screen monitors using Win32 API to fetch independent DPI scale factors. Prevents screenshot shifts or black screen overlaps across multiple monitors.
 - **Dual Customizable Global Hotkeys**: Supports setting a global screenshot hotkey (default: `Ctrl + Alt + S`) and a global control panel hotkey (default: `Ctrl + Alt + C`, opening settings panel directly) for millisecond-level quick invocation.
 
+### Multi-Region Selection & Cross-Screen Staging
+- **Multi-Region Capture & Smooth Repositioning**: Supports continuous multiple box selections on the same screen. Selected regions can be smoothly dragged and repositioned; selection control pills feature 3px rounded borders and neutral theme badges for a clean visual appearance.
+- **Cross-Screen Sessions & Direct \"Insert\" Flow**: Switch between different apps and windows while staging previous selections. The canvas remains 100% clean without ghost overlays, and a dedicated **\"Insert\"** button on the toolbar opens the staged drawer instantly.
+- **Visual Staged Drawer & Card Reordering**: Expandable top drawer displaying real-time thumbnail cards with **\"Move Up\"**, **\"Move Down\"**, and **\"Delete\"** controls for easy insertion between previous captures.
+- **Full Undo Support (Ctrl+Z)**: Instant undo for accidental deletions or reordering operations.
+
 ### Unified Control Center & Modern UI
 - **Unified 3-in-1 Control Center**: Blends Settings, About, and Update Notifications into a single unified dashboard window with a clean WinUI-style navigation sidebar.
 - **Seamless Bilingual Localization**: Supports real-time dynamic switching between "Simplified Chinese" and "English", fully covering the Control Center, tray menus, result cards, and Inno Setup installer wizard.
@@ -47,6 +53,8 @@ SnapFind/
 │   ├── EditWindow.xaml.cs           # Positioning logic, Ctrl+C shortcut handler, default browser search
 │   ├── HotkeyHelper.cs              # Bottom-level wrapper for Win32 RegisterHotkey / UnregisterHotkey
 │   ├── Localization.cs              # Global bilingual localization and string dictionary manager
+│   ├── MultiSessionBarWindow.xaml   # Staged multi-session pill bar & visual drawer UI
+│   ├── MultiSessionBarWindow.xaml.cs# Thumbnail card rendering, Move Up/Down reordering, and Undo logic
 │   ├── OcrHelper.cs                 # PaddleOCR lifecycle driver, idle timer memory cleanup
 │   ├── ScreenshotWindow.xaml        # Capture overlay window XAML
 │   ├── ScreenshotWindow.xaml.cs     # Multi-monitor rendering, region selecting, DPI scale mapping, and bitmap cropping
