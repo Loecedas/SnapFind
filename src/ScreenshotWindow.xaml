@@ -7,6 +7,11 @@
         Topmost="True"
         ShowInTaskbar="False"
         Cursor="Cross"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled"
         KeyDown="Window_KeyDown"
         MouseDown="Window_MouseDown"
         MouseMove="Window_MouseMove"
@@ -14,7 +19,169 @@
         MouseEnter="Window_MouseEnter"
         MouseLeave="Window_MouseLeave"
         Loaded="Window_Loaded">
-    <Grid x:Name="LayoutRoot">
+    
+    <Window.Resources>
+        <!-- Modern flat buttons using DynamicResource -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeBtnBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeBtnFg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBtnBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#AAAAAA"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="#0078D7"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#005A9E"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="pBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="#1084E3"/>
+                                <Setter TargetName="pBorder" Property="BorderBrush" Value="#0078D7"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="#005A9E"/>
+                                <Setter TargetName="pBorder" Property="BorderBrush" Value="#004578"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pill Mini Button with CornerRadius="3" -->
+        <Style x:Key="PillMiniButton" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Background" Value="{DynamicResource ThemeBtnBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeBtnFg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBtnBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="9.5"/>
+            <Setter Property="FontFamily" Value="Microsoft YaHei UI, Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="pBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                <Setter TargetName="pBorder" Property="BorderBrush" Value="#AAAAAA"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="pBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pill Delete Button with CornerRadius="3" and Red Text -->
+        <Style x:Key="PillDeleteButton" TargetType="Button" BasedOn="{StaticResource PillMiniButton}">
+            <Setter Property="Foreground" Value="#E05252"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="dBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="dBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                <Setter TargetName="dBorder" Property="BorderBrush" Value="#E05252"/>
+                                <Setter Property="Foreground" Value="#FF3333"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="dBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="LayoutRoot" SnapsToDevicePixels="True" UseLayoutRounding="True">
         <!-- The background screen image -->
         <Image x:Name="BackgroundImg" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top" />
 
@@ -39,9 +206,9 @@
         <Line x:Name="CrosshairV" X1="0" Y1="0" X2="0" Y2="0" Stroke="#005FB8" StrokeThickness="1" SnapsToDevicePixels="True" Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.85"/>
 
         <!-- Selection border, multi-region tags, and floating action toolbar -->
-        <Canvas x:Name="OverlayCanvas">
-            <!-- Canvas for committed regions (boxes and badges) -->
-            <Canvas x:Name="CommittedRegionsCanvas" IsHitTestVisible="False" />
+        <Canvas x:Name="OverlayCanvas" SnapsToDevicePixels="True" UseLayoutRounding="True">
+            <!-- Canvas for committed regions (boxes, badges, reorder buttons, delete buttons) -->
+            <Canvas x:Name="CommittedRegionsCanvas" IsHitTestVisible="True" SnapsToDevicePixels="True" />
 
             <!-- Active Dragging Border -->
             <Border x:Name="SelectionBorder"
@@ -49,150 +216,142 @@
                     BorderThickness="1.5"
                     Visibility="Collapsed"
                     Background="Transparent"
-                    IsHitTestVisible="False">
+                    IsHitTestVisible="False"
+                    SnapsToDevicePixels="True">
             </Border>
 
-            <!-- PixPin-like sizing label -->
+            <!-- Sizing label -->
             <Border x:Name="SizeLabelBorder"
-                    Background="#2D2D30"
-                    BorderBrush="#3F3F46"
+                    Background="{DynamicResource ThemeWindowBg}"
+                    BorderBrush="{DynamicResource ThemeWindowBorder}"
                     BorderThickness="1"
-                    CornerRadius="3"
+                    CornerRadius="4"
                     Padding="4,2"
                     Visibility="Collapsed"
-                    IsHitTestVisible="False">
+                    IsHitTestVisible="False"
+                    SnapsToDevicePixels="True">
                 <TextBlock x:Name="SizeTextBlock"
-                           Foreground="#F1F1F1"
+                           Foreground="{DynamicResource ThemeText}"
                            FontSize="10"
-                           FontFamily="Segoe UI" />
+                           FontFamily="Microsoft YaHei UI, Segoe UI" />
             </Border>
 
-            <!-- Floating Action Bar for Multi-region Confirmation -->
-            <Border x:Name="FloatingActionBar"
-                    Background="#1F1F1F"
-                    BorderBrush="#383838"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="8,5"
-                    Visibility="Collapsed"
-                    Effect="{DynamicResource ShadowEffect}">
-                <Border.Resources>
-                    <DropShadowEffect x:Key="ShadowEffect" BlurRadius="12" Direction="270" ShadowDepth="3" Opacity="0.4" Color="#000000"/>
-                </Border.Resources>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <!-- Count Badge -->
-                    <Border Background="#2D2D30" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
-                        <TextBlock x:Name="CountBadgeTextBlock"
-                                   Text="已框选 1 处"
-                                   Foreground="#CCCCCC"
-                                   FontSize="11"
-                                   FontFamily="Segoe UI, Microsoft YaHei UI"
-                                   VerticalAlignment="Center"/>
-                    </Border>
+            <!-- Floating Action Bar for Multi-region Confirmation (Draggable) -->
+            <Grid x:Name="FloatingActionBar" 
+                  Visibility="Collapsed" 
+                  SnapsToDevicePixels="True" 
+                  UseLayoutRounding="True"
+                  Cursor="SizeAll"
+                  MouseLeftButtonDown="FloatingActionBar_MouseLeftButtonDown"
+                  MouseMove="FloatingActionBar_MouseMove"
+                  MouseUp="FloatingActionBar_MouseUp">
+                <!-- Separate Shadow Border to prevent bitmap rasterization blur -->
+                <Border Background="{DynamicResource ThemeWindowBg}" CornerRadius="6">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="14" Direction="270" ShadowDepth="3" Opacity="0.4" Color="#000000"/>
+                    </Border.Effect>
+                </Border>
 
-                    <!-- Done Button -->
-                    <Button x:Name="DoneButton"
-                            Content="✓ 完成"
-                            Click="DoneButton_Click"
-                            Background="#0078D7"
-                            Foreground="White"
-                            BorderThickness="0"
-                            Padding="10,3"
-                            FontSize="11"
-                            FontWeight="SemiBold"
-                            Cursor="Hand"
-                            Margin="0,0,6,0">
-                        <Button.Resources>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="btnBorder" Property="Background" Value="#1C86EE"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="btnBorder" Property="Background" Value="#0066B8"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
+                <!-- Sharp Content Border -->
+                <Border Background="{DynamicResource ThemeWindowBg}"
+                        BorderBrush="{DynamicResource ThemeWindowBorder}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="8,5"
+                        SnapsToDevicePixels="True"
+                        RenderOptions.ClearTypeHint="Enabled">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Drag Handle Icon -->
+                        <TextBlock Text="⋮⋮" 
+                                   Foreground="{DynamicResource ThemeSubText}" 
+                                   FontSize="12" 
+                                   FontWeight="Bold" 
+                                   VerticalAlignment="Center" 
+                                   Margin="2,0,8,0" 
+                                   ToolTip="按住可拖动工具栏"/>
 
-                    <!-- Switch Window Button -->
-                    <Button x:Name="SwitchWindowButton"
-                            Content="🔄 切换界面"
-                            Click="SwitchWindowButton_Click"
-                            Background="#2F2F32"
-                            Foreground="#E0E0E0"
-                            BorderThickness="1"
-                            BorderBrush="#444446"
-                            Padding="8,3"
-                            FontSize="11"
-                            Cursor="Hand"
-                            Margin="0,0,6,0">
-                        <Button.Resources>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="swBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="swBorder" Property="Background" Value="#444448"/>
-                                                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="swBorder" Property="Background" Value="#222224"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
+                        <!-- Count Badge -->
+                        <Border Background="{DynamicResource ThemeInputBg}" 
+                                BorderBrush="{DynamicResource ThemeInputBorder}"
+                                BorderThickness="1"
+                                CornerRadius="4" 
+                                Padding="7,3" 
+                                Margin="0,0,8,0" 
+                                SnapsToDevicePixels="True">
+                            <TextBlock x:Name="CountBadgeTextBlock"
+                                       Text="已框选 1 处"
+                                       Foreground="{DynamicResource ThemeSubText}"
+                                       FontSize="11.5"
+                                       FontFamily="Microsoft YaHei UI, Segoe UI"
+                                       VerticalAlignment="Center"/>
+                        </Border>
 
-                    <!-- Cancel Button -->
-                    <Button x:Name="CancelOcrButton"
-                            Content="✕ 取消"
-                            Click="CancelOcrButton_Click"
-                            Background="Transparent"
-                            Foreground="#AAAAAA"
-                            BorderThickness="0"
-                            Padding="8,3"
-                            FontSize="11"
-                            Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Button">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="Button">
-                                            <Border x:Name="cancelBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="cancelBorder" Property="Background" Value="#33FFFFFF"/>
-                                                    <Setter Property="Foreground" Value="#FFFFFF"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
-                </StackPanel>
-            </Border>
+                        <!-- Undo Button -->
+                        <Button x:Name="UndoButton"
+                                Content="撤销"
+                                Style="{StaticResource ModernButton}"
+                                Click="UndoButton_Click"
+                                Margin="0,0,6,0"
+                                ToolTip="撤销删除或调序操作 (Ctrl+Z)"/>
+
+                        <!-- Done Button -->
+                        <Button x:Name="DoneButton"
+                                Content="完成"
+                                Style="{StaticResource PrimaryButton}"
+                                Click="DoneButton_Click"
+                                Margin="0,0,6,0"/>
+
+                        <!-- Insert Button (Visible when _initialRegionOffset > 0) -->
+                        <Button x:Name="InsertButton"
+                                Content="插入"
+                                Style="{StaticResource ModernButton}"
+                                Click="InsertButton_Click"
+                                Margin="0,0,6,0"
+                                Visibility="Collapsed"
+                                ToolTip="打开已框选抽屉，调整前后插入顺序"/>
+
+                        <!-- Switch Window Button -->
+                        <Button x:Name="SwitchWindowButton"
+                                Content="切换界面"
+                                Style="{StaticResource ModernButton}"
+                                Click="SwitchWindowButton_Click"
+                                Margin="0,0,6,0"/>
+
+                        <!-- Cancel Button -->
+                        <Button x:Name="CancelOcrButton"
+                                Content="✕ 取消"
+                                Click="CancelOcrButton_Click"
+                                Background="Transparent"
+                                Foreground="{DynamicResource ThemeSubText}"
+                                BorderThickness="0"
+                                Padding="8,4"
+                                FontSize="12"
+                                FontFamily="Microsoft YaHei UI, Segoe UI"
+                                Cursor="Hand">
+                            <Button.Resources>
+                                <Style TargetType="Button">
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="cancelBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="cancelBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Canvas>
     </Grid>
 </Window>

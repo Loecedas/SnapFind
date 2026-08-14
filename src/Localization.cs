@@ -53,6 +53,16 @@ namespace PixOcrSearch
         public static string MultiRegionCountBadge(int n) => IsEnglish ? $"Selected {n} regions" : $"已框选 {n} 处";
         public static string SwitchSessionBadge(int n) => IsEnglish ? $"Captured {n} regions" : $"已暂存 {n} 处区域";
         public static string SwitchSessionTip(string hotkey) => IsEnglish ? $"Switch to target window and press {hotkey} or click here to continue" : $"切换至目标界面后按 {hotkey} 或点击此处继续框选";
+        public static string BtnInsert => IsEnglish ? "Insert" : "插入";
+        public static string BtnPreviewStaged => IsEnglish ? "Preview" : "预览已框选";
+        public static string BtnUndo => IsEnglish ? "Undo" : "撤销";
+        public static string BtnMoveUp => IsEnglish ? "Move Up" : "上移";
+        public static string BtnMoveDown => IsEnglish ? "Move Down" : "下移";
+        public static string BtnDelete => IsEnglish ? "Delete" : "删除";
+        public static string TipInsert => IsEnglish ? "Open staged drawer to adjust insert order" : "打开已框选抽屉，调整前后插入顺序";
+        public static string TipUndo => IsEnglish ? "Undo delete or reorder (Ctrl+Z)" : "撤销删除或调序操作 (Ctrl+Z)";
+        public static string StagedListHeader => IsEnglish ? "Staged snippets (reorder & delete supported, click button above to hide):" : "已框选的图文片段 (支持调序与删除，点击上方按钮可隐藏预览) :";
+        public static string RegionCardTitle(int num, int w, int h) => IsEnglish ? $"Region #{num} ({w} × {h} px)" : $"选区 #{num} ({w} × {h} px)";
 
         public static string BtnCancel => IsEnglish ? "Cancel" : "取消";
         public static string BtnSave => IsEnglish ? "Save" : "保存";

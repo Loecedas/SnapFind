@@ -69,6 +69,7 @@ namespace PixOcrSearch
         private readonly List<ScreenshotWindow> _screenshotWindows = new List<ScreenshotWindow>();
         private readonly List<SelectedRegionItem> _multiSessionRegions = new List<SelectedRegionItem>();
         private MultiSessionBarWindow? _multiSessionBarWindow;
+        private readonly Stack<RegionActionHistoryItem> _multiSessionUndoStack = new Stack<RegionActionHistoryItem>();
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -353,6 +354,14 @@ namespace PixOcrSearch
                 item.Bitmap?.Dispose();
             }
             _multiSessionRegions.Clear();
+            foreach (var history in _multiSessionUndoStack)
+            {
+                if (history.ActionType == RegionActionType.Delete)
+                {
+                    history.Item?.Bitmap?.Dispose();
+                }
+            }
+            _multiSessionUndoStack.Clear();
         }
 
         private async void ProcessMultiRegionsAndOpenEditWindow(List<SelectedRegionItem> regions)
@@ -428,12 +437,21 @@ namespace PixOcrSearch
                         {
                             allRegions.AddRange(regions);
                         }
+
                         _multiSessionRegions.Clear();
+                        foreach (var history in _multiSessionUndoStack)
+                        {
+                            if (history.ActionType == RegionActionType.Delete)
+                            {
+                                history.Item?.Bitmap?.Dispose();
+                            }
+                        }
+                        _multiSessionUndoStack.Clear();
 
                         ProcessMultiRegionsAndOpenEditWindow(allRegions);
                     };
 
-                    screenWin.OnSwitchWindowRequested += (regions) =>
+                    screenWin.OnSwitchWindowRequested += (regions, openDrawer) =>
                     {
                         // Close screenshot overlay to let user interact with other windows
                         CloseAllScreenshotWindows();
@@ -445,28 +463,11 @@ namespace PixOcrSearch
 
                         if (_multiSessionRegions.Count > 0)
                         {
-                            _multiSessionBarWindow = new MultiSessionBarWindow(_multiSessionRegions.Count, GetScreenshotHotkeyDisplay());
-                            _multiSessionBarWindow.OnContinueRequested += () =>
-                            {
-                                _multiSessionBarWindow?.Close();
-                                _multiSessionBarWindow = null;
-                                StartScreenshot();
-                            };
-                            _multiSessionBarWindow.OnCompleteRequested += () =>
-                            {
-                                _multiSessionBarWindow?.Close();
-                                _multiSessionBarWindow = null;
-                                var all = new List<SelectedRegionItem>(_multiSessionRegions);
-                                _multiSessionRegions.Clear();
-                                ProcessMultiRegionsAndOpenEditWindow(all);
-                            };
-                            _multiSessionBarWindow.OnCancelRequested += () =>
-                            {
-                                _multiSessionBarWindow?.Close();
-                                _multiSessionBarWindow = null;
-                                ClearMultiSession();
-                            };
-                            _multiSessionBarWindow.Show();
+                            ShowMultiSessionBarWindow(openDrawer);
+                        }
+                        else
+                        {
+                            ClearMultiSession();
                         }
                     };
 
@@ -488,10 +489,6 @@ namespace PixOcrSearch
                     win.Activate();
                     win.Focus(); // Force keyboard focus to ensure Esc key cancels immediately
                 }
-
-                // Start loading PaddleOCR in the background AFTER the screenshot windows are shown and rendered.
-                // This prevents disk and CPU initialization contention from stalling the UI thread's window rendering.
-                Task.Run(() => OcrHelper.StartInitialize());
             }
             catch (Exception ex)
             {
@@ -501,6 +498,117 @@ namespace PixOcrSearch
             }
         }
 
+        private void ShowMultiSessionBarWindow(bool openDrawer = false)
+        {
+            _multiSessionBarWindow?.Close();
+            _multiSessionBarWindow = new MultiSessionBarWindow(_multiSessionRegions, GetScreenshotHotkeyDisplay(), _multiSessionUndoStack.Count > 0, openDrawer);
+
+            _multiSessionBarWindow.OnContinueRequested += () =>
+            {
+                _multiSessionBarWindow?.Close();
+                _multiSessionBarWindow = null;
+                StartScreenshot();
+            };
+
+            _multiSessionBarWindow.OnReorderRequested += (fromIndex, toIndex) =>
+            {
+                if (fromIndex >= 0 && fromIndex < _multiSessionRegions.Count && toIndex >= 0 && toIndex < _multiSessionRegions.Count && fromIndex != toIndex)
+                {
+                    var item = _multiSessionRegions[fromIndex];
+                    _multiSessionRegions.RemoveAt(fromIndex);
+                    _multiSessionRegions.Insert(toIndex, item);
+
+                    _multiSessionUndoStack.Push(new RegionActionHistoryItem
+                    {
+                        ActionType = RegionActionType.Reorder,
+                        FromIndex = fromIndex,
+                        ToIndex = toIndex
+                    });
+
+                    _multiSessionBarWindow.RefreshStagedList(_multiSessionRegions, _multiSessionUndoStack.Count > 0);
+                }
+            };
+
+            _multiSessionBarWindow.OnDeleteRegionRequested += (index) =>
+            {
+                if (index >= 0 && index < _multiSessionRegions.Count)
+                {
+                    var item = _multiSessionRegions[index];
+                    _multiSessionRegions.RemoveAt(index);
+
+                    _multiSessionUndoStack.Push(new RegionActionHistoryItem
+                    {
+                        ActionType = RegionActionType.Delete,
+                        Item = item,
+                        TargetIndex = index
+                    });
+
+                    if (_multiSessionRegions.Count == 0)
+                    {
+                        _multiSessionBarWindow?.Close();
+                        _multiSessionBarWindow = null;
+                        ClearMultiSession();
+                    }
+                    else
+                    {
+                        _multiSessionBarWindow.RefreshStagedList(_multiSessionRegions, _multiSessionUndoStack.Count > 0);
+                    }
+                }
+            };
+
+            _multiSessionBarWindow.OnUndoRequested += () =>
+            {
+                if (_multiSessionUndoStack.Count > 0)
+                {
+                    var history = _multiSessionUndoStack.Pop();
+                    if (history.ActionType == RegionActionType.Delete && history.Item != null)
+                    {
+                        int insertIdx = Math.Min(history.TargetIndex, _multiSessionRegions.Count);
+                        _multiSessionRegions.Insert(insertIdx, history.Item);
+                    }
+                    else if (history.ActionType == RegionActionType.Reorder)
+                    {
+                        if (history.ToIndex >= 0 && history.ToIndex < _multiSessionRegions.Count)
+                        {
+                            var item = _multiSessionRegions[history.ToIndex];
+                            _multiSessionRegions.RemoveAt(history.ToIndex);
+                            int restoreIdx = Math.Min(history.FromIndex, _multiSessionRegions.Count);
+                            _multiSessionRegions.Insert(restoreIdx, item);
+                        }
+                    }
+
+                    _multiSessionBarWindow?.RefreshStagedList(_multiSessionRegions, _multiSessionUndoStack.Count > 0);
+                }
+            };
+
+            _multiSessionBarWindow.OnCompleteRequested += () =>
+            {
+                _multiSessionBarWindow?.Close();
+                _multiSessionBarWindow = null;
+
+                var all = new List<SelectedRegionItem>(_multiSessionRegions);
+                _multiSessionRegions.Clear();
+                foreach (var history in _multiSessionUndoStack)
+                {
+                    if (history.ActionType == RegionActionType.Delete)
+                    {
+                        history.Item?.Bitmap?.Dispose();
+                    }
+                }
+                _multiSessionUndoStack.Clear();
+
+                ProcessMultiRegionsAndOpenEditWindow(all);
+            };
+
+            _multiSessionBarWindow.OnCancelRequested += () =>
+            {
+                _multiSessionBarWindow?.Close();
+                _multiSessionBarWindow = null;
+                ClearMultiSession();
+            };
+
+            _multiSessionBarWindow.Show();
+        }
         private void CloseAllScreenshotWindows()
         {
             var windowsToClose = _screenshotWindows.ToList();
