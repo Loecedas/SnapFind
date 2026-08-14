@@ -620,6 +620,14 @@
                                           FontSize="12"
                                           VerticalContentAlignment="Center"
                                           Margin="0,8,0,0"/>
+
+                                <!-- Multi Region Continuous Selection -->
+                                <CheckBox x:Name="MultiRegionCheckBox"
+                                          Content="支持多次连续框选识别"
+                                          Foreground="{DynamicResource ThemeText}"
+                                          FontSize="12"
+                                          VerticalContentAlignment="Center"
+                                          Margin="0,8,0,0"/>
                             </StackPanel>
                         </ScrollViewer>
 

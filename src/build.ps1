@@ -1,6 +1,7 @@
 # build.ps1
 # Automates the build and packaging process with dynamic versioning
 param(
+    [string]$Version,
     [switch]$NoZip,
     [switch]$ExeOnly,
     [switch]$NoInstaller
@@ -19,31 +20,35 @@ if (-not (Test-Path $installersDir)) { New-Item -ItemType Directory -Path $insta
 if (-not (Test-Path $portablesDir)) { New-Item -ItemType Directory -Path $portablesDir -Force | Out-Null }
 
 # 2. Get next version number
-$versions = @()
-
-if (Test-Path $installersDir) {
-    Get-ChildItem -Path $installersDir -Filter "SnapFindSetup_v*.exe" | ForEach-Object {
-        if ($_.Name -match "SnapFindSetup_v(\d+)\.(\d+)\.(\d+)") {
-            $v = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
-            $versions += $v
-        }
-    }
-}
-
-if (Test-Path $portablesDir) {
-    Get-ChildItem -Path $portablesDir -Filter "SnapFindPortable_v*.zip" | ForEach-Object {
-        if ($_.Name -match "SnapFindPortable_v(\d+)\.(\d+)\.(\d+)") {
-            $v = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
-            $versions += $v
-        }
-    }
-}
-
-if ($versions.Count -gt 0) {
-    $maxVersion = ($versions | Sort-Object -Descending)[0]
-    $nextVersion = "$($maxVersion.Major).$($maxVersion.Minor).$($maxVersion.Build + 1)"
+if ($Version) {
+    $nextVersion = $Version.TrimStart('v')
 } else {
-    $nextVersion = "2.3.9"
+    $versions = @()
+
+    if (Test-Path $installersDir) {
+        Get-ChildItem -Path $installersDir -Filter "SnapFindSetup_v*.exe" | ForEach-Object {
+            if ($_.Name -match "SnapFindSetup_v(\d+)\.(\d+)\.(\d+)") {
+                $v = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+                $versions += $v
+            }
+        }
+    }
+
+    if (Test-Path $portablesDir) {
+        Get-ChildItem -Path $portablesDir -Filter "SnapFindPortable_v*.zip" | ForEach-Object {
+            if ($_.Name -match "SnapFindPortable_v(\d+)\.(\d+)\.(\d+)") {
+                $v = [version]"$($Matches[1]).$($Matches[2]).$($Matches[3])"
+                $versions += $v
+            }
+        }
+    }
+
+    if ($versions.Count -gt 0) {
+        $maxVersion = ($versions | Sort-Object -Descending)[0]
+        $nextVersion = "$($maxVersion.Major).$($maxVersion.Minor).$($maxVersion.Build + 1)"
+    } else {
+        $nextVersion = "2.4.0"
+    }
 }
 
 Write-Host "Determined next version: v$nextVersion" -ForegroundColor Green

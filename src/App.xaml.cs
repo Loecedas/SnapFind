@@ -67,6 +67,8 @@ namespace PixOcrSearch
         private IntPtr _trayIconHandle = IntPtr.Zero;
         private bool _isCapturing = false;
         private readonly List<ScreenshotWindow> _screenshotWindows = new List<ScreenshotWindow>();
+        private readonly List<SelectedRegionItem> _multiSessionRegions = new List<SelectedRegionItem>();
+        private MultiSessionBarWindow? _multiSessionBarWindow;
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -337,10 +339,56 @@ namespace PixOcrSearch
             RegisterHotkey();
         }
 
+        private string GetScreenshotHotkeyDisplay()
+        {
+            string mods = ConfigManager.Current.HotkeyModifiers.Replace(",", "+");
+            string key = ConfigManager.Current.HotkeyKey;
+            return $"{mods}+{key}";
+        }
+
+        private void ClearMultiSession()
+        {
+            foreach (var item in _multiSessionRegions)
+            {
+                item.Bitmap?.Dispose();
+            }
+            _multiSessionRegions.Clear();
+        }
+
+        private async void ProcessMultiRegionsAndOpenEditWindow(List<SelectedRegionItem> regions)
+        {
+            if (regions == null || regions.Count == 0) return;
+
+            var textList = new List<string>();
+            Rect boundingUnion = regions[0].AbsoluteRect;
+
+            foreach (var region in regions)
+            {
+                boundingUnion.Union(region.AbsoluteRect);
+                string text = await OcrHelper.RecognizeTextAsync(region.Bitmap);
+                region.Bitmap.Dispose();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    textList.Add(text.Trim());
+                }
+            }
+
+            string mergedText = string.Join("\n", textList);
+
+            // Spawn edit window
+            var editWin = new EditWindow(mergedText, boundingUnion);
+            editWin.Show();
+            editWin.Activate();
+        }
+
         private void StartScreenshot()
         {
             if (_isCapturing) return;
             _isCapturing = true;
+
+            // Close floating session bar if active
+            _multiSessionBarWindow?.Close();
+            _multiSessionBarWindow = null;
 
             _screenshotWindows.Clear();
 
@@ -349,13 +397,14 @@ namespace PixOcrSearch
                 var screens = Screen.AllScreens;
                 foreach (var screen in screens)
                 {
-                    var screenWin = new ScreenshotWindow(screen);
+                    var screenWin = new ScreenshotWindow(screen, _multiSessionRegions.Count);
                     _screenshotWindows.Add(screenWin);
 
                     screenWin.OnScreenshotCompleted += async (bitmap, rect) =>
                     {
                         // Immediately close all screens to restore normal desktop view
                         CloseAllScreenshotWindows();
+                        ClearMultiSession();
 
                         // Run OCR in background
                         string text = await OcrHelper.RecognizeTextAsync(bitmap);
@@ -365,6 +414,60 @@ namespace PixOcrSearch
                         var editWin = new EditWindow(text, rect);
                         editWin.Show();
                         editWin.Activate();
+                    };
+
+                    screenWin.OnMultiScreenshotCompleted += (regions) =>
+                    {
+                        // Immediately close all screens to restore normal desktop view
+                        CloseAllScreenshotWindows();
+                        _multiSessionBarWindow?.Close();
+                        _multiSessionBarWindow = null;
+
+                        var allRegions = new List<SelectedRegionItem>(_multiSessionRegions);
+                        if (regions != null && regions.Count > 0)
+                        {
+                            allRegions.AddRange(regions);
+                        }
+                        _multiSessionRegions.Clear();
+
+                        ProcessMultiRegionsAndOpenEditWindow(allRegions);
+                    };
+
+                    screenWin.OnSwitchWindowRequested += (regions) =>
+                    {
+                        // Close screenshot overlay to let user interact with other windows
+                        CloseAllScreenshotWindows();
+
+                        if (regions != null && regions.Count > 0)
+                        {
+                            _multiSessionRegions.AddRange(regions);
+                        }
+
+                        if (_multiSessionRegions.Count > 0)
+                        {
+                            _multiSessionBarWindow = new MultiSessionBarWindow(_multiSessionRegions.Count, GetScreenshotHotkeyDisplay());
+                            _multiSessionBarWindow.OnContinueRequested += () =>
+                            {
+                                _multiSessionBarWindow?.Close();
+                                _multiSessionBarWindow = null;
+                                StartScreenshot();
+                            };
+                            _multiSessionBarWindow.OnCompleteRequested += () =>
+                            {
+                                _multiSessionBarWindow?.Close();
+                                _multiSessionBarWindow = null;
+                                var all = new List<SelectedRegionItem>(_multiSessionRegions);
+                                _multiSessionRegions.Clear();
+                                ProcessMultiRegionsAndOpenEditWindow(all);
+                            };
+                            _multiSessionBarWindow.OnCancelRequested += () =>
+                            {
+                                _multiSessionBarWindow?.Close();
+                                _multiSessionBarWindow = null;
+                                ClearMultiSession();
+                            };
+                            _multiSessionBarWindow.Show();
+                        }
                     };
 
                     screenWin.Closed += (s, e) =>
@@ -393,6 +496,7 @@ namespace PixOcrSearch
             catch (Exception ex)
             {
                 CloseAllScreenshotWindows();
+                ClearMultiSession();
                 MessageBox.Show(Localization.MsgScreenshotFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

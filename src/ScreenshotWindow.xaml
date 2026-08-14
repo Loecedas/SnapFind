@@ -11,6 +11,8 @@
         MouseDown="Window_MouseDown"
         MouseMove="Window_MouseMove"
         MouseUp="Window_MouseUp"
+        MouseEnter="Window_MouseEnter"
+        MouseLeave="Window_MouseLeave"
         Loaded="Window_Loaded">
     <Grid x:Name="LayoutRoot">
         <!-- The background screen image -->
@@ -24,21 +26,30 @@
                         <RectangleGeometry x:Name="ScreenGeometry" />
                     </CombinedGeometry.Geometry1>
                     <CombinedGeometry.Geometry2>
-                        <RectangleGeometry x:Name="SelectionGeometry" Rect="0,0,0,0" />
+                        <GeometryGroup x:Name="HollowGroup" FillRule="Nonzero">
+                            <RectangleGeometry x:Name="SelectionGeometry" Rect="0,0,0,0" />
+                        </GeometryGroup>
                     </CombinedGeometry.Geometry2>
                 </CombinedGeometry>
             </Path.Data>
         </Path>
 
-        <!-- Selection border and dimensions label -->
+        <!-- Deep Blue Crosshair Guides -->
+        <Line x:Name="CrosshairH" X1="0" Y1="0" X2="0" Y2="0" Stroke="#005FB8" StrokeThickness="1" SnapsToDevicePixels="True" Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.85"/>
+        <Line x:Name="CrosshairV" X1="0" Y1="0" X2="0" Y2="0" Stroke="#005FB8" StrokeThickness="1" SnapsToDevicePixels="True" Visibility="Collapsed" IsHitTestVisible="False" Opacity="0.85"/>
+
+        <!-- Selection border, multi-region tags, and floating action toolbar -->
         <Canvas x:Name="OverlayCanvas">
-            <!-- Border of the selection -->
+            <!-- Canvas for committed regions (boxes and badges) -->
+            <Canvas x:Name="CommittedRegionsCanvas" IsHitTestVisible="False" />
+
+            <!-- Active Dragging Border -->
             <Border x:Name="SelectionBorder"
                     BorderBrush="#0078D7"
                     BorderThickness="1.5"
                     Visibility="Collapsed"
-                    Background="Transparent">
-                <!-- Drop shadow or internal highlight can go here -->
+                    Background="Transparent"
+                    IsHitTestVisible="False">
             </Border>
 
             <!-- PixPin-like sizing label -->
@@ -48,11 +59,139 @@
                     BorderThickness="1"
                     CornerRadius="3"
                     Padding="4,2"
-                    Visibility="Collapsed">
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False">
                 <TextBlock x:Name="SizeTextBlock"
                            Foreground="#F1F1F1"
                            FontSize="10"
                            FontFamily="Segoe UI" />
+            </Border>
+
+            <!-- Floating Action Bar for Multi-region Confirmation -->
+            <Border x:Name="FloatingActionBar"
+                    Background="#1F1F1F"
+                    BorderBrush="#383838"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="8,5"
+                    Visibility="Collapsed"
+                    Effect="{DynamicResource ShadowEffect}">
+                <Border.Resources>
+                    <DropShadowEffect x:Key="ShadowEffect" BlurRadius="12" Direction="270" ShadowDepth="3" Opacity="0.4" Color="#000000"/>
+                </Border.Resources>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Count Badge -->
+                    <Border Background="#2D2D30" CornerRadius="4" Padding="6,2" Margin="0,0,8,0">
+                        <TextBlock x:Name="CountBadgeTextBlock"
+                                   Text="已框选 1 处"
+                                   Foreground="#CCCCCC"
+                                   FontSize="11"
+                                   FontFamily="Segoe UI, Microsoft YaHei UI"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Done Button -->
+                    <Button x:Name="DoneButton"
+                            Content="✓ 完成"
+                            Click="DoneButton_Click"
+                            Background="#0078D7"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="10,3"
+                            FontSize="11"
+                            FontWeight="SemiBold"
+                            Cursor="Hand"
+                            Margin="0,0,6,0">
+                        <Button.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="btnBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="btnBorder" Property="Background" Value="#1C86EE"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="btnBorder" Property="Background" Value="#0066B8"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <!-- Switch Window Button -->
+                    <Button x:Name="SwitchWindowButton"
+                            Content="🔄 切换界面"
+                            Click="SwitchWindowButton_Click"
+                            Background="#2F2F32"
+                            Foreground="#E0E0E0"
+                            BorderThickness="1"
+                            BorderBrush="#444446"
+                            Padding="8,3"
+                            FontSize="11"
+                            Cursor="Hand"
+                            Margin="0,0,6,0">
+                        <Button.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="swBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="swBorder" Property="Background" Value="#444448"/>
+                                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="swBorder" Property="Background" Value="#222224"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+
+                    <!-- Cancel Button -->
+                    <Button x:Name="CancelOcrButton"
+                            Content="✕ 取消"
+                            Click="CancelOcrButton_Click"
+                            Background="Transparent"
+                            Foreground="#AAAAAA"
+                            BorderThickness="0"
+                            Padding="8,3"
+                            FontSize="11"
+                            Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="cancelBorder" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="cancelBorder" Property="Background" Value="#33FFFFFF"/>
+                                                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
             </Border>
         </Canvas>
     </Grid>

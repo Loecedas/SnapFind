@@ -172,6 +172,7 @@ namespace PixOcrSearch
             UpdateControlPanelHotkeyTextBoxDisplay();
             AutoStartCheckBox.IsChecked = ConfigManager.Current.StartWithWindows;
             AutoCopyCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard;
+            MultiRegionCheckBox.IsChecked = ConfigManager.Current.MultiRegionSelection;
         }
 
         public void ApplyLocalization()
@@ -191,6 +192,7 @@ namespace PixOcrSearch
 
             AutoStartCheckBox.Content = Localization.CheckAutoStart;
             AutoCopyCheckBox.Content = Localization.CheckAutoCopy;
+            MultiRegionCheckBox.Content = Localization.CheckMultiRegion;
             SettingsCancelButton.Content = Localization.BtnCancel;
             SettingsSaveButton.Content = Localization.BtnSave;
 
@@ -477,6 +479,7 @@ namespace PixOcrSearch
             bool autoStart = AutoStartCheckBox.IsChecked == true;
             ConfigManager.Current.StartWithWindows = autoStart;
             ConfigManager.Current.AutoCopyToClipboard = AutoCopyCheckBox.IsChecked == true;
+            ConfigManager.Current.MultiRegionSelection = MultiRegionCheckBox.IsChecked == true;
 
             ConfigManager.Save();
 

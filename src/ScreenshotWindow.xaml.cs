@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
@@ -12,9 +13,17 @@ using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
+using Rectangle = System.Drawing.Rectangle;
 
 namespace PixOcrSearch
 {
+    public class SelectedRegionItem
+    {
+        public Bitmap Bitmap { get; set; } = null!;
+        public Rect AbsoluteRect { get; set; }
+        public Rect LocalRect { get; set; }
+    }
+
     public partial class ScreenshotWindow : Window
     {
         [DllImport("user32.dll", SetLastError = true)]
@@ -61,13 +70,24 @@ namespace PixOcrSearch
         private double _scaleX = 1.0;
         private double _scaleY = 1.0;
 
-        // Event triggered when selection is confirmed
+        private readonly List<SelectedRegionItem> _selectedRegions = new List<SelectedRegionItem>();
+        private readonly int _initialRegionOffset = 0;
+        private bool _isCompleted = false;
+
+        // Event triggered when single selection is confirmed
         public event Action<Bitmap, Rect>? OnScreenshotCompleted;
 
-        public ScreenshotWindow(System.Windows.Forms.Screen screen)
+        // Event triggered when multi-region selection is confirmed
+        public event Action<List<SelectedRegionItem>>? OnMultiScreenshotCompleted;
+
+        // Event triggered when user requests switching to another window/screen
+        public event Action<List<SelectedRegionItem>>? OnSwitchWindowRequested;
+
+        public ScreenshotWindow(System.Windows.Forms.Screen screen, int initialRegionOffset = 0)
         {
             InitializeComponent();
             _screen = screen;
+            _initialRegionOffset = initialRegionOffset;
 
             // Get DPI for this screen
             GetScreenDpi(_screen, out _scaleX, out _scaleY);
@@ -176,6 +196,21 @@ namespace PixOcrSearch
         [DllImport("gdi32.dll")]
         private static extern bool DeleteObject(IntPtr hObject);
 
+        private void Window_MouseEnter(object sender, MouseEventArgs e)
+        {
+            CrosshairH.Visibility = Visibility.Visible;
+            CrosshairV.Visibility = Visibility.Visible;
+        }
+
+        private void Window_MouseLeave(object sender, MouseEventArgs e)
+        {
+            if (!_isDragging)
+            {
+                CrosshairH.Visibility = Visibility.Collapsed;
+                CrosshairV.Visibility = Visibility.Collapsed;
+            }
+        }
+
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -196,9 +231,23 @@ namespace PixOcrSearch
 
         private void Window_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isDragging) return;
-
             Point currentPoint = e.GetPosition(this);
+
+            // Update Crosshair Guides (Deep Blue)
+            CrosshairH.X1 = 0;
+            CrosshairH.X2 = Width;
+            CrosshairH.Y1 = currentPoint.Y;
+            CrosshairH.Y2 = currentPoint.Y;
+
+            CrosshairV.X1 = currentPoint.X;
+            CrosshairV.X2 = currentPoint.X;
+            CrosshairV.Y1 = 0;
+            CrosshairV.Y2 = Height;
+
+            CrosshairH.Visibility = Visibility.Visible;
+            CrosshairV.Visibility = Visibility.Visible;
+
+            if (!_isDragging) return;
 
             double x = Math.Min(_startPoint.X, currentPoint.X);
             double y = Math.Min(_startPoint.Y, currentPoint.Y);
@@ -257,10 +306,150 @@ namespace PixOcrSearch
                             finalRect.Height
                         );
 
-                        OnScreenshotCompleted?.Invoke(croppedBmp, absoluteRect);
+                        if (ConfigManager.Current.MultiRegionSelection)
+                        {
+                            // Multi-region continuous mode
+                            var item = new SelectedRegionItem
+                            {
+                                Bitmap = croppedBmp,
+                                AbsoluteRect = absoluteRect,
+                                LocalRect = finalRect
+                            };
+                            _selectedRegions.Add(item);
+
+                            // Keep this hollow-out bright on screen
+                            HollowGroup.Children.Add(new RectangleGeometry(finalRect));
+
+                            // Add static visual border
+                            var committedBorder = new Border
+                            {
+                                Width = finalRect.Width,
+                                Height = finalRect.Height,
+                                BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 120, 215)),
+                                BorderThickness = new Thickness(1.5),
+                                Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(20, 0, 120, 215)),
+                                IsHitTestVisible = false
+                            };
+                            Canvas.SetLeft(committedBorder, finalRect.Left);
+                            Canvas.SetTop(committedBorder, finalRect.Top);
+                            CommittedRegionsCanvas.Children.Add(committedBorder);
+
+                            // Numbered Badge [1], [2], [3]...
+                            int badgeIndex = _initialRegionOffset + _selectedRegions.Count;
+                            var badgeBorder = new Border
+                            {
+                                Width = 20,
+                                Height = 20,
+                                CornerRadius = new CornerRadius(10),
+                                Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 0, 120, 215)),
+                                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                                IsHitTestVisible = false
+                            };
+                            var badgeText = new TextBlock
+                            {
+                                Text = badgeIndex.ToString(),
+                                Foreground = System.Windows.Media.Brushes.White,
+                                FontSize = 10,
+                                FontWeight = FontWeights.Bold,
+                                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                                VerticalAlignment = System.Windows.VerticalAlignment.Center,
+                                TextAlignment = TextAlignment.Center
+                            };
+                            badgeBorder.Child = badgeText;
+                            Canvas.SetLeft(badgeBorder, Math.Max(0, finalRect.Left - 5));
+                            Canvas.SetTop(badgeBorder, Math.Max(0, finalRect.Top - 5));
+                            CommittedRegionsCanvas.Children.Add(badgeBorder);
+
+                            // Reset current dragging rect and hide borders
+                            SelectionGeometry.Rect = new Rect(0, 0, 0, 0);
+                            SelectionBorder.Visibility = Visibility.Collapsed;
+                            SizeLabelBorder.Visibility = Visibility.Collapsed;
+
+                            // Update and position the floating action bar
+                            UpdateFloatingActionBar(finalRect);
+                            return;
+                        }
+                        else
+                        {
+                            // Single selection mode
+                            _isCompleted = true;
+                            OnScreenshotCompleted?.Invoke(croppedBmp, absoluteRect);
+                            Close();
+                            return;
+                        }
                     }
                 }
 
+                // Ineffective drag
+                SelectionGeometry.Rect = new Rect(0, 0, 0, 0);
+                SelectionBorder.Visibility = Visibility.Collapsed;
+                SizeLabelBorder.Visibility = Visibility.Collapsed;
+
+                if (!ConfigManager.Current.MultiRegionSelection || (_initialRegionOffset == 0 && _selectedRegions.Count == 0))
+                {
+                    Close();
+                }
+            }
+        }
+
+        private void UpdateFloatingActionBar(Rect latestRect)
+        {
+            CountBadgeTextBlock.Text = Localization.MultiRegionCountBadge(_initialRegionOffset + _selectedRegions.Count);
+            DoneButton.Content = Localization.BtnFinishOcr;
+            SwitchWindowButton.Content = Localization.BtnSwitchWindow;
+            CancelOcrButton.Content = Localization.BtnCancelOcr;
+
+            FloatingActionBar.Visibility = Visibility.Visible;
+
+            // Position near the latest region's bottom-right
+            double barWidth = 280;
+            double barHeight = 40;
+
+            double targetLeft = latestRect.Right - barWidth;
+            if (targetLeft < 10) targetLeft = latestRect.Left;
+            if (targetLeft + barWidth > Width - 10) targetLeft = Width - barWidth - 10;
+            if (targetLeft < 10) targetLeft = 10;
+
+            double targetTop = latestRect.Bottom + 8;
+            if (targetTop + barHeight > Height - 10) targetTop = latestRect.Top - barHeight - 8;
+            if (targetTop < 10) targetTop = 10;
+
+            Canvas.SetLeft(FloatingActionBar, targetLeft);
+            Canvas.SetTop(FloatingActionBar, targetTop);
+        }
+
+        private void DoneButton_Click(object sender, RoutedEventArgs e)
+        {
+            FinishMultiSelection();
+        }
+
+        private void SwitchWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            SwitchWindow();
+        }
+
+        private void SwitchWindow()
+        {
+            if (_selectedRegions.Count > 0 || _initialRegionOffset > 0)
+            {
+                _isCompleted = true;
+                OnSwitchWindowRequested?.Invoke(new List<SelectedRegionItem>(_selectedRegions));
+                Close();
+            }
+        }
+
+        private void CancelOcrButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void FinishMultiSelection()
+        {
+            if (_selectedRegions.Count > 0 || _initialRegionOffset > 0)
+            {
+                _isCompleted = true;
+                OnMultiScreenshotCompleted?.Invoke(new List<SelectedRegionItem>(_selectedRegions));
                 Close();
             }
         }
@@ -271,6 +460,20 @@ namespace PixOcrSearch
             {
                 Close();
             }
+            else if (e.Key == Key.Enter)
+            {
+                if (ConfigManager.Current.MultiRegionSelection && (_selectedRegions.Count > 0 || _initialRegionOffset > 0))
+                {
+                    FinishMultiSelection();
+                }
+            }
+            else if (e.Key == Key.Tab)
+            {
+                if (ConfigManager.Current.MultiRegionSelection && (_selectedRegions.Count > 0 || _initialRegionOffset > 0))
+                {
+                    SwitchWindow();
+                }
+            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -278,6 +481,17 @@ namespace PixOcrSearch
             base.OnClosed(e);
             _screenSnapshot?.Dispose();
             _screenSnapshot = null;
+
+            // Clean up uncommitted bitmaps if window closed without completing
+            if (!_isCompleted)
+            {
+                foreach (var item in _selectedRegions)
+                {
+                    item.Bitmap?.Dispose();
+                }
+            }
+            _selectedRegions.Clear();
         }
     }
 }
+

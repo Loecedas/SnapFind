@@ -45,6 +45,14 @@ namespace PixOcrSearch
 
         public static string CheckAutoStart => IsEnglish ? "Start with Windows" : "开机自动启动";
         public static string CheckAutoCopy => IsEnglish ? "Auto copy to clipboard after OCR" : "识别后自动复制到剪贴板";
+        public static string CheckMultiRegion => IsEnglish ? "Enable multi-region selection" : "支持多次连续框选识别";
+        public static string BtnFinishOcr => IsEnglish ? "✓ Done" : "✓ 完成";
+        public static string BtnCancelOcr => IsEnglish ? "✕ Cancel" : "✕ 取消";
+        public static string BtnSwitchWindow => IsEnglish ? "🔄 Switch Window" : "🔄 切换界面";
+        public static string BtnSwitchContinue => IsEnglish ? "➕ Continue" : "➕ 继续框选";
+        public static string MultiRegionCountBadge(int n) => IsEnglish ? $"Selected {n} regions" : $"已框选 {n} 处";
+        public static string SwitchSessionBadge(int n) => IsEnglish ? $"Captured {n} regions" : $"已暂存 {n} 处区域";
+        public static string SwitchSessionTip(string hotkey) => IsEnglish ? $"Switch to target window and press {hotkey} or click here to continue" : $"切换至目标界面后按 {hotkey} 或点击此处继续框选";
 
         public static string BtnCancel => IsEnglish ? "Cancel" : "取消";
         public static string BtnSave => IsEnglish ? "Save" : "保存";
