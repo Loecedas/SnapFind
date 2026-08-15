@@ -39,21 +39,27 @@
 ### 1. Instant OCR & Auto-Copy to Clipboard
 Press the global hotkey (default `Ctrl + Alt + S`) to invoke the screenshot overlay instantly. Selecting the target text area triggers millisecond-level local OCR, automatically copying extracted text to the clipboard. You can also press `Ctrl + C` inside the result popup to copy and destroy/close the window automatically.
 
-![Instant OCR & Auto-Copy](./1.gif)
+<p align="center">
+  <img src="docs/images/1.gif" alt="Instant OCR & Auto-Copy" width="650" />
+</p>
 
 ---
 
 ### 2. Multi-Region Selection & Smooth Dragging
 Supports selecting multiple snippets in a single screenshot session. Selected bounding boxes can be smoothly repositioned by dragging, complete with indexed number badges for aggregated export and inspection.
 
-![Multi-Region Selection](./2.gif)
+<p align="center">
+  <img src="docs/images/2.gif" alt="Multi-Region Selection" width="650" />
+</p>
 
 ---
 
 ### 3. Cross-Application Staging & Capsule Drawer Insertion
 Seamlessly capture screenshots across different applications and windows. Selecting "Switch Interface" automatically stages previous captures into the top capsule bar, keeping new canvases 100% clean. The dedicated "Insert" drawer enables thumbnail previewing, reordering with Move Up / Move Down, deleting, and `Ctrl + Z` undo history.
 
-![Cross-Application Staging & Drawer Insertion](./3.gif)
+<p align="center">
+  <img src="docs/images/3.gif" alt="Cross-Application Staging & Drawer Insertion" width="650" />
+</p>
 
 ---
 
@@ -79,6 +85,7 @@ Seamlessly capture screenshots across different applications and windows. Select
 SnapFind/
 ├── src/        # Core source code (WPF / C#, UI, hotkey hooks & single-file publish)
 ├── libs/       # PaddleOCR C++ native dynamic dependencies & offline inference models
+├── docs/       # Documentation assets and screenshots (docs/images/)
 ├── cache/      # Runtime user configuration (config.json)
 ├── releases/   # Auto-built installers (installers/) & portable packages (portables/)
 └── backup/     # Project cleanup & temporary file removal scripts
