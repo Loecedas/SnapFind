@@ -1,213 +1,124 @@
 <div align="center">
-  <h1>SnapFind</h1>
-  <p>基于 .NET 8.0 + WPF 开发的本地高能截图 OCR 识别与极速搜索工具</p>
-  <p>
-    <b>简体中文</b> | <a href="README.en.md">English</a>
-  </p>
+
+# SnapFind
+
+<p>
+  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/badge/Platform-Win%2010%20%7C%2011%20(x64)-0078D4?logo=windows&logoColor=white" alt="Platform" /></a>
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8.0" /></a>
+  <a href="https://github.com/PaddlePaddle/PaddleOCR"><img src="https://img.shields.io/badge/OCR-PaddleOCR%20v6-FF4500?logo=baidu&logoColor=white" alt="PaddleOCR" /></a>
+  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/badge/Standby%20RAM-%3C%2010%20MB-brightgreen?logo=ram&logoColor=white" alt="RAM" /></a>
+  <a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
+</p>
+
+*一款专为 Windows 系统深度定制的高性能、纯本地离线截图 OCR 识别与搜索工具*
+
+<p>
+  <b>简体中文</b> | <a href="README.en.md">English</a>
+</p>
+
 </div>
 
 ---
 
-**SnapFind** 是一款专为 Windows 系统深度定制的高性能、纯本地离线截图 OCR 识别与搜索工具。它集成 PaddleOCR 引擎，拥有毫秒级的截图唤起速度，数据完全保留在本地，完美保障用户隐私，并支持一键搜索与快捷键复制并关闭窗口。
+**SnapFind** 是一款专为 Windows 系统深度定制的高性能、纯本地离线截图 OCR 识别与搜索工具。它集成轻量化 PaddleOCR 引擎，拥有毫秒级的截图唤起速度，所有数据 100% 本地处理，零网络请求、零隐私泄露风险，并提供极速复制、一键搜索与多图暂存抽屉等强大交互。
 
-## 核心特性
+### 📊 为什么选择 SnapFind？
 
-### 智能截图与本地离线 OCR
-- **本地零联网推理**：集成轻量化 PaddleOCR v6 中英文检测与识别引擎，支持 **PP-OCRv6_tiny** 与 **PP-OCRv6_small** 双模型动态热切换，无需联网，零隐私泄露风险。
-- **多显示器与高 DPI 自适应**：通过 Win32 API 遍历所有屏幕，自动适配监视器不同的高 DPI 缩放比例，杜绝跨屏截图下的偏移和黑屏。
-- **双自定义全局热键**：支持全局截图热键（默认 `Ctrl + Alt + S`）与控制面板热键（默认 `Ctrl + Alt + C`，一键拉起设置窗口），可在任意界面毫秒级快速唤起。
-
-### 多选区框选与跨界面连续暂存
-- **多选区连续框选与平滑平移**：支持同屏多次连续框选多个图文片段；已框选区域支持鼠标直接按住内容进行平滑拖拽平移；小气泡全面应用 3px 细腻圆角与浅灰色中性徽章，视觉纯净轻量。
-- **跨界面截图与【插入】直通流**：支持在不同应用与窗口之间通过“切换界面”暂存前序截取，再次截图时画布 100% 纯净无历史重影；底部工具栏提供专属【插入】按钮，一键直达暂存管理抽屉。
-- **可视化多图卡片调序与删除**：顶部暂存胶囊条内置可折叠管理抽屉，实时呈现截取的高清图文缩略卡片，配备【上移】/【下移】与【删除】按钮，轻松实现跨轮截取任意位置的前后插入。
-- **全链路撤销历史 (Ctrl+Z)**：支持对已选区域的误删或调序操作进行即时撤销恢复。
-
-### 统一控制中心与现代 UI
-- **三合一控制中心**：将“设置”、“关于”、“更新通知”融合为统一的控制中心窗口。拥有极简的 WinUI 侧边栏，支持无阻碍平滑切换。
-- **多语言无缝切换**：原生内置“简体中文”与“English”双语界面热切换，设置面板、系统托盘、结果卡片及安装向导实现 100% 全面覆盖。
-- **双源并发更新比对与流畅安装**：同时并发查询 GitHub 与 Gitee 更新，自动比对并获取最高版本。安装更新时自动展示进度条窗口，完成后自动退出并拉起新版本，体验连贯。
-- **自适应系统主题与圆角**：支持暗色/亮色主题及 Windows 11 原生 DWM 圆角与阴影特效。
-- **极细 Fluent 滚动条**：自定义了 6 像素极细半透明滚动条（普通悬浮低可见度， hover 状态渐显），带来极佳的系统原生感。
-- **100% Win32 原生系统托盘菜单**：精简托盘右键选项为“截图 OCR 搜索”、“控制面板”、“退出”，极简纯文字设计，完美适配 Windows 11 亚克力磨砂及云母毛玻璃特效。
-
-### 人性化结果交互
-- **快捷复制并自动关闭**：在文字框卡片内直接按下键盘快捷键 `Ctrl + C`，系统将智能提取选中段落（若无选中则复制全部），写入剪贴板的同时**自动销毁并关闭窗口**。
-- **一键搜索引擎检索**：编辑框内直接按 `Enter`（或点击“搜索”按钮）可自动合并多行文本，拉起系统默认浏览器调用搜索引擎直接搜索。
-- **开机自启动自愈**：通过 Windows 注册表配置自启动项，并在启动时检查自愈，支持托盘一键开启或关闭。
-
-### 性能与架构优化
-- **智能内存自动回收**：在 OCR 运行结束后，引擎会启动 **5 秒**不活动倒计时。超时无操作将自动卸载推理引擎并调用 Windows `EmptyWorkingSet` 对物理内存进行深度压缩，使后台待机内存由推理时的 ~40MB **骤降至仅约 10MB 以内**。
-- **单例互斥锁守护**：基于系统级 `Mutex` 构建单例保护，防止快捷键误连击导致程序多开冲突。
-
-## 项目结构
-
-```text
-SnapFind/
-├── src/                             # 软件源代码目录
-│   ├── App.xaml                     # 应用程序入口 XAML 声明
-│   ├── App.xaml.cs                  # 应用初始化、互斥单例、注册表自启动自愈及托盘控制
-│   ├── AssemblyInfo.cs              # 程序集元数据配置
-│   ├── Config.cs                    # 配置文件读取、保存与 AppConfig 管理器 (JSON)
-│   ├── EditWindow.xaml              # 识别结果展示、编辑、复制与搜索 UI 布局
-│   ├── EditWindow.xaml.cs           # 结果窗口定位、Ctrl+C 拦截自动复制关闭、浏览器检索
-│   ├── HotkeyHelper.cs              # Win32 RegisterHotkey / UnregisterHotkey 热键钩子底层封装
-│   ├── Localization.cs              # 全局中英文多语言与本地化文本管理器
-│   ├── MultiSessionBarWindow.xaml   # 跨界面多选区暂存胶囊条与图文管理抽屉 UI
-│   ├── MultiSessionBarWindow.xaml.cs# 多图缩略卡片渲染、上移/下移调序、删除与撤销逻辑
-│   ├── OcrHelper.cs                 # PaddleOCR 引擎生命周期控制、空闲定时内存优化压缩
-│   ├── ScreenshotWindow.xaml        # 截图遮罩层 XAML 布局
-│   ├── ScreenshotWindow.xaml.cs     # 多屏幕截图绘制、框选、DPI 换算与位图切片处理
-│   ├── SettingsWindow.xaml          # 统一控制中心窗口 (含导航侧栏，关于、设置、更新通知面板，薄滚动条)
-│   ├── SettingsWindow.xaml.cs       # 控制中心逻辑 (侧栏切换、版本检查与自动下载安装、配置及防冲突校验)
-│   ├── SnapFind.csproj              # .NET 8.0 WPF 项目工程配置文件
-│   └── setup.iss                    # Inno Setup 自动化安装包生成脚本
-├── libs/                            # PaddleOCR C++ 原生 DLL 动态库与模型文件目录
-│   ├── inference/                   # OCR 推理模型 (检测、方向分类、识别及 ppocr_keys 字典)
-│   └── *.dll                        # Paddle、OpenCV、TBB 核心推理 C++ 依赖 (免安装必选)
-├── cache/                           # 本地运行时临时及配置文件夹 (已加入 .gitignore)
-│   ├── config.json                  # 用户热键与偏好配置信息
-│   └── debug_crop.png               # 最近一次截图的裁剪预览临时图
-├── releases/                        # 自动打包发布的包目录 (已加入 .gitignore)
-│   ├── installers/                  # 递增版本号 of Inno Setup 安装包 (如 SnapFindSetup_v2.0.0.exe)
-│   └── portables/                   # 递增版本号 of 免安装绿色版 ZIP 压缩包 (如 SnapFindPortable_v2.0.0.zip)
-├── backup/                          # 备份专用工具目录（仅用于清理项目临时文件，固定存放）
-│   ├── backup.ps1                   # 一键清理临时编译文件及发布包的 PowerShell 脚本
-│   └── BACKUP_GUIDE.md              # 备份安全清理与保留指南
-├── LICENSE.md                       # 官方开源许可证 (英文版，供 GitHub 自动识别)
-├── LICENSE.zh.md                    # 开源许可证 (中文对照翻译)
-├── SnapFind.exe                     # 项目根目录下的绿色版直接启动程序 (Git 过滤)
-├── .gitignore                       # Git 忽略配置文件
-├── README.en.md                     # 自述文件 (英文)
-└── README.md                        # 自述文件 (中文)
-```
-
-## 环境要求
-
-- 操作系统：Windows 10 / Windows 11 (64位)
-- 运行环境：[.NET 8.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) 运行时环境
-
-## 快速开始
-
-### 1. 克隆项目
-```bash
-git clone <your-repository-url> SnapFind
-cd SnapFind
-```
-
-### 2. 配置文件说明
-程序启动后会在根目录的 `cache/config.json` 自动写入默认配置（或在配置中手动修改）：
-
-```json
-{
-  "SearchEngineUrl": "https://www.google.com/search?q=",
-  "HotkeyModifiers": "Control,Alt",
-  "HotkeyKey": "S",
-  "StartWithWindows": false,
-  "OcrModel": "PP-OCRv6_tiny",
-  "IgnoredVersion": "",
-  "ControlPanelHotkeyModifiers": "Control,Alt",
-  "ControlPanelHotkeyKey": "C",
-  "AutoCopyToClipboard": false,
-  "Language": "zh-CN"
-}
-```
-
-| 键名 | 类型 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `SearchEngineUrl` | String | `https://www.google.com/search?q=` | 点击“搜索”或按回车时拉起的默认搜索引擎基址 |
-| `HotkeyModifiers` | String | `Control,Alt` | 唤起截图的全局热键修饰键（支持 `Control`, `Alt`, `Shift` 等组合） |
-| `HotkeyKey` | String | `S` | 唤起截图的主键（支持字母和标准控制键） |
-| `ControlPanelHotkeyModifiers` | String | `Control,Alt` | 唤起控制面板的全局热键修饰键 |
-| `ControlPanelHotkeyKey` | String | `C` | 唤起控制面板的主键 |
-| `StartWithWindows`| Boolean| `false` | 是否开启 Windows 开机自启动 |
-| `OcrModel` | String | `PP-OCRv6_tiny` | 当前选用的 OCR 识别模型（可选 `PP-OCRv6_tiny` 或 `PP-OCRv6_small`） |
-| `AutoCopyToClipboard` | Boolean | `false` | 截图识别完成后是否自动将文本复制到剪贴板 |
-| `Language` | String | `zh-CN` | 界面语言代码（支持 `zh-CN` 简体中文与 `en-US` English） |
-
-### 3. 开发运行与调试
-在项目 `src/` 目录下运行 .NET SDK 调试指令：
-```bash
-cd src
-dotnet run
-```
-
-## 编译与发布指引
-
-为了简化开发流程，项目根目录下提供了一键自动化打包脚本 `src/build.ps1`。该脚本会自动执行：
-1. 自动读取 `releases/` 目录下的历史包计算并递增生成下一个版本号（符合 `x.y.z` 规则）。
-2. 调用 `dotnet publish` 进行单文件编译。
-3. 复制生成的程序覆盖根目录下的 `SnapFind.exe`。
-4. 复制 `libs/` 并调用 7-Zip 启用 LZMA 算法进行超级固实压缩，生成 `releases/portables/SnapFindPortable_vX.Y.Z.zip` 压缩包，将免安装版体积完美控制在 100MB 以下。
-5. 自动调用 Inno Setup 编译器生成 `releases/installers/SnapFindSetup_vX.Y.Z.exe` 安装包（使用 LZMA2 Ultra 算法进行固实极致压缩，并内置更新时自动重启逻辑）。
-
-### 一键打包命令
-只需在项目根目录下以管理员权限打开 PowerShell 并运行：
-```powershell
-powershell -ExecutionPolicy Bypass -File src/build.ps1
-```
-
-### 备份前一键清理命令
-若要对项目进行备份，可先在项目根目录下以管理员权限打开 PowerShell 并运行以下脚本，一键清理所有临时编译缓存、历史安装包以及根目录主程序：
-```powershell
-powershell -ExecutionPolicy Bypass -File backup/backup.ps1
-```
-
-## 数据流向与逻辑架构
-
-当用户按下热键激活截图到最终输出，数据处理与运行流程如下：
-
-```mermaid
-graph TD
-    A[用户按下自定义快捷键] --> B["1. 截图框选并裁剪为 Bitmap"]
-    B --> C["2. 本地 PaddleOCR 引擎识别提取"]
-    C --> D["3. 弹出 EditWindow 窗口"]
-    
-    D --> H1[分支 A: Ctrl+C / 点击复制]
-    H1 --> I1[复制文本到剪贴板并关闭窗口]
-    
-    D --> H2[分支 B: Enter / 点击搜索]
-    H2 --> I2[拉起浏览器搜索并关闭窗口]
-    
-    I1 --> J["4. 激活 5 秒空闲定时器"]
-    I2 --> J
-    J -- 无新操作 --> K["5. 回收引擎资源，内存回落至 <10MB 待机"]
-```
-
-### 内存自动回收与优化机制
-当识别出文本并呈现后，如果程序持续处于闲置状态，在 5 秒后：
-1. 自动调用 `PaddleOCREngine.Dispose()` 销毁推理引擎实例，释放其持有的全部 C++ 未托管内存。
-2. 触发 Windows 内核 `EmptyWorkingSet`，迫使操作系统回收当前进程分配的垃圾物理页面到虚拟交换文件。
-3. 待下一次快捷键再次唤醒截图时，会在后台静默重新实例化引擎，在保证秒级极速响应的同时，极大地降低了常驻内存的代价（后台仅约 10MB 左右）。
-
-## 常见问题
-
-**Q: 运行程序时弹出 `DllNotFoundException` 错误？**
-> **A**: 请确保解压出的 `libs/` 依赖目录与主程序 `SnapFind.exe` 在同一个目录中。该目录包含 PaddleOCR 所需的原生 C++ 动态链接库和模型。
-
-**Q: 快捷键 `Ctrl+Alt+S` 按下没有反应？**
-> **A**: 该快捷键可能被系统内的其他软件全局独占了。请在右下角托盘图标右键点击“设置”，修改热键为其他组合。
-
-**Q: 无法开机自启动？**
-> **A**: 开机自启动通过写入当前用户的注册表 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 实现。请检查杀毒软件是否拦截了程序的注册表修改行为。
-
-## 贡献指南
-
-1. Fork 项目到您的 GitHub 仓库。
-2. 克隆并创建您的开发分支：`git checkout -b feature/your-feature-name`。
-3. 提交您的修改：`git commit -m 'feat: 支持快捷键 OCR 后自动翻译'`。
-4. 推送到您的远程分支：`git push origin feature/your-feature-name`。
-5. 在 GitHub 上发起 Pull Request (PR)。
-
-## 许可证
-
-基于 [MIT License](LICENSE.md)（[中文版](LICENSE.zh.md)）许可协议开源。
-
-## 致谢
-
-- [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) — 卓越的开源 OCR 推理框架。
-- [Inno Setup](https://jrsoftware.org/isinfo.php) — 功能强大且完全免费的安装程序制作工具。
+| 特性 / 指标 | 常见在线/云端 OCR | Electron 架构工具 | **SnapFind** |
+| :--- | :---: | :---: | :---: |
+| **数据隐私** | ⚠️ 截图需上传云端 | 视服务而定 | 🟢 **100% 纯本地离线，零泄露** |
+| **后台待机内存** | ~50MB - 100MB | 🔴 **200MB - 500MB** | 🟢 **< 10MB（智能内存回收）** |
+| **多界面连续暂存** | ❌ 不支持 | ❌ 多数不支持 | 🟢 **支持（多选区胶囊抽屉）** |
+| **启动/响应速度** | 受网络延迟影响 | 较慢 | 🟢 **毫秒级极速唤起** |
+| **Win11 原生契合** | 基础适配 | 网页渲染感 | 🟢 **Fluent 极细滚动条 / DWM 圆角** |
 
 ---
 
-> **免责声明**：本项目为非官方开源软件，旨在方便个人进行知识沉淀与效率工具探索。本项目所有推理行为均在本地完成，不会将您的屏幕或隐私数据上传至任何服务器。
+## 🎬 动态功能演示
+
+### 1. 框选极速 OCR 与自动复制到剪贴板
+按下全局热键（默认 `Ctrl + Alt + S`）毫秒级唤起截图，框选目标文字区域后即可自动提取文本并写入系统剪贴板，支持在结果面板按 `Ctrl + C` 复制并自动销毁关闭窗口，行云流水无需多余点击。
+
+![框选后自动复制到剪切板](./1.gif)
+
+---
+
+### 2. 同屏多选区连续框选与平滑平移
+支持在单次截图会话中多次连续框选多个图文片段；已框选区域支持鼠标直接拖拽平滑平移，右下角带有精致序号徽章，多段内容自动按序汇总合并。
+
+![同屏连续框选](./2.gif)
+
+---
+
+### 3. 跨多应用/多界面连续截取与胶囊抽屉插入
+支持在不同软件与窗口之间穿梭截图。点击【切换界面】后前序截取自动收纳至顶部暂存胶囊条，再次截图时画布 100% 纯净无历史重影；通过专属【插入】抽屉可随时预览高清缩略卡片、自由【上移】/【下移】调序、删除以及 `Ctrl + Z` 撤销恢复。
+
+![连续在不同界面框选并进行插入](./3.gif)
+
+---
+
+## ✨ 核心特性
+
+- 🔒 **100% 本地离线推理**：集成 PaddleOCR v6 引擎，支持 `PP-OCRv6_tiny` 与 `PP-OCRv6_small` 双模型动态热切换，无需联网，隐私零外泄。
+- ⚡ **智能内存自动回收**：识别完成后闲置 5 秒自动卸载推理引擎并调用 Windows `EmptyWorkingSet`，后台常驻内存从 ~40MB **骤降至 < 10MB**。
+- 🖥️ **多显示器与高 DPI 自适应**：精确适配多屏幕与不同 DPI 缩放比例，杜绝跨屏截图下的偏移和黑屏。
+- 🎨 **Win11 原生现代 UI**：自适应系统暗色/亮色主题、Windows 11 原生 DWM 圆角与阴影特效、6px 极细 Fluent 动态滚动条。
+- 🎛️ **三合一控制中心**：集成设置、关于与双源（GitHub / Gitee）并发自动更新通知，支持中英文双语一键无缝切换。
+- ⌨️ **便捷快捷键体系**：
+  - `Ctrl + Alt + S`：全局极速截图 OCR（支持在控制面板自定义）
+  - `Ctrl + Alt + C`：一键呼出控制中心
+  - `Ctrl + C`：结果框内快捷复制并自动关闭窗口
+  - `Enter`：一键拉起系统默认浏览器进行网页检索
+  - `Ctrl + Z`：暂存抽屉内快速撤销删除/调序操作
+
+---
+
+## 📂 项目结构
+
+```text
+SnapFind/
+├── src/        # 核心源代码 (WPF / C#、UI 交互、热键钩子及单文件打包)
+├── libs/       # PaddleOCR C++ 原生动态依赖项与离线推理模型
+├── cache/      # 运行时用户偏好配置 (config.json)
+├── releases/   # 自动化生成的安装包 (installers/) 与免安装绿色版 (portables/)
+└── backup/     # 临时编译缓存与历史发布包一键清理脚本
+```
+
+---
+
+## 🚀 快速上手
+
+### 环境要求
+- 操作系统：Windows 10 / Windows 11 (64 位)
+- 运行环境：[.NET 8.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+
+### 安装与使用
+1. **下载使用**：前往 [Releases 页面](https://github.com/Loecedas/SnapFind/releases) 下载最新版的安装包（`SnapFindSetup_vX.Y.Z.exe`）或免安装便携版（`SnapFindPortable_vX.Y.Z.zip`）。
+2. **源码调试**：
+   ```bash
+   git clone https://github.com/Loecedas/SnapFind.git
+   cd SnapFind/src
+   dotnet run
+   ```
+
+---
+
+## ❓ 常见问题
+
+**Q: 运行绿色版时弹出 `DllNotFoundException` 错误？**
+> **A**: 请确保 `libs/` 依赖目录与主程序 `SnapFind.exe` 处于同级目录下。该目录包含 PaddleOCR 所需的原生 C++ 动态链接库和离线模型。
+
+**Q: 全局快捷键按下没有反应？**
+> **A**: 该快捷键可能被系统中其他软件占用。可右键托盘图标或按 `Ctrl + Alt + C` 打开控制中心重新绑定快捷键。
+
+**Q: 开机自启动未生效？**
+> **A**: 软件通过当前用户注册表 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` 实现自启，请确认杀毒软件未拦截注册表写入。
+
+---
+
+## 📄 许可证与致谢
+
+- 本项目基于 [MIT License](LICENSE.md)（[中文版](LICENSE.zh.md)）许可协议开源。
+- 感谢 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 与 [Inno Setup](https://jrsoftware.org/isinfo.php) 提供的卓越技术支持。
+
+> **免责声明**：本项目所有 OCR 推理均在本地计算完成，绝不会将您的屏幕画面或文本数据上传至任何第三方服务器。
