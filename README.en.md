@@ -37,7 +37,7 @@
 ## 🎬 Feature Demos
 
 ### 1. Instant OCR & Auto-Copy to Clipboard
-Press the global hotkey (default `Ctrl + Alt + S`) to invoke the screenshot overlay instantly. Selecting the target text area triggers millisecond-level local OCR, automatically copying extracted text to the clipboard. You can also press `Ctrl + C` inside the result popup to copy and destroy/close the window automatically.
+Press the global hotkey (default `Ctrl + Alt + S`) to invoke the screenshot overlay. Selecting the text region automatically recognizes and copies the extracted text to the clipboard.
 
 <p align="center">
   <img src="docs/images/1.gif" alt="Instant OCR & Auto-Copy" width="650" />
@@ -45,8 +45,8 @@ Press the global hotkey (default `Ctrl + Alt + S`) to invoke the screenshot over
 
 ---
 
-### 2. Multi-Region Selection & Smooth Dragging
-Supports selecting multiple snippets in a single screenshot session. Selected bounding boxes can be smoothly repositioned by dragging, complete with indexed number badges for aggregated export and inspection.
+### 2. Multi-Region Continuous Selection
+Supports selecting multiple snippets continuously within a single screenshot session, displaying index badges above top-left and aggregating recognized content in order.
 
 <p align="center">
   <img src="docs/images/2.gif" alt="Multi-Region Selection" width="650" />
