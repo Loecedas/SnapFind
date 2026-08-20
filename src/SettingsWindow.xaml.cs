@@ -172,6 +172,8 @@ namespace PixOcrSearch
             UpdateControlPanelHotkeyTextBoxDisplay();
             AutoStartCheckBox.IsChecked = ConfigManager.Current.StartWithWindows;
             AutoCopyCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard;
+            DoNotOpenEditWindowCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard && ConfigManager.Current.DoNotOpenEditWindow;
+            DoNotOpenEditWindowCheckBox.IsEnabled = AutoCopyCheckBox.IsChecked == true;
             MultiRegionCheckBox.IsChecked = ConfigManager.Current.MultiRegionSelection;
         }
 
@@ -192,6 +194,7 @@ namespace PixOcrSearch
 
             AutoStartCheckBox.Content = Localization.CheckAutoStart;
             AutoCopyCheckBox.Content = Localization.CheckAutoCopy;
+            DoNotOpenEditWindowCheckBox.Content = Localization.CheckDoNotOpenEditWindow;
             MultiRegionCheckBox.Content = Localization.CheckMultiRegion;
             SettingsCancelButton.Content = Localization.BtnCancel;
             SettingsSaveButton.Content = Localization.BtnSave;
@@ -479,6 +482,7 @@ namespace PixOcrSearch
             bool autoStart = AutoStartCheckBox.IsChecked == true;
             ConfigManager.Current.StartWithWindows = autoStart;
             ConfigManager.Current.AutoCopyToClipboard = AutoCopyCheckBox.IsChecked == true;
+            ConfigManager.Current.DoNotOpenEditWindow = AutoCopyCheckBox.IsChecked == true && DoNotOpenEditWindowCheckBox.IsChecked == true;
             ConfigManager.Current.MultiRegionSelection = MultiRegionCheckBox.IsChecked == true;
 
             ConfigManager.Save();
@@ -497,6 +501,16 @@ namespace PixOcrSearch
             }
 
             Close();
+        }
+
+        private void AutoCopyCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            bool isAutoCopy = AutoCopyCheckBox.IsChecked == true;
+            DoNotOpenEditWindowCheckBox.IsEnabled = isAutoCopy;
+            if (!isAutoCopy)
+            {
+                DoNotOpenEditWindowCheckBox.IsChecked = false;
+            }
         }
 
         private void SetAutoStart(bool enable)

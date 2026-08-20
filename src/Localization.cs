@@ -45,6 +45,7 @@ namespace PixOcrSearch
 
         public static string CheckAutoStart => IsEnglish ? "Start with Windows" : "开机自动启动";
         public static string CheckAutoCopy => IsEnglish ? "Auto copy to clipboard after OCR" : "识别后自动复制到剪贴板";
+        public static string CheckDoNotOpenEditWindow => IsEnglish ? "Do not open edit window after selection" : "框选文字后不打开编辑框";
         public static string CheckMultiRegion => IsEnglish ? "Enable multi-region selection" : "支持多次连续框选识别";
         public static string BtnFinishOcr => IsEnglish ? "✓ Done" : "✓ 完成";
         public static string BtnCancelOcr => IsEnglish ? "✕ Cancel" : "✕ 取消";

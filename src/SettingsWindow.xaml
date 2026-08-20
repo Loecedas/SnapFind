@@ -264,6 +264,10 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="chkBorder" Property="BorderBrush" Value="#A0A0A0"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -619,7 +623,16 @@
                                           Foreground="{DynamicResource ThemeText}"
                                           FontSize="12"
                                           VerticalContentAlignment="Center"
-                                          Margin="0,8,0,0"/>
+                                          Margin="0,8,0,0"
+                                          Click="AutoCopyCheckBox_Click"/>
+
+                                <!-- Do Not Open Edit Window After Selection -->
+                                <CheckBox x:Name="DoNotOpenEditWindowCheckBox"
+                                          Content="框选文字后不打开编辑框"
+                                          Foreground="{DynamicResource ThemeText}"
+                                          FontSize="12"
+                                          VerticalContentAlignment="Center"
+                                          Margin="18,6,0,0"/>
 
                                 <!-- Multi Region Continuous Selection -->
                                 <CheckBox x:Name="MultiRegionCheckBox"

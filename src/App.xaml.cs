@@ -384,10 +384,33 @@ namespace PixOcrSearch
 
             string mergedText = string.Join("\n", textList);
 
+            if (ConfigManager.Current.AutoCopyToClipboard && ConfigManager.Current.DoNotOpenEditWindow)
+            {
+                SetClipboardTextSafely(mergedText);
+                return;
+            }
+
             // Spawn edit window
             var editWin = new EditWindow(mergedText, boundingUnion);
             editWin.Show();
             editWin.Activate();
+        }
+
+        private void SetClipboardTextSafely(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    System.Windows.Clipboard.SetDataObject(text, true);
+                    break;
+                }
+                catch
+                {
+                    System.Threading.Thread.Sleep(20);
+                }
+            }
         }
 
         private void StartScreenshot()
@@ -418,6 +441,12 @@ namespace PixOcrSearch
                         // Run OCR in background
                         string text = await OcrHelper.RecognizeTextAsync(bitmap);
                         bitmap.Dispose(); // Memory-only, release immediately
+
+                        if (ConfigManager.Current.AutoCopyToClipboard && ConfigManager.Current.DoNotOpenEditWindow)
+                        {
+                            SetClipboardTextSafely(text);
+                            return;
+                        }
 
                         // Spawn edit window
                         var editWin = new EditWindow(text, rect);
