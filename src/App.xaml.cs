@@ -398,19 +398,7 @@ namespace PixOcrSearch
 
         private void SetClipboardTextSafely(string text)
         {
-            if (string.IsNullOrEmpty(text)) return;
-            for (int i = 0; i < 5; i++)
-            {
-                try
-                {
-                    System.Windows.Clipboard.SetDataObject(text, true);
-                    break;
-                }
-                catch
-                {
-                    System.Threading.Thread.Sleep(20);
-                }
-            }
+            ClipboardHelper.SetText(text);
         }
 
         private void StartScreenshot()

@@ -68,14 +68,10 @@ namespace PixOcrSearch
 
             if (ConfigManager.Current.AutoCopyToClipboard)
             {
-                try
+                if (!string.IsNullOrEmpty(_initialText))
                 {
-                    if (!string.IsNullOrEmpty(_initialText))
-                    {
-                        Clipboard.SetText(_initialText);
-                    }
+                    ClipboardHelper.SetText(_initialText);
                 }
-                catch { }
             }
         }
 
@@ -149,21 +145,14 @@ namespace PixOcrSearch
 
         private void HandleCopyAndClose()
         {
-            try
+            string textToCopy = OcrTextBox.SelectionLength > 0 ? OcrTextBox.SelectedText : OcrTextBox.Text;
+            if (!string.IsNullOrEmpty(textToCopy))
             {
-                string textToCopy = OcrTextBox.SelectionLength > 0 ? OcrTextBox.SelectedText : OcrTextBox.Text;
-                if (!string.IsNullOrEmpty(textToCopy))
-                {
-                    Clipboard.SetText(textToCopy);
-                }
-                else
-                {
-                    Clipboard.Clear();
-                }
+                ClipboardHelper.SetText(textToCopy);
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show(Localization.MsgCopyFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ClipboardHelper.Clear();
             }
             Close();
         }
@@ -202,21 +191,14 @@ namespace PixOcrSearch
 
         private void CopyButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            string text = OcrTextBox.Text;
+            if (!string.IsNullOrEmpty(text))
             {
-                string text = OcrTextBox.Text;
-                if (!string.IsNullOrEmpty(text))
-                {
-                    Clipboard.SetText(text);
-                }
-                else
-                {
-                    Clipboard.Clear();
-                }
+                ClipboardHelper.SetText(text);
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show(Localization.MsgCopyFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ClipboardHelper.Clear();
             }
             Close();
         }
