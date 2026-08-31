@@ -290,21 +290,24 @@ namespace PixOcrSearch
 
         public static void OptimizeMemory()
         {
-            try
+            Task.Run(() =>
             {
-                // Force .NET garbage collection
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                try
+                {
+                    // Force .NET garbage collection
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect();
 
-                // Free Intel MKL internal thread-local scratch buffers to drop background RAM usage
-                FreeMklBuffers();
+                    // Free Intel MKL internal thread-local scratch buffers to drop background RAM usage
+                    FreeMklBuffers();
 
-                // Trim physical memory pages back to OS standby list
-                using var process = System.Diagnostics.Process.GetCurrentProcess();
-                EmptyWorkingSet(process.Handle);
-            }
-            catch { }
+                    // Trim physical memory pages back to OS standby list
+                    using var process = System.Diagnostics.Process.GetCurrentProcess();
+                    EmptyWorkingSet(process.Handle);
+                }
+                catch { }
+            });
         }
 
         public static void Dispose()

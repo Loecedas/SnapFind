@@ -5,10 +5,12 @@ using System.IO;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Navigation;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
@@ -683,45 +685,218 @@ namespace PixOcrSearch
                 }
             }
 
+            // Remove HTML comments <!-- ... -->
+            content = Regex.Replace(content, @"<!--[\s\S]*?-->", "");
+
             content = content.Replace("<br/>", "\n", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("<br>", "\n", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("<p>", "", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("</p>", "\n", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("<ul>", "", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("</ul>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<li>", "• ", StringComparison.OrdinalIgnoreCase);
+            content = content.Replace("<li>", "- ", StringComparison.OrdinalIgnoreCase);
             content = content.Replace("</li>", "\n", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<b>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</b>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<strong>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</strong>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<h3>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</h3>", "\n", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<h2>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</h2>", "\n", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<h1>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</h1>", "\n", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("<code>", "", StringComparison.OrdinalIgnoreCase);
-            content = content.Replace("</code>", "", StringComparison.OrdinalIgnoreCase);
 
-            content = System.Text.RegularExpressions.Regex.Replace(content, @"<[^>]+>", "");
+            // Strip any remaining html wrapper tags (like <details>, </details>, etc.)
+            content = Regex.Replace(content, @"<[^>]+>", "");
 
-            var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            var sb = new StringBuilder();
-            foreach (var line in lines)
+            return content.Trim();
+        }
+
+        private void SetChangelogMarkdown(string markdown)
+        {
+            ChangelogPanel.Children.Clear();
+            if (string.IsNullOrWhiteSpace(markdown)) return;
+
+            bool isDark = App.IsWindowsDarkMode();
+            var textColor = (System.Windows.Media.Brush)FindResource("ThemeText");
+            var subTextColor = (System.Windows.Media.Brush)FindResource("ThemeSubText");
+            var borderColor = (System.Windows.Media.Brush)FindResource("ThemeInputBorder");
+            var codeBgColor = new System.Windows.Media.SolidColorBrush(isDark ? System.Windows.Media.Color.FromRgb(45, 45, 52) : System.Windows.Media.Color.FromRgb(235, 235, 238));
+            var codeFgColor = new System.Windows.Media.SolidColorBrush(isDark ? System.Windows.Media.Color.FromRgb(255, 179, 102) : System.Windows.Media.Color.FromRgb(199, 37, 78));
+
+            string[] lines = markdown.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+            bool inList = false;
+
+            for (int i = 0; i < lines.Length; i++)
             {
-                string trimmed = line.Trim();
-                if (!string.IsNullOrEmpty(trimmed))
+                string rawLine = lines[i];
+                string trimmed = rawLine.Trim();
+
+                if (string.IsNullOrWhiteSpace(trimmed))
                 {
-                    trimmed = trimmed.TrimStart('#').Trim();
-                    if (!string.IsNullOrEmpty(trimmed))
-                    {
-                        sb.AppendLine(trimmed);
-                    }
+                    inList = false;
+                    continue;
                 }
+
+                // 1. Horizontal Rule (---, ***, ___)
+                if (trimmed == "---" || trimmed == "***" || trimmed == "___")
+                {
+                    inList = false;
+                    var divider = new Border
+                    {
+                        Height = 1,
+                        Background = borderColor,
+                        Margin = new Thickness(0, 10, 0, 10),
+                        Opacity = 0.6
+                    };
+                    ChangelogPanel.Children.Add(divider);
+                    continue;
+                }
+
+                // 2. Headings (#, ##, ###, ####)
+                if (trimmed.StartsWith('#'))
+                {
+                    inList = false;
+                    int level = 0;
+                    while (level < trimmed.Length && trimmed[level] == '#') level++;
+                    string titleText = trimmed.Substring(level).Trim();
+
+                    double fontSize = level switch
+                    {
+                        1 => 15.0,
+                        2 => 14.0,
+                        3 => 13.0,
+                        _ => 12.5
+                    };
+                    Thickness margin = level switch
+                    {
+                        1 => new Thickness(0, 10, 0, 4),
+                        2 => new Thickness(0, 8, 0, 4),
+                        3 => new Thickness(0, 6, 0, 3),
+                        _ => new Thickness(0, 4, 0, 2)
+                    };
+
+                    var tb = new TextBlock
+                    {
+                        FontSize = fontSize,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = textColor,
+                        Margin = margin,
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    AppendInlineMarkdown(tb.Inlines, titleText, codeBgColor, codeFgColor, isDark);
+                    ChangelogPanel.Children.Add(tb);
+                    continue;
+                }
+
+                // 3. Bullet List Items (- , * , • )
+                bool isBullet = trimmed.StartsWith("- ") || trimmed.StartsWith("* ") || trimmed.StartsWith("• ");
+                if (isBullet)
+                {
+                    inList = true;
+                    string itemText = trimmed.Substring(2).Trim();
+
+                    var dock = new DockPanel
+                    {
+                        Margin = new Thickness(6, 2, 0, 2)
+                    };
+
+                    var bullet = new TextBlock
+                    {
+                        Text = "•",
+                        FontSize = 13,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = subTextColor,
+                        Margin = new Thickness(0, 0, 6, 0),
+                        VerticalAlignment = VerticalAlignment.Top
+                    };
+                    DockPanel.SetDock(bullet, Dock.Left);
+                    dock.Children.Add(bullet);
+
+                    var contentTb = new TextBlock
+                    {
+                        FontSize = 12,
+                        Foreground = textColor,
+                        LineHeight = 18,
+                        TextWrapping = TextWrapping.Wrap
+                    };
+                    AppendInlineMarkdown(contentTb.Inlines, itemText, codeBgColor, codeFgColor, isDark);
+                    dock.Children.Add(contentTb);
+
+                    ChangelogPanel.Children.Add(dock);
+                    continue;
+                }
+
+                // 4. Regular Paragraph / Text
+                var paraTb = new TextBlock
+                {
+                    FontSize = 12,
+                    Foreground = textColor,
+                    LineHeight = 18,
+                    Margin = new Thickness(0, inList ? 2 : 3, 0, 3),
+                    TextWrapping = TextWrapping.Wrap
+                };
+                AppendInlineMarkdown(paraTb.Inlines, trimmed, codeBgColor, codeFgColor, isDark);
+                ChangelogPanel.Children.Add(paraTb);
+            }
+        }
+
+        private static void AppendInlineMarkdown(InlineCollection inlines, string text, System.Windows.Media.Brush codeBg, System.Windows.Media.Brush codeFg, bool isDark)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+
+            var regex = new Regex(@"(\*\*(.+?)\*\*|`([^`]+)`)");
+            int lastIndex = 0;
+
+            foreach (Match match in regex.Matches(text))
+            {
+                if (match.Index > lastIndex)
+                {
+                    string normalText = text.Substring(lastIndex, match.Index - lastIndex);
+                    inlines.Add(new Run(normalText));
+                }
+
+                string value = match.Value;
+                if (value.StartsWith("**") && value.EndsWith("**") && value.Length >= 4)
+                {
+                    string boldContent = value.Substring(2, value.Length - 4);
+                    var boldRun = new Bold();
+                    if (boldContent.Contains('`'))
+                    {
+                        AppendInlineMarkdown(boldRun.Inlines, boldContent, codeBg, codeFg, isDark);
+                    }
+                    else
+                    {
+                        boldRun.Inlines.Add(new Run(boldContent));
+                    }
+                    inlines.Add(boldRun);
+                }
+                else if (value.StartsWith("`") && value.EndsWith("`") && value.Length >= 2)
+                {
+                    string codeContent = value.Substring(1, value.Length - 2);
+
+                    var border = new Border
+                    {
+                        Background = codeBg,
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(4, 0, 4, 1),
+                        Margin = new Thickness(1, 0, 1, 0),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Child = new TextBlock
+                        {
+                            Text = codeContent,
+                            FontFamily = new System.Windows.Media.FontFamily("Cascadia Code, Consolas, Courier New, monospace"),
+                            FontSize = 11,
+                            FontWeight = FontWeights.Normal,
+                            Foreground = codeFg
+                        }
+                    };
+
+                    var container = new InlineUIContainer(border)
+                    {
+                        BaselineAlignment = BaselineAlignment.Center
+                    };
+                    inlines.Add(container);
+                }
+
+                lastIndex = match.Index + match.Length;
             }
 
-            return sb.ToString().Trim();
+            if (lastIndex < text.Length)
+            {
+                inlines.Add(new Run(text.Substring(lastIndex)));
+            }
         }
 
         private async Task<GitHubRelease?> FetchReleaseFromGitHubAsync()
@@ -876,7 +1051,7 @@ namespace PixOcrSearch
 
         private async void FetchLatestReleaseAsync()
         {
-            ChangelogTextBlock.Text = Localization.IsEnglish ? "Fetching latest release notes..." : "正在获取最新的更新日志...";
+            SetChangelogMarkdown(Localization.IsEnglish ? "Fetching latest release notes..." : "正在获取最新的更新日志...");
             NotificationTitleText.Text = Localization.IsEnglish ? "Fetching latest version information..." : "正在获取最新版本信息...";
 
             try
@@ -903,7 +1078,7 @@ namespace PixOcrSearch
             Version currentVer = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version ?? new Version(1, 0, 0);
             string cleanTag = release.TagName.TrimStart('v', 'V');
             
-            ChangelogTextBlock.Text = ExtractLocalizedChangelog(release.Body);
+            SetChangelogMarkdown(ExtractLocalizedChangelog(release.Body));
 
             if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
             {
@@ -926,27 +1101,21 @@ namespace PixOcrSearch
         private void DisplayOfflineLog()
         {
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
-            ChangelogTextBlock.Text = Localization.IsEnglish
-                ? "v2.3.9 Changelog\n" +
-                  "• Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
-                  "• Fixed English installer translation coverage in setup wizard.\n\n" +
-                  "v2.3.0 Changelog\n" +
-                  "• Control Center window now supports drag resizing and native taskbar minimize animations.\n" +
-                  "• Removed bright blue border around EditWindow, replaced with adaptive system theme border.\n\n" +
-                  "v2.2.0 Changelog\n" +
-                  "• Unified Control Center navigation sidebar.\n" +
-                  "• Added global hotkey for Control Center (default Ctrl+Alt+C).\n" +
-                  "• Streamlined tray context menu."
-                : "v2.3.9 更新日志\n" +
-                  "• 设置面板新增界面语言切换选项（支持简体中文与 English）。\n" +
-                  "• 修复英文安装向导界面残留中文的问题，实现全英文覆盖。\n\n" +
-                  "v2.3.0 更新日志\n" +
-                  "• 控制中心支持拖拽拉伸调整窗口尺寸，并原生适配任务栏最小化缩回操作。\n" +
-                  "• 移除了结果展示窗口（EditWindow）醒目的蓝色边框线，改为系统主题自适应灰色。\n\n" +
-                  "v2.2.0 更新日志\n" +
-                  "• 控制面板整合侧栏切换，移除了冗余的独立关于和通知窗口。\n" +
-                  "• 新增全局控制中心呼出热键（默认 Ctrl+Alt+C），自带快捷键冲突防重校验机制。\n" +
-                  "• 精简系统托盘右键选项为：截图 OCR 搜索、控制面板、退出。";
+            SetChangelogMarkdown(Localization.IsEnglish
+                ? "### 🚀 SnapFind v2.4.4 Changelog\n" +
+                  "- **Eliminated Copy/Close UI Freezes**: Asynchronously dispatched memory optimization and working set trimming to background threads.\n" +
+                  "- **Refined Clipboard Retries**: Optimized backoff retry intervals in `ClipboardHelper` for faster clipboard operations.\n" +
+                  "- **Markdown Changelog Support**: Native rich rendering for version release notes in Control Center.\n\n" +
+                  "### 🚀 SnapFind v2.3.9 Changelog\n" +
+                  "- **Bilingual Support**: Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
+                  "- **Installer Fix**: Fixed English installer translation coverage in setup wizard."
+                : "### 🚀 SnapFind v2.4.4 更新日志\n" +
+                  "- **消除复制与关闭卡顿**: 优化内存裁剪与垃圾回收调度，放入后台异步线程执行，彻底解决点击复制或快捷键卡顿。\n" +
+                  "- **优化剪贴板响应**: 优化 `ClipboardHelper` 重试退避间隔，提升高并发剪贴板监听环境下的写入响应速度。\n" +
+                  "- **支持 Markdown 日志渲染**: 控制中心版本页面原生支持 Markdown 语法高亮、代码块、列表与分割线。\n\n" +
+                  "### 🚀 SnapFind v2.3.9 更新日志\n" +
+                  "- **双语支持**: 设置面板新增界面语言切换选项（支持简体中文与 English）。\n" +
+                  "- **安装包修复**: 修复英文安装向导界面残留中文的问题，实现全英文覆盖。");
             
             DownloadButton.Visibility = Visibility.Collapsed;
             IgnoreButton.Visibility = Visibility.Collapsed;

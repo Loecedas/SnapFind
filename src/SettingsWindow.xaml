@@ -418,11 +418,7 @@
                         <TextBlock x:Name="NotificationTitleText" Grid.Row="0" Text="最新更新日志" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,8"/>
                         
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
-                            <TextBlock x:Name="ChangelogTextBlock" 
-                                       TextWrapping="Wrap" 
-                                       FontSize="12" 
-                                       Foreground="{DynamicResource ThemeText}" 
-                                       LineHeight="18"/>
+                            <StackPanel x:Name="ChangelogPanel" Margin="0,0,8,0"/>
                         </ScrollViewer>
 
                         <!-- Progress Bar Panel -->

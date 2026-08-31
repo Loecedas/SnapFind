@@ -65,8 +65,8 @@ namespace PixOcrSearch
                 }
             }
 
-            // 2. 第一重防线：WPF SetDataObject 智能退避重试 (最多重试 10 次)
-            for (int i = 0; i < 10; i++)
+            // 2. 第一重防线：WPF SetDataObject 智能轻量重试 (最多重试 3 次)
+            for (int i = 0; i < 3; i++)
             {
                 try
                 {
@@ -75,7 +75,7 @@ namespace PixOcrSearch
                 }
                 catch
                 {
-                    Thread.Sleep(15 + i * 5); // 15ms, 20ms, 25ms, ... 逐步退避让出 CPU
+                    Thread.Sleep(10);
                 }
             }
 
@@ -160,7 +160,7 @@ namespace PixOcrSearch
             byte[] bytes = System.Text.Encoding.Unicode.GetBytes(text + "\0");
             UIntPtr size = new UIntPtr((uint)bytes.Length);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 5; i++)
             {
                 if (OpenClipboard(IntPtr.Zero))
                 {
@@ -201,7 +201,7 @@ namespace PixOcrSearch
                         CloseClipboard();
                     }
                 }
-                Thread.Sleep(15 + i * 5);
+                Thread.Sleep(10);
             }
 
             return false;
