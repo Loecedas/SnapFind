@@ -3,11 +3,11 @@
 # SnapFind
 
 <p>
-  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/badge/Platform-Win%2010%20%7C%2011%20(x64)-0078D4?logo=windows&logoColor=white" alt="Platform" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8.0" /></a>
-  <a href="https://github.com/PaddlePaddle/PaddleOCR"><img src="https://img.shields.io/badge/OCR-PaddleOCR%20v6-FF4500?logo=baidu&logoColor=white" alt="PaddleOCR" /></a>
-  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/badge/Standby%20RAM-%3C%2010%20MB-brightgreen?logo=ram&logoColor=white" alt="RAM" /></a>
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
+  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/v/release/Loecedas/SnapFind?style=flat-square&logo=github" alt="Latest Release" /></a>
+  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/downloads/Loecedas/SnapFind/total?style=flat-square&logo=github" alt="Downloads" /></a>
+  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/github/stars/Loecedas/SnapFind?style=flat-square&logo=github" alt="Stars" /></a>
 </p>
 
 *一款专为 Windows 系统深度定制的高性能、纯本地离线截图 OCR 识别与搜索工具*
