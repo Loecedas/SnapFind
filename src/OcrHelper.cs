@@ -5,7 +5,16 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Threading;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+#if USE_RAPID_OCR
+using RapidOcrNet;
+using SkiaSharp;
+#else
 using PaddleOCRSharp;
+#endif
 
 namespace PixOcrSearch
 {
@@ -17,6 +26,7 @@ namespace PixOcrSearch
         [DllImport("psapi.dll", EntryPoint = "EmptyWorkingSet", SetLastError = true)]
         private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
+#if !USE_RAPID_OCR
         [DllImport("mklml.dll", CallingConvention = CallingConvention.Cdecl, EntryPoint = "MKL_Free_Buffers", CharSet = CharSet.Ansi)]
         private static extern void MKL_Free_Buffers();
 
@@ -24,10 +34,52 @@ namespace PixOcrSearch
         private static extern void mkl_free_buffers();
 
         private static PaddleOCREngine? _engine;
+#else
+        private static RapidOcr? _engine;
+#endif
+
         private static Task? _initTask;
         private static System.Threading.Timer? _disposeTimer;
         private static string _currentModel = "";
         private static readonly object _lock = new object();
+
+        static OcrHelper()
+        {
+            try
+            {
+#if USE_RAPID_OCR
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string libsRapidDir = Path.Combine(baseDir, "libs", "rapid");
+                if (!Directory.Exists(libsRapidDir))
+                {
+                    string c = Path.Combine(baseDir, "..", "..", "..", "libs", "rapid");
+                    if (Directory.Exists(c)) libsRapidDir = Path.GetFullPath(c);
+                    else
+                    {
+                        string c2 = Path.Combine(baseDir, "..", "..", "..", "..", "libs", "rapid");
+                        if (Directory.Exists(c2)) libsRapidDir = Path.GetFullPath(c2);
+                    }
+                }
+                if (Directory.Exists(libsRapidDir))
+                {
+                    SetDllDirectory(libsRapidDir);
+                }
+#else
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string libsDir = Path.Combine(baseDir, "libs");
+                if (!Directory.Exists(libsDir))
+                {
+                    string c = Path.Combine(baseDir, "..", "..", "..", "libs");
+                    if (Directory.Exists(c)) libsDir = Path.GetFullPath(c);
+                }
+                if (Directory.Exists(libsDir))
+                {
+                    SetDllDirectory(libsDir);
+                }
+#endif
+            }
+            catch { }
+        }
 
         // Start initialization asynchronously in the background using the user-selected model
         public static void StartInitialize()
@@ -73,6 +125,58 @@ namespace PixOcrSearch
         {
             try
             {
+#if USE_RAPID_OCR
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string libsRapidDir = Path.Combine(baseDir, "libs", "rapid");
+                if (!Directory.Exists(libsRapidDir))
+                {
+                    string c = Path.Combine(baseDir, "..", "..", "..", "libs", "rapid");
+                    if (Directory.Exists(c)) libsRapidDir = Path.GetFullPath(c);
+                    else
+                    {
+                        string c2 = Path.Combine(baseDir, "..", "..", "..", "..", "libs", "rapid");
+                        if (Directory.Exists(c2)) libsRapidDir = Path.GetFullPath(c2);
+                    }
+                }
+                if (Directory.Exists(libsRapidDir))
+                {
+                    SetDllDirectory(libsRapidDir);
+                }
+
+                string modelsDir = Path.Combine(libsRapidDir, "rapid_models");
+                if (!Directory.Exists(modelsDir))
+                {
+                    modelsDir = Path.Combine(baseDir, "libs", "rapid_models");
+                }
+                if (!Directory.Exists(modelsDir))
+                {
+                    modelsDir = Path.Combine(baseDir, "rapid_models");
+                }
+                if (!Directory.Exists(modelsDir))
+                {
+                    modelsDir = Path.Combine(baseDir, "libs");
+                }
+
+                string det = Path.Combine(modelsDir, "ch_PP-OCRv4_det_mobile.onnx");
+                string cls = Path.Combine(modelsDir, "ch_ppocr_mobile_v2.0_cls_mobile.onnx");
+                string rec = Path.Combine(modelsDir, "ch_PP-OCRv4_rec_mobile.onnx");
+                string keys = Path.Combine(modelsDir, "ppocr_keys.txt");
+
+                if (!File.Exists(keys))
+                {
+                    string fallbackKeys = Path.Combine(baseDir, "libs", "inference", "ppocr_keys.txt");
+                    if (File.Exists(fallbackKeys)) keys = fallbackKeys;
+                }
+
+                var engine = new RapidOcr();
+                int threads = Math.Min(4, Environment.ProcessorCount);
+                engine.InitModels(det, cls, rec, keys, threads);
+
+                lock (_lock)
+                {
+                    _engine = engine;
+                }
+#else
                 // Suppress PaddlePaddle C++ glog output to optimize console writing overhead and speed up execution
                 Environment.SetEnvironmentVariable("GLOG_minloglevel", "3");
 
@@ -138,6 +242,7 @@ namespace PixOcrSearch
                 {
                     _engine = engine;
                 }
+#endif
             }
             catch (Exception ex)
             {
@@ -147,6 +252,11 @@ namespace PixOcrSearch
 
         public static async Task<string> RecognizeTextAsync(System.Drawing.Bitmap bitmap)
         {
+            if (bitmap == null || bitmap.Width <= 0 || bitmap.Height <= 0)
+            {
+                return string.Empty;
+            }
+
             // Reset the inactivity timer when a screenshot is captured
             ResetDisposeTimer();
 
@@ -157,6 +267,101 @@ namespace PixOcrSearch
             {
                 try
                 {
+#if USE_RAPID_OCR
+                    RapidOcr? engine;
+                    lock (_lock)
+                    {
+                        engine = _engine;
+                    }
+
+                    if (engine != null)
+                    {
+                        using var ms = new MemoryStream();
+                        bitmap.Save(ms, ImageFormat.Png);
+                        ms.Position = 0;
+                        using var skBmp = SKBitmap.Decode(ms);
+
+                        if (skBmp != null)
+                        {
+                            var ocrResult = engine.Detect(skBmp, RapidOcrOptions.Default, CancellationToken.None);
+                            if (ocrResult != null && ocrResult.TextBlocks != null && ocrResult.TextBlocks.Length > 0)
+                            {
+                                var lines = new List<List<RapidOcrNet.TextBlock>>();
+                                var sortedByY = ocrResult.TextBlocks
+                                    .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Length > 0 ? b.BoxPoints[0].Y : 0)
+                                    .ToList();
+
+                                foreach (var block in sortedByY)
+                                {
+                                    if (block.BoxPoints == null || block.BoxPoints.Length < 4) continue;
+
+                                    double blockY = block.BoxPoints[0].Y;
+                                    double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
+                                    if (blockHeight == 0) blockHeight = 15;
+
+                                    bool added = false;
+                                    foreach (var line in lines)
+                                    {
+                                        double lineY = line.Average(b => b.BoxPoints[0].Y);
+                                        if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
+                                        {
+                                            line.Add(block);
+                                            added = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (!added)
+                                    {
+                                        lines.Add(new List<RapidOcrNet.TextBlock> { block });
+                                    }
+                                }
+
+                                var sortedLines = lines
+                                    .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
+                                    .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
+                                    .ToList();
+
+                                StringBuilder sb = new StringBuilder();
+                                foreach (var line in sortedLines)
+                                {
+                                    StringBuilder lineBuilder = new StringBuilder();
+                                    for (int i = 0; i < line.Count; i++)
+                                    {
+                                        var block = line[i];
+                                        if (i > 0)
+                                        {
+                                            string prev = line[i - 1].Text;
+                                            string curr = block.Text;
+                                            bool needSpace = false;
+                                            if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
+                                            {
+                                                char lastChar = prev[prev.Length - 1];
+                                                char firstChar = curr[0];
+                                                if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
+                                                    ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
+                                                {
+                                                    needSpace = true;
+                                                }
+                                            }
+                                            if (needSpace)
+                                            {
+                                                lineBuilder.Append(" ");
+                                            }
+                                        }
+                                        lineBuilder.Append(block.Text);
+                                    }
+                                    sb.AppendLine(lineBuilder.ToString());
+                                }
+                                return sb.ToString().Trim();
+                            }
+                            else if (ocrResult != null && !string.IsNullOrEmpty(ocrResult.StrRes))
+                            {
+                                return ocrResult.StrRes.Trim();
+                            }
+                        }
+                    }
+#else
                     PaddleOCREngine? engine;
                     lock (_lock)
                     {
@@ -172,7 +377,7 @@ namespace PixOcrSearch
                             string text = string.Empty;
                             if (ocrResult.TextBlocks != null && ocrResult.TextBlocks.Count > 0)
                             {
-                                var lines = new List<List<TextBlock>>();
+                                var lines = new List<List<PaddleOCRSharp.TextBlock>>();
                                 var sortedByY = ocrResult.TextBlocks
                                     .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Count > 0 ? b.BoxPoints[0].Y : 0)
                                     .ToList();
@@ -199,7 +404,7 @@ namespace PixOcrSearch
 
                                     if (!added)
                                     {
-                                        lines.Add(new List<TextBlock> { block });
+                                        lines.Add(new List<PaddleOCRSharp.TextBlock> { block });
                                     }
                                 }
 
@@ -253,6 +458,7 @@ namespace PixOcrSearch
                             return text;
                         }
                     }
+#endif
                 }
                 catch (Exception ex)
                 {
@@ -260,7 +466,7 @@ namespace PixOcrSearch
                 }
                 finally
                 {
-                    // Reset timer again after OCR completes to start the 5s countdown
+                    // Reset timer again after OCR completes to start the countdown
                     ResetDisposeTimer();
                 }
                 return string.Empty;
@@ -272,6 +478,7 @@ namespace PixOcrSearch
             return result;
         }
 
+#if !USE_RAPID_OCR
         public static void FreeMklBuffers()
         {
             try
@@ -287,6 +494,7 @@ namespace PixOcrSearch
                 catch { }
             }
         }
+#endif
 
         public static void OptimizeMemory()
         {
@@ -299,8 +507,10 @@ namespace PixOcrSearch
                     GC.WaitForPendingFinalizers();
                     GC.Collect();
 
+#if !USE_RAPID_OCR
                     // Free Intel MKL internal thread-local scratch buffers to drop background RAM usage
                     FreeMklBuffers();
+#endif
 
                     // Trim physical memory pages back to OS standby list
                     using var process = System.Diagnostics.Process.GetCurrentProcess();
@@ -326,8 +536,10 @@ namespace PixOcrSearch
                 }
                 _initTask = null;
             }
+#if !USE_RAPID_OCR
             // Free Intel MKL internal buffers upon engine disposal
             FreeMklBuffers();
+#endif
         }
 
         private static void ResetDisposeTimer()

@@ -93,6 +93,41 @@ SnapFind/
 
 ---
 
+## 🤖 OCR Engine Comparison (RapidOCR vs PaddleOCR)
+
+SnapFind provides dual OCR engine architectures to satisfy different usage scenarios:
+
+| Comparison Matrix | RapidOCR Edition (Recommended) | PaddleOCR Edition |
+| :--- | :--- | :--- |
+| **Inference Runtime** | Microsoft **ONNX Runtime** | Baidu **Paddle Inference** (Native C++) |
+| **Installer Size** | 🟢 **~28 MB** (Reduced by 72%) | 🔴 **~100 MB** |
+| **Portable ZIP Size** | 🟢 **~32 MB** (Reduced by 77%) | 🔴 **~142 MB** |
+| **Model Size** | 🟢 **~16 MB** (PP-OCRv4 ONNX Models) | 🔴 **~40 MB** + 250MB native dependencies |
+| **Runtime Dependencies** | 🟢 **Zero external conflicts**, clean deployment | 🟡 Requires 20+ native C++ DLLs & specific VC++ runtime |
+| **Cold Start & Latency** | 🟢 **Millisecond-level instant response** | 🟡 Longer engine loading overhead |
+| **Memory Management** | 🟢 Automatic disposal & idle trim | 🟢 Automatic disposal & MKL buffer free |
+| **Complex/Rotated Text** | 🟢 Excellent for screen snippets, code, UI text | 🟢 Deeper operator tuning for extreme tilted scans |
+
+### 💡 Pros & Cons Analysis
+
+#### 🚀 RapidOCR Edition
+- **Pros**:
+  1. **Ultra Lightweight**: Installer is only ~28MB, reducing total distribution size by over 70%; portable package is ~32MB.
+  2. **Fast Cold Start & High Compatibility**: Built on Microsoft ONNX Runtime with zero VC++ runtime version conflicts and instant launch speed.
+  3. **Out of the Box**: Pre-bundled with optimized PP-OCRv4 detection and recognition models, ideal for everyday screen OCR workflows.
+- **Cons**:
+  1. Focused on standardized lightweight ONNX models; less operator extensibility for bespoke proprietary Paddle structures.
+
+#### 🛡️ PaddleOCR Edition
+- **Pros**:
+  1. **Official Native Algorithms**: Directly coupled with official PaddlePaddle native operators, supporting PP-OCRv6 structures and server-grade large models.
+  2. **Dense & Irregular Document Tuning**: Offers dedicated tuning for extremely complex, large-format, or deeply tilted scanned documents.
+- **Cons**:
+  1. **Heavy Footprint**: Requires nearly 300MB of unmanaged Paddle C++ native binaries (OpenCV, MKL, mkldnn, etc.).
+  2. **Environment Sensitivity**: Sensitive to host VC++ runtime versions, with potential dynamic library collision risks.
+
+---
+
 ## 🚀 Quick Start
 
 ### System Requirements
@@ -105,7 +140,10 @@ SnapFind/
    ```bash
    git clone https://github.com/Loecedas/SnapFind.git
    cd SnapFind/src
-   dotnet run
+   # Build & run RapidOCR edition (Recommended)
+   dotnet run --project SnapFind.Rapid.csproj
+   # Or build & run PaddleOCR edition
+   dotnet run --project SnapFind.csproj
    ```
 
 ---
@@ -113,7 +151,7 @@ SnapFind/
 ## ❓ Frequently Asked Questions
 
 **Q: Prompted with `DllNotFoundException` when running the portable version?**
-> **A**: Ensure the `libs/` folder is located in the same directory as `SnapFind.exe`. It contains compiled C++ native binaries and inference models.
+> **A**: Ensure the `libs/` folder is located in the same directory as `SnapFind.exe`. It contains the compiled native binaries and inference models.
 
 **Q: Global shortcuts do not respond?**
 > **A**: The shortcut key may be occupied by another application. Right-click the system tray icon or press `Ctrl + Alt + C` to open the Control Center and customize your hotkeys.
@@ -126,6 +164,6 @@ SnapFind/
 ## 📄 License & Acknowledgments
 
 - Distributed under the [MIT License](LICENSE.md) ([Chinese translation](LICENSE.zh.md)).
-- Special thanks to [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) and [Inno Setup](https://jrsoftware.org/isinfo.php).
+- Special thanks to [RapidOCR](https://github.com/RapidAI/RapidOCR), [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR), and [Inno Setup](https://jrsoftware.org/isinfo.php).
 
 > **Disclaimer**: All OCR recognition is performed locally on your device. SnapFind will never upload screen content or extracted text to external servers.

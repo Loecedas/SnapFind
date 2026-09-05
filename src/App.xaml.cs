@@ -80,7 +80,20 @@ namespace PixOcrSearch
                 return;
             }
 
-            // Set DLL search directory immediately to resolve native DLL dependencies
+#if USE_RAPID_OCR
+            // Set DLL search directory to libs/rapid for RapidOCR native dependencies (onnxruntime, skia)
+            try
+            {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                string libsDir = System.IO.Path.Combine(baseDir, "libs", "rapid");
+                if (System.IO.Directory.Exists(libsDir))
+                {
+                    SetDllDirectory(libsDir);
+                }
+            }
+            catch { }
+#else
+            // Set DLL search directory immediately to resolve native DLL dependencies for PaddleOCR
             try
             {
                 string baseDir = AppDomain.CurrentDomain.BaseDirectory;
@@ -88,6 +101,7 @@ namespace PixOcrSearch
                 SetDllDirectory(libsDir);
             }
             catch { }
+#endif
 
             // 异步自动清理上一次更新遗留的临时更新器、PowerShell 脚本和临时解压目录
             Task.Run(() =>

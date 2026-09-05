@@ -93,6 +93,41 @@ SnapFind/
 
 ---
 
+## 🤖 OCR 引擎版本对比 (RapidOCR vs PaddleOCR)
+
+SnapFind 提供两种 OCR 引擎架构以满足不同用户场景需求：
+
+| 比较维度 | RapidOCR 极速版 (当前默认推荐) | PaddleOCR 原生版 |
+| :--- | :--- | :--- |
+| **底层推理引擎** | 微软 **ONNX Runtime** | 百度 **Paddle Inference** (C++ 原生) |
+| **安装包体积** | 🟢 **~28 MB** (锐减 72%) | 🔴 **~100 MB** |
+| **便携压缩包体积** | 🟢 **~32 MB** (锐减 77%) | 🔴 **~142 MB** |
+| **模型库体积** | 🟢 **~16 MB** (PP-OCRv4 ONNX 精简模型) | 🔴 **~40 MB** + 250MB 原生依赖库 |
+| **运行依赖与环境** | 🟢 **纯净零冲突**，无需外部复杂 C++ 动态库 | 🟡 依赖 20+ 个 C++ 原生 DLL 及特定 VC++ 运行时 |
+| **冷启动与响应速度** | 🟢 **毫秒级极速响应**，无额外初始化开销 | 🟡 引擎加载耗时较长 |
+| **内存占用与释放** | 🟢 识别后自动释放，待机内存低 | 🟢 识别后自动调用底层 MKL 内存释放 |
+| **复杂/倾斜大图识别** | 🟢 针对屏幕截图、代码及 UI 文本识别极佳 | 🟢 在倾斜极大或超大密集文档上具备更深度的调优 |
+
+### 💡 优缺点分析
+
+#### 🚀 RapidOCR 版本
+- **优点 (Pros)**：
+  1. **极致轻巧**：安装包仅 28MB，相比原版减少 70% 以上体积，便携版仅 32MB。
+  2. **启动迅速、兼容性高**：基于微软现代化 ONNX Runtime，无老旧 VC++ 运行库冲突，系统冷启动极快。
+  3. **开箱即用**：内置精炼优化的 PP-OCRv4 中英文检测与识别模型，满足日常截图与办公的全部需求。
+- **缺点 (Cons)**：
+  1. 专注于标准化轻量 ONNX 模型，若需使用非常规特殊定制算子扩展性略受限。
+
+#### 🛡️ PaddleOCR 版本
+- **优点 (Pros)**：
+  1. **官方原生算法**：直接对接 PaddlePaddle 官方原生算子库，原生支持 PP-OCRv6 算法架构与服务器端大模型。
+  2. **密集复杂排版调优**：在超大分辨率倾斜扫描件或极特殊密集排版上具备更深度的算子支持。
+- **缺点 (Cons)**：
+  1. **体积庞大**：需要携带近 300MB 的 Paddle C++ 原生动态链接库（MKL、OpenCV、mkldnn 等）。
+  2. **环境敏感**：对底层系统的 VC++ 运行库版本要求更严格，容易发生动态库版本加载冲突。
+
+---
+
 ## 🚀 快速上手
 
 ### 环境要求
@@ -105,7 +140,10 @@ SnapFind/
    ```bash
    git clone https://github.com/Loecedas/SnapFind.git
    cd SnapFind/src
-   dotnet run
+   # 编译运行 RapidOCR 版本（推荐）
+   dotnet run --project SnapFind.Rapid.csproj
+   # 或编译运行 PaddleOCR 原生版本
+   dotnet run --project SnapFind.csproj
    ```
 
 ---
@@ -113,7 +151,7 @@ SnapFind/
 ## ❓ 常见问题
 
 **Q: 运行绿色版时弹出 `DllNotFoundException` 错误？**
-> **A**: 请确保 `libs/` 依赖目录与主程序 `SnapFind.exe` 处于同级目录下。该目录包含 PaddleOCR 所需的原生 C++ 动态链接库和离线模型。
+> **A**: 请确保 `libs/` 依赖目录与主程序 `SnapFind.exe` 处于同级目录下。该目录包含 OCR 所需的原生动态链接库与离线模型。
 
 **Q: 全局快捷键按下没有反应？**
 > **A**: 该快捷键可能被系统中其他软件占用。可右键托盘图标或按 `Ctrl + Alt + C` 打开控制中心重新绑定快捷键。
@@ -126,6 +164,6 @@ SnapFind/
 ## 📄 许可证与致谢
 
 - 本项目基于 [MIT License](LICENSE.md)（[中文版](LICENSE.zh.md)）许可协议开源。
-- 感谢 [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 与 [Inno Setup](https://jrsoftware.org/isinfo.php) 提供的卓越技术支持。
+- 感谢 [RapidOCR](https://github.com/RapidAI/RapidOCR)、[PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) 与 [Inno Setup](https://jrsoftware.org/isinfo.php) 提供的卓越技术支持。
 
 > **免责声明**：本项目所有 OCR 推理均在本地计算完成，绝不会将您的屏幕画面或文本数据上传至任何第三方服务器。

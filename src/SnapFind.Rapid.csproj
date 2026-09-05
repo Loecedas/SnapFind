@@ -10,19 +10,21 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <AssemblyName>SnapFind</AssemblyName>
     <Version>2.4.5</Version>
     <AssemblyVersion>2.4.5.0</AssemblyVersion>
     <FileVersion>2.4.5.0</FileVersion>
+    <DefineConstants>$(DefineConstants);USE_RAPID_OCR</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PaddleOCRSharp" Version="6.2.0" />
+    <PackageReference Include="RapidOcrNet" Version="4.1.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\libs\**\*">
+    <None Include="..\libs\rapid\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Link>libs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>libs\rapid\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>
   </ItemGroup>
 

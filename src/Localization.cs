@@ -37,6 +37,7 @@ namespace PixOcrSearch
         public static string LabelOcrModel => IsEnglish ? "OCR Model" : "OCR 识别模型";
         public static string OcrModelTiny => IsEnglish ? "PP-OCRv6 (Tiny - Fastest)" : "PP-OCRv6 (轻量版 - 速度最快)";
         public static string OcrModelSmall => IsEnglish ? "PP-OCRv6 (Standard - High Accuracy)" : "PP-OCRv6 (标准版 - 准确率高)";
+        public static string OcrModelRapid => IsEnglish ? "RapidOCR (PP-OCRv4 Built-in)" : "RapidOCR (PP-OCRv4 内置极速版)";
 
         public static string LabelScreenshotHotkey => IsEnglish ? "Screenshot Hotkey" : "全局截图快捷键";
         public static string LabelControlPanelHotkey => IsEnglish ? "Control Center Hotkey" : "控制面板快捷键";

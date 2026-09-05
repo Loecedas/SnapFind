@@ -125,6 +125,16 @@ namespace PixOcrSearch
                 SearchEngineComboBox.SelectedIndex = 0;
             }
 
+#if USE_RAPID_OCR
+            OcrModelComboBox.Items.Clear();
+            OcrModelComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = Localization.OcrModelRapid,
+                Tag = "Rapid_PP-OCRv4"
+            });
+            OcrModelComboBox.SelectedIndex = 0;
+            OcrModelComboBox.IsEnabled = false;
+#else
             // Detect OCR models
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string inferenceDir = Path.Combine(baseDir, "libs", "inference");
@@ -164,6 +174,7 @@ namespace PixOcrSearch
             {
                 OcrModelComboBox.IsEnabled = false;
             }
+#endif
 
             _recordedModifiers = ConfigManager.Current.HotkeyModifiers;
             _recordedKey = ConfigManager.Current.HotkeyKey;
@@ -209,12 +220,19 @@ namespace PixOcrSearch
             }
 
             // OCR Model items
+#if USE_RAPID_OCR
+            if (OcrModelComboBox.Items.Count > 0 && OcrModelComboBox.Items[0] is ComboBoxItem rapidItem)
+            {
+                rapidItem.Content = Localization.OcrModelRapid;
+            }
+#else
             foreach (ComboBoxItem item in OcrModelComboBox.Items)
             {
                 string tag = item.Tag?.ToString() ?? "";
                 if (tag == "PP-OCRv6_tiny") item.Content = Localization.OcrModelTiny;
                 else if (tag == "PP-OCRv6_small") item.Content = Localization.OcrModelSmall;
             }
+#endif
 
             UpdateHotkeyTextBoxDisplay();
             UpdateControlPanelHotkeyTextBoxDisplay();
