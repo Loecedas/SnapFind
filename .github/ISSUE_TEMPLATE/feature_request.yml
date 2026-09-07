@@ -1,0 +1,25 @@
+---
+name: Feature Request ✨
+about: 提出一个新功能建议
+title: "[Feature] "
+labels: enhancement
+body:
+  - type: markdown
+    attributes:
+      value: "提交前请先搜索是否已有相同建议，避免重复 Issue。"
+  - type: textarea
+    id: description
+    attributes:
+      label: 功能描述
+      description: 描述你希望添加的功能及其期望行为
+      placeholder: "例如：识别代码片段后经常混入杂字符，希望支持在结果框内先编辑再复制"
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: 使用场景
+      description: 在什么情况下需要它，解决你现在遇到的什么问题
+      placeholder: "我经常需要截图 IDE 里的代码，但识别结果偶尔错字，只能手动粘贴后修改..."
+    validations:
+      required: true

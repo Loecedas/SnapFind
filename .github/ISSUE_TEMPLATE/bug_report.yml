@@ -1,0 +1,69 @@
+---
+name: Bug Report 🐛
+about: 报告一个 Bug 帮助我们改进
+title: "[Bug] "
+labels: bug
+assignees: Loecedas
+body:
+  - type: markdown
+    attributes:
+      value: "提交前请先搜索是否已有相同问题的 Issue，避免重复。"
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 描述触发 Bug 的操作过程，并说明期望结果与实际结果
+      placeholder: "1. 打开 SnapFind\n2. 按下 Ctrl+Alt+S 对以下区域截图\n\n期望结果：自动复制识别文字\n实际结果：无任何反应 / 弹出错误提示"
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: 截图或错误弹窗
+      description: 涉及识别错误时附上原图；有错误弹窗时截图上传
+      placeholder: "粘贴截图或图片 URL"
+  - type: dropdown
+    id: engine
+    attributes:
+      label: 引擎选择
+      description: 你使用的 OCR 引擎版本
+      options:
+        - RapidOCR 极速版（默认）
+        - PaddleOCR 原生版
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: SnapFind 版本
+      description: 软件版本号，例如 v2.4.5（在「关于」窗口查看）
+      placeholder: "v2.4.5"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Windows 版本
+      description: 操作系统版本
+      options:
+        - Windows 11 24H2
+        - Windows 11 23H2
+        - Windows 11 22H2
+        - Windows 10 22H2
+        - 其他（请在复现步骤中注明）
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 已尝试的排查
+      options:
+        - label: 重启应用
+        - label: 检查快捷键冲突
+        - label: 确认 libs/ 目录完整性
+  - type: textarea
+    id: related
+    attributes:
+      label: 相关 Issue
+      description: 如果与之前的 Bug 相关，请引用 Issue 号
+      placeholder: "#123"
