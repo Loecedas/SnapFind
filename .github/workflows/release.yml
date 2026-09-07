@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish and archive both editions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          $editions = @(
+            @{ Name = "Rapid";  Project = "src/SnapFind.Rapid.csproj" },
+            @{ Name = "Paddle"; Project = "src/SnapFind.csproj" }
+          )
+          foreach ($e in $editions) {
+            Write-Host "Publishing $($e.Name) edition..." -ForegroundColor Cyan
+            dotnet publish $e.Project -c Release -r win-x64 --self-contained false `
+              -p:PublishSingleFile=true -p:Version=$version -o "releases/tmp/$($e.Name)"
+
+            New-Item -ItemType Directory -Path "releases/portables" -Force | Out-Null
+            Compress-Archive -Path "releases/tmp/$($e.Name)/*" `
+              -DestinationPath "releases/portables/SnapFindPortable_$($e.Name)_v$version.zip" -Force
+          }
+
+      - name: Create GitHub Release and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release create $tag --generate-notes 2>$null; if ($LASTEXITCODE -ne 0) {
+            Write-Host "Release already exists, skipping creation"
+          }
+          gh release upload $tag releases/portables/SnapFindPortable_*.zip --clobber
