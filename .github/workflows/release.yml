@@ -19,7 +19,7 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Publish and archive both editions
+      - name: Publish and package both editions
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -38,13 +38,33 @@ jobs:
               -DestinationPath "releases/portables/SnapFindPortable_$($e.Name)_v$version.zip" -Force
           }
 
+      - name: Build installers with Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          $editions = @("Rapid", "Paddle")
+          $iscc = "${{ github.workspace }}/tools/InnoSetup/ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            Write-Warning "ISCC.exe not found at $iscc, skipping installer build"
+            exit 0
+          }
+          foreach ($ed in $editions) {
+            Write-Host "Building installer for $ed edition..." -ForegroundColor Cyan
+            $outDir = "${{ github.workspace }}/releases/installers"
+            $pubDir = "${{ github.workspace }}/releases/tmp/$ed"
+            New-Item -ItemType Directory -Path $outDir -Force | Out-Null
+            & $iscc /DAppVersion=$version /DEdition=$ed /DPublishDir="$pubDir" /O$outDir "${{ github.workspace }}/src/setup.iss"
+          }
+
       - name: Create GitHub Release and upload assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          gh release create $tag --generate-notes 2>$null; if ($LASTEXITCODE -ne 0) {
-            Write-Host "Release already exists, skipping creation"
+          gh release create $tag --generate-notes 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Release already exists, uploading assets only"
           }
-          gh release upload $tag releases/portables/SnapFindPortable_*.zip --clobber
+          gh release upload $tag releases/portables/*.zip releases/installers/*.exe --clobber

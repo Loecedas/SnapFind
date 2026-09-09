@@ -23,14 +23,9 @@ project.fragment.lock.json
 /SnapFind_*.exe
 /releases/
 
-# SnapFind Runtime Cache & Configurations
-/cache/*
-!/cache/InnoSetup/
-/cache/InnoSetup/Examples/
-/cache/InnoSetup/unins000.*
-/cache/InnoSetup/*.htm
-/cache/InnoSetup/*.url
-/cache/InnoSetup/Compil32.exe
+# Runtime cache (config.json, temp debug images)
+/cache/
+
 
 # OS specific files
 .DS_Store
