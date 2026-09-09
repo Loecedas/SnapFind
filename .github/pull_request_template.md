@@ -12,6 +12,7 @@
 - [ ] 双版本编译通过：
       `dotnet build src/SnapFind.Rapid.csproj`
       `dotnet build src/SnapFind.csproj`
+- [ ] 单元测试通过：`dotnet test tests/SnapFind.Tests.csproj`
 - [ ] 热键 `Ctrl+Alt+S` 成功弹出截图框
 - [ ] 选区框选后 OCR 识别弹出结果并复制正常
 - [ ] 无新增编译警告
