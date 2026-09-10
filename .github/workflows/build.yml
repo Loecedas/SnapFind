@@ -22,3 +22,16 @@ jobs:
 
       - name: Build ${{ matrix.project }}
         run: dotnet build src/${{ matrix.project }}.csproj -c Release
+
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Test
+        run: dotnet test tests/SnapFind.Tests.csproj -c Release
