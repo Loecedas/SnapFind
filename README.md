@@ -5,9 +5,9 @@
 <p>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white" alt=".NET 8.0" /></a>
   <a href="./LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License" /></a>
-  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/v/release/Loecedas/SnapFind?style=flat-square&logo=github" alt="Latest Release" /></a>
-  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/downloads/Loecedas/SnapFind/total?style=flat-square&logo=github" alt="Downloads" /></a>
-  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/github/stars/Loecedas/SnapFind?style=flat-square&logo=github" alt="Stars" /></a>
+  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/v/release/Loecedas/SnapFind?logo=github" alt="Latest Release" /></a>
+  <a href="https://github.com/Loecedas/SnapFind/releases"><img src="https://img.shields.io/github/downloads/Loecedas/SnapFind/total?logo=github" alt="Downloads" /></a>
+  <a href="https://github.com/Loecedas/SnapFind"><img src="https://img.shields.io/github/stars/Loecedas/SnapFind?logo=github" alt="Stars" /></a>
 </p>
 
 *一款专为 Windows 系统深度定制的高性能、纯本地离线截图 OCR 识别与搜索工具*

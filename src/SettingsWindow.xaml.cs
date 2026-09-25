@@ -1120,14 +1120,20 @@ namespace PixOcrSearch
         {
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
             SetChangelogMarkdown(Localization.IsEnglish
-                ? "### 🚀 SnapFind v2.4.4 Changelog\n" +
+                ? "### 🚀 SnapFind v2.4.6 Changelog\n" +
+                  "- **Packaging & Build System Fixes**: Resolved Inno Setup installer compilation path issues and ensured offline OCR runtime libraries are bundled in portable packages.\n" +
+                  "- **Documentation & CI Enhancements**: Aligned README status badges with unified rounded styling; integrated unit testing into automated build workflows.\n\n" +
+                  "### 🚀 SnapFind v2.4.4 Changelog\n" +
                   "- **Eliminated Copy/Close UI Freezes**: Asynchronously dispatched memory optimization and working set trimming to background threads.\n" +
                   "- **Refined Clipboard Retries**: Optimized backoff retry intervals in `ClipboardHelper` for faster clipboard operations.\n" +
                   "- **Markdown Changelog Support**: Native rich rendering for version release notes in Control Center.\n\n" +
                   "### 🚀 SnapFind v2.3.9 Changelog\n" +
                   "- **Bilingual Support**: Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
                   "- **Installer Fix**: Fixed English installer translation coverage in setup wizard."
-                : "### 🚀 SnapFind v2.4.4 更新日志\n" +
+                : "### 🚀 SnapFind v2.4.6 更新日志\n" +
+                  "- **打包与构建体系修复**: 彻底修复 Inno Setup 安装包编译器路径错误，并确保便携 ZIP 发布包完整携带离线 OCR 原生依赖库。\n" +
+                  "- **文档与徽标优化**: 统一 README 状态徽标为标准圆角样式；将单元测试集成至 CI 自动化工作流。\n\n" +
+                  "### 🚀 SnapFind v2.4.4 更新日志\n" +
                   "- **消除复制与关闭卡顿**: 优化内存裁剪与垃圾回收调度，放入后台异步线程执行，彻底解决点击复制或快捷键卡顿。\n" +
                   "- **优化剪贴板响应**: 优化 `ClipboardHelper` 重试退避间隔，提升高并发剪贴板监听环境下的写入响应速度。\n" +
                   "- **支持 Markdown 日志渲染**: 控制中心版本页面原生支持 Markdown 语法高亮、代码块、列表与分割线。\n\n" +

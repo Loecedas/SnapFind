@@ -3,17 +3,15 @@
 ;   ISCC.exe /DAppVersion=2.4.6 /DEdition=Rapid /O"releases\installers" src\setup.iss
 
 #ifndef AppVersion
-#define AppVersion "2.4.5"
+#define AppVersion "2.4.6"
 #endif
 
 #ifndef Edition
 #define Edition "Rapid"
 #endif
 
-#define MySourceDir "src"
-
 #ifndef PublishDir
-#define PublishDir MySourceDir + "\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
+#define PublishDir "bin\Release\net8.0-windows10.0.19041.0\win-x64\publish"
 #endif
 
 [Setup]
@@ -53,9 +51,9 @@ Name: "startup"; Description: "{cm:StartupProgram}"; GroupDescription: "{cm:Othe
 [Files]
 Source: "{#PublishDir}\SnapFind.exe"; DestDir: "{app}"; Flags: ignoreversion
 #if Edition == "Rapid"
-Source: "{#MySourceDir}\..\libs\rapid\*"; DestDir: "{app}\libs\rapid"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\libs\rapid\*"; DestDir: "{app}\libs\rapid"; Flags: recursesubdirs createallsubdirs ignoreversion
 #else
-Source: "{#MySourceDir}\..\libs\*"; DestDir: "{app}\libs"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\libs\*"; DestDir: "{app}\libs"; Flags: recursesubdirs createallsubdirs ignoreversion
 #endif
 
 [Icons]

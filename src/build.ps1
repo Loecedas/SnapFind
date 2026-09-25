@@ -1,7 +1,7 @@
 # build.ps1
 # 本地打包脚本：生成 Rapid / Paddle 双版本的便携包与安装包
 param(
-    [string]$Version = "2.4.5",
+    [string]$Version = "2.4.6",
     [ValidateSet("", "Rapid", "Paddle")]
     [string]$Edition = "",
     [switch]$NoZip,
@@ -22,7 +22,7 @@ if (-not (Test-Path $portablesDir)) { New-Item -ItemType Directory -Path $portab
 
 # 2. 版本号
 $nextVersion = $Version.TrimStart('v')
-if (-not $nextVersion) { $nextVersion = "2.4.5" }
+if (-not $nextVersion) { $nextVersion = "2.4.6" }
 
 # 3. 确定要打包的版本
 $editions = if ($Edition) { @($Edition) } else { @("Rapid", "Paddle") }

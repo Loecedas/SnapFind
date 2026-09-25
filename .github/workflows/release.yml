@@ -30,11 +30,20 @@ jobs:
           )
           foreach ($e in $editions) {
             Write-Host "Publishing $($e.Name) edition..." -ForegroundColor Cyan
+            $pubDir = "releases/tmp/$($e.Name)"
             dotnet publish $e.Project -c Release -r win-x64 --self-contained false `
-              -p:PublishSingleFile=true -p:Version=$version -o "releases/tmp/$($e.Name)"
+              -p:PublishSingleFile=true -p:Version=$version -o $pubDir
+
+            if ($e.Name -eq "Rapid") {
+              New-Item -ItemType Directory -Path "$pubDir/libs/rapid" -Force | Out-Null
+              Copy-Item "libs/rapid/*" "$pubDir/libs/rapid" -Recurse -Force
+            } else {
+              New-Item -ItemType Directory -Path "$pubDir/libs" -Force | Out-Null
+              Copy-Item "libs/*" "$pubDir/libs" -Recurse -Force
+            }
 
             New-Item -ItemType Directory -Path "releases/portables" -Force | Out-Null
-            Compress-Archive -Path "releases/tmp/$($e.Name)/*" `
+            Compress-Archive -Path "$pubDir/*" `
               -DestinationPath "releases/portables/SnapFindPortable_$($e.Name)_v$version.zip" -Force
           }
 
