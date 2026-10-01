@@ -1,9 +1,9 @@
 ; SnapFind Inno Setup script
 ; 用法：
-;   ISCC.exe /DAppVersion=2.4.6 /DEdition=Rapid /O"releases\installers" src\setup.iss
+;   ISCC.exe /DAppVersion=2.4.7 /DEdition=Rapid /O"releases\installers" src\setup.iss
 
 #ifndef AppVersion
-#define AppVersion "2.4.6"
+#define AppVersion "2.4.7"
 #endif
 
 #ifndef Edition

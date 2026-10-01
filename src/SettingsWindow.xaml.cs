@@ -1120,7 +1120,10 @@ namespace PixOcrSearch
         {
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
             SetChangelogMarkdown(Localization.IsEnglish
-                ? "### 🚀 SnapFind v2.4.6 Changelog\n" +
+                ? "### 🚀 SnapFind v2.4.7 Changelog\n" +
+                  "- **Eliminated Multi-Clipboard Manager Freezes**: Completely resolved the 3~4s UI freeze during text copy when running alongside clipboard managers (e.g., ropy, zsclip) by adopting direct Win32 native clipboard I/O with millisecond-level backoff.\n" +
+                  "- **Enhanced Clipboard Robustness**: Added zero-latency Win32 native format verification and automated high-concurrency unit testing.\n\n" +
+                  "### 🚀 SnapFind v2.4.6 Changelog\n" +
                   "- **Packaging & Build System Fixes**: Resolved Inno Setup installer compilation path issues and ensured offline OCR runtime libraries are bundled in portable packages.\n" +
                   "- **Documentation & CI Enhancements**: Aligned README status badges with unified rounded styling; integrated unit testing into automated build workflows.\n\n" +
                   "### 🚀 SnapFind v2.4.4 Changelog\n" +
@@ -1130,7 +1133,10 @@ namespace PixOcrSearch
                   "### 🚀 SnapFind v2.3.9 Changelog\n" +
                   "- **Bilingual Support**: Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
                   "- **Installer Fix**: Fixed English installer translation coverage in setup wizard."
-                : "### 🚀 SnapFind v2.4.6 更新日志\n" +
+                : "### 🚀 SnapFind v2.4.7 更新日志\n" +
+                  "- **消除多剪贴板软件共存卡顿**: 全面重构剪贴板核心通道为纯 Win32 原生调用与毫秒级智能退避重试，彻底解决同时开启 ropy、zsclip 等剪贴板管理器时复制卡顿 3~4 秒的问题。\n" +
+                  "- **提升剪贴板高可用与鲁棒性**: 增加零延迟原生假失败校验与高并发多监听器单元测试，杜绝 OLE 锁争用死锁。\n\n" +
+                  "### 🚀 SnapFind v2.4.6 更新日志\n" +
                   "- **打包与构建体系修复**: 彻底修复 Inno Setup 安装包编译器路径错误，并确保便携 ZIP 发布包完整携带离线 OCR 原生依赖库。\n" +
                   "- **文档与徽标优化**: 统一 README 状态徽标为标准圆角样式；将单元测试集成至 CI 自动化工作流。\n\n" +
                   "### 🚀 SnapFind v2.4.4 更新日志\n" +
