@@ -502,13 +502,35 @@ namespace PixOcrSearch
                         }
                     };
 
+                    screenWin.OnCancelRequested += () =>
+                    {
+                        CloseAllScreenshotWindows();
+                        if (_multiSessionRegions.Count > 0)
+                        {
+                            ShowMultiSessionBarWindow(openDrawer: false);
+                        }
+                        else
+                        {
+                            ClearMultiSession();
+                        }
+                    };
+
                     screenWin.Closed += (s, e) =>
                     {
                         // Clean up tracking when windows close
-                        // If all screenshot windows are closed (or user canceled), reset capture lock
-                        if (_screenshotWindows.All(w => !w.IsVisible))
+                        // If any screenshot window is closed without completing capture,
+                        // ensure all other screens are also closed to avoid lingering overlays.
+                        if (_isCapturing)
                         {
-                            _isCapturing = false;
+                            CloseAllScreenshotWindows();
+                            if (_multiSessionRegions.Count > 0)
+                            {
+                                ShowMultiSessionBarWindow(openDrawer: false);
+                            }
+                            else
+                            {
+                                ClearMultiSession();
+                            }
                         }
                     };
                 }

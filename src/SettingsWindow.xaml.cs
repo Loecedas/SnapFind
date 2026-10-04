@@ -1120,7 +1120,10 @@ namespace PixOcrSearch
         {
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
             SetChangelogMarkdown(Localization.IsEnglish
-                ? "### 🚀 SnapFind v2.4.7 Changelog\n" +
+                ? "### 🚀 SnapFind v2.4.8 Changelog\n" +
+                  "- **Multi-Monitor Cancel Fix**: Resolved an issue where right-clicking empty space to cancel OCR screenshot only dismissed the active monitor's overlay while leaving secondary screens masked.\n" +
+                  "- **Unified Capture Cancellation**: Synchronized cancellation triggers (Right Click, Escape, Cancel Button, Empty Click) across all connected displays to instantly clear all overlays and unlock global hotkeys.\n\n" +
+                  "### 🚀 SnapFind v2.4.7 Changelog\n" +
                   "- **Eliminated Multi-Clipboard Manager Freezes**: Completely resolved the 3~4s UI freeze during text copy when running alongside clipboard managers (e.g., ropy, zsclip) by adopting direct Win32 native clipboard I/O with millisecond-level backoff.\n" +
                   "- **Enhanced Clipboard Robustness**: Added zero-latency Win32 native format verification and automated high-concurrency unit testing.\n\n" +
                   "### 🚀 SnapFind v2.4.6 Changelog\n" +
@@ -1133,7 +1136,10 @@ namespace PixOcrSearch
                   "### 🚀 SnapFind v2.3.9 Changelog\n" +
                   "- **Bilingual Support**: Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
                   "- **Installer Fix**: Fixed English installer translation coverage in setup wizard."
-                : "### 🚀 SnapFind v2.4.7 更新日志\n" +
+                : "### 🚀 SnapFind v2.4.8 更新日志\n" +
+                  "- **多显示器取消截图修复**: 彻底解决在多显示器环境下快捷键呼出 OCR 截图时，鼠标右键点击空白处仅取消当前屏幕、其他副屏仍残留全屏遮罩的问题。\n" +
+                  "- **全屏幕取消与解锁同步**: 统一全屏遮罩取消事件广播机制（右键空白、ESC 按键、取消按钮及空白点击），保证在任一屏幕取消均立即关闭所有显示器蒙版并释放快捷键占用。\n\n" +
+                  "### 🚀 SnapFind v2.4.7 更新日志\n" +
                   "- **消除多剪贴板软件共存卡顿**: 全面重构剪贴板核心通道为纯 Win32 原生调用与毫秒级智能退避重试，彻底解决同时开启 ropy、zsclip 等剪贴板管理器时复制卡顿 3~4 秒的问题。\n" +
                   "- **提升剪贴板高可用与鲁棒性**: 增加零延迟原生假失败校验与高并发多监听器单元测试，杜绝 OLE 锁争用死锁。\n\n" +
                   "### 🚀 SnapFind v2.4.6 更新日志\n" +

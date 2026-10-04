@@ -118,6 +118,14 @@ namespace PixOcrSearch
         public event Action<Bitmap, Rect>? OnScreenshotCompleted;
         public event Action<List<SelectedRegionItem>>? OnMultiScreenshotCompleted;
         public event Action<List<SelectedRegionItem>, bool>? OnSwitchWindowRequested;
+        public event Action? OnCancelRequested;
+
+        private void CancelScreenshot()
+        {
+            OnCancelRequested?.Invoke();
+            Close();
+        }
+
 
         public ScreenshotWindow(System.Windows.Forms.Screen screen, int initialRegionOffset = 0)
         {
@@ -251,7 +259,7 @@ namespace PixOcrSearch
             }
             else if (e.ChangedButton == MouseButton.Right)
             {
-                Close();
+                CancelScreenshot();
             }
         }
 
@@ -399,7 +407,7 @@ namespace PixOcrSearch
 
                     if (!ConfigManager.Current.MultiRegionSelection || _selectedRegions.Count == 0)
                     {
-                        Close();
+                        CancelScreenshot();
                     }
                 }
             }
@@ -843,7 +851,7 @@ namespace PixOcrSearch
 
         private void CancelOcrButton_Click(object sender, RoutedEventArgs e)
         {
-            Close();
+            CancelScreenshot();
         }
 
         private void FinishMultiSelection()
@@ -865,7 +873,7 @@ namespace PixOcrSearch
             }
             else if (e.Key == Key.Escape)
             {
-                Close();
+                CancelScreenshot();
             }
             else if (e.Key == Key.Enter)
             {
