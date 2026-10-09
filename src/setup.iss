@@ -68,3 +68,34 @@ Filename: "{app}\SnapFind.exe"; Description: "{cm:LaunchProgram,SnapFind}"; Flag
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\cache"
+
+[Code]
+function GetOppositeAppId(): string;
+begin
+#if Edition == "Rapid"
+  Result := 'SnapFind-Paddle';
+#else
+  Result := 'SnapFind-Rapid';
+#endif
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  OppositeKey: string;
+  LegacyKey: string;
+begin
+  if CurStep = ssInstall then
+  begin
+    OppositeKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + GetOppositeAppId() + '_is1';
+    if RegKeyExists(HKCU, OppositeKey) then
+    begin
+      RegDeleteKeyIncludingSubkeys(HKCU, OppositeKey);
+    end;
+
+    LegacyKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\SnapFind_is1';
+    if RegKeyExists(HKCU, LegacyKey) then
+    begin
+      RegDeleteKeyIncludingSubkeys(HKCU, LegacyKey);
+    end;
+  end;
+end;

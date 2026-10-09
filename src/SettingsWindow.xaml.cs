@@ -27,6 +27,13 @@ namespace PixOcrSearch
         private string _recordedControlPanelKey = "";
         
         // Updater fields
+#if USE_RAPID_OCR
+        private const string CurrentEdition = "Rapid";
+        private const string OppositeEdition = "Paddle";
+#else
+        private const string CurrentEdition = "Paddle";
+        private const string OppositeEdition = "Rapid";
+#endif
         private GitHubRelease? _releaseInfo;
         private CancellationTokenSource? _cts;
         private bool _isDownloading = false;
@@ -940,7 +947,7 @@ namespace PixOcrSearch
                 long size = 0;
 
                 bool isInstalled = File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
-                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
+                string targetPattern = isInstalled ? $"SnapFindSetup_{CurrentEdition}_" : $"SnapFindPortable_{CurrentEdition}_";
                 string targetExtension = isInstalled ? ".exe" : ".zip";
 
                 if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
@@ -957,10 +964,13 @@ namespace PixOcrSearch
                     }
                     if (string.IsNullOrEmpty(downloadUrl))
                     {
+                        string legacyPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
                         foreach (var asset in assetsVal.EnumerateArray())
                         {
                             string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
+                            if (name.StartsWith(legacyPattern, StringComparison.OrdinalIgnoreCase) &&
+                                name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase) &&
+                                !name.Contains(OppositeEdition, StringComparison.OrdinalIgnoreCase))
                             {
                                 downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
                                 size = asset.GetProperty("size").GetInt64();
@@ -1013,7 +1023,7 @@ namespace PixOcrSearch
                 long size = 0;
 
                 bool isInstalled = File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "unins000.exe"));
-                string targetPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
+                string targetPattern = isInstalled ? $"SnapFindSetup_{CurrentEdition}_" : $"SnapFindPortable_{CurrentEdition}_";
                 string targetExtension = isInstalled ? ".exe" : ".zip";
 
                 if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
@@ -1177,7 +1187,7 @@ namespace PixOcrSearch
             string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
             if (string.IsNullOrEmpty(ext)) ext = ".exe";
             string cacheDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache");
-            string prefix = ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ? "SnapFindPortable_" : "SnapFindSetup_";
+            string prefix = ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ? $"SnapFindPortable_{CurrentEdition}_" : $"SnapFindSetup_{CurrentEdition}_";
             string fileName = $"{prefix}{_releaseInfo.TagName}{ext}";
             string filePath = Path.Combine(cacheDir, fileName);
 
