@@ -18,6 +18,13 @@ namespace PixOcrSearch
         public bool DoNotOpenEditWindow { get; set; } = false;
         public string Language { get; set; } = "zh-CN";
         public bool MultiRegionSelection { get; set; } = false;
+        public int ResultFontSize { get; set; } = 13;
+        public bool EnableTranslation { get; set; } = false;
+        public bool AutoTranslateOcrResult { get; set; } = false;
+        public string DefaultTargetLanguage { get; set; } = "zh-CN";
+        public string TranslateHotkeyModifiers { get; set; } = "Control,Alt";
+        public string TranslateHotkeyKey { get; set; } = "T";
+        public System.Collections.Generic.List<string> DisabledPlugins { get; set; } = new System.Collections.Generic.List<string>();
     }
 
     public static class ConfigManager

@@ -10,13 +10,22 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
-    <Version>2.4.9</Version>
-    <AssemblyVersion>2.4.9.0</AssemblyVersion>
-    <FileVersion>2.4.9.0</FileVersion>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <Version>2.5.0</Version>
+    <AssemblyVersion>2.5.0.0</AssemblyVersion>
+    <FileVersion>2.5.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="PaddleOCRSharp" Version="6.2.0" />
+    <ProjectReference Include="Plugins\SnapFind.Plugin.Translation\SnapFind.Plugin.Translation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Plugins\**" />
+    <Page Remove="Plugins\**" />
+    <Resource Remove="Plugins\**" />
+    <None Remove="Plugins\**" />
   </ItemGroup>
 
   <ItemGroup>

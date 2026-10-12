@@ -1,0 +1,17 @@
+{
+  "id": "SnapFind.Plugin.Translation",
+  "name": "文本翻译与繁简转换插件",
+  "name_en": "Translation & Script Conversion",
+  "version": "1.0.0",
+  "description": "集成微软 Edge 在线翻译通道、Win32 原生离线繁简转换、独立翻译窗口与 OCR 结果一键联动。",
+  "description_en": "Integrates Microsoft Edge translation, Win32 native traditional/simplified conversion, and OCR linking.",
+  "author": "SnapFind Community",
+  "entry": "bin/SnapFind.Plugin.Translation.dll",
+  "hasHotkey": true,
+  "defaultHotkey": "Control,Alt+T",
+  "features": [
+    "独立翻译工具窗口",
+    "OCR 框选结果自动同步翻译",
+    "Win32 原生离线繁简转换"
+  ]
+}

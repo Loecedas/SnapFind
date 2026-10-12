@@ -157,6 +157,31 @@ namespace PixOcrSearch
                          _screen.Bounds.X, _screen.Bounds.Y, 
                          _screen.Bounds.Width, _screen.Bounds.Height, 
                          SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+            var currentDpi = VisualTreeHelper.GetDpi(this);
+            if (currentDpi.DpiScaleX > 0 && currentDpi.DpiScaleY > 0)
+            {
+                _scaleX = currentDpi.DpiScaleX;
+                _scaleY = currentDpi.DpiScaleY;
+                Width = _screen.Bounds.Width / _scaleX;
+                Height = _screen.Bounds.Height / _scaleY;
+                ScreenGeometry.Rect = new Rect(0, 0, Width, Height);
+            }
+        }
+
+        protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+        {
+            base.OnDpiChanged(oldDpi, newDpi);
+            _scaleX = newDpi.DpiScaleX;
+            _scaleY = newDpi.DpiScaleY;
+            Width = _screen.Bounds.Width / _scaleX;
+            Height = _screen.Bounds.Height / _scaleY;
+            ScreenGeometry.Rect = new Rect(0, 0, Width, Height);
+            if (BackgroundImg != null)
+            {
+                BackgroundImg.Width = Width;
+                BackgroundImg.Height = Height;
+            }
         }
 
         private void GetScreenDpi(System.Windows.Forms.Screen screen, out double scaleX, out double scaleY)
@@ -203,6 +228,17 @@ namespace PixOcrSearch
             {
                 g.CopyFromScreen(_screen.Bounds.X, _screen.Bounds.Y, 0, 0, new System.Drawing.Size(physicalWidth, physicalHeight), CopyPixelOperation.SourceCopy);
             }
+
+            var dpi = VisualTreeHelper.GetDpi(this);
+            if (dpi.DpiScaleX > 0 && dpi.DpiScaleY > 0)
+            {
+                _scaleX = dpi.DpiScaleX;
+                _scaleY = dpi.DpiScaleY;
+            }
+
+            Width = physicalWidth / _scaleX;
+            Height = physicalHeight / _scaleY;
+            ScreenGeometry.Rect = new Rect(0, 0, Width, Height);
 
             BackgroundImg.Source = BitmapToImageSource(_screenSnapshot);
             BackgroundImg.Width = Width;

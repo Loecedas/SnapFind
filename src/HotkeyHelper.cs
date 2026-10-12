@@ -17,18 +17,22 @@ namespace PixOcrSearch
         private const int WM_HOTKEY = 0x0312;
         private const int HOTKEY_ID_SCREENSHOT = 9000;
         private const int HOTKEY_ID_CONTROLPANEL = 9001;
+        private const int HOTKEY_ID_TRANSLATE = 9002;
 
         private IntPtr _hWnd;
         private HwndSource? _hwndSource;
         private Action? _onScreenshotPressed;
         private Action? _onControlPanelPressed;
+        private Action? _onTranslatePressed;
 
         public bool Register(Window window, 
                             string modifiersStr, string keyStr, Action onScreenshotPressed,
-                            string cpModifiersStr, string cpKeyStr, Action onControlPanelPressed)
+                            string cpModifiersStr, string cpKeyStr, Action onControlPanelPressed,
+                            string? trModifiersStr = null, string? trKeyStr = null, Action? onTranslatePressed = null)
         {
             _onScreenshotPressed = onScreenshotPressed;
             _onControlPanelPressed = onControlPanelPressed;
+            _onTranslatePressed = onTranslatePressed;
 
             if (_hWnd == IntPtr.Zero)
             {
@@ -43,6 +47,7 @@ namespace PixOcrSearch
                 // Just unregister the old hotkeys, keeping window and hook alive
                 UnregisterHotKey(_hWnd, HOTKEY_ID_SCREENSHOT);
                 UnregisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL);
+                UnregisterHotKey(_hWnd, HOTKEY_ID_TRANSLATE);
             }
 
             uint modifiers = ParseModifiers(modifiersStr);
@@ -53,6 +58,13 @@ namespace PixOcrSearch
             uint cpVk = ParseKey(cpKeyStr);
             bool ok2 = RegisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL, cpModifiers, cpVk);
 
+            if (!string.IsNullOrEmpty(trModifiersStr) && !string.IsNullOrEmpty(trKeyStr) && onTranslatePressed != null)
+            {
+                uint trModifiers = ParseModifiers(trModifiersStr);
+                uint trVk = ParseKey(trKeyStr);
+                RegisterHotKey(_hWnd, HOTKEY_ID_TRANSLATE, trModifiers, trVk);
+            }
+
             return ok1 && ok2;
         }
 
@@ -62,6 +74,7 @@ namespace PixOcrSearch
             {
                 UnregisterHotKey(_hWnd, HOTKEY_ID_SCREENSHOT);
                 UnregisterHotKey(_hWnd, HOTKEY_ID_CONTROLPANEL);
+                UnregisterHotKey(_hWnd, HOTKEY_ID_TRANSLATE);
             }
         }
 
@@ -78,6 +91,11 @@ namespace PixOcrSearch
                 else if (id == HOTKEY_ID_CONTROLPANEL)
                 {
                     _onControlPanelPressed?.Invoke();
+                    handled = true;
+                }
+                else if (id == HOTKEY_ID_TRANSLATE)
+                {
+                    _onTranslatePressed?.Invoke();
                     handled = true;
                 }
             }

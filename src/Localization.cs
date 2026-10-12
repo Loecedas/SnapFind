@@ -23,8 +23,51 @@ namespace PixOcrSearch
         // --- Settings Window / Control Center ---
         public static string ControlCenterTitle => IsEnglish ? "SnapFind Control Center" : "SnapFind 控制中心";
         public static string TabSettings => IsEnglish ? "Settings" : "设置";
+        public static string TabPlugins => IsEnglish ? "Plugins" : "插件";
         public static string TabUpdates => IsEnglish ? "Updates" : "版本";
         public static string TabAbout => IsEnglish ? "About" : "关于";
+
+        public static string PluginsTitle => IsEnglish ? "Plugin Extensions" : "扩展插件管理";
+        public static string PluginsDesc => IsEnglish 
+            ? "Support importing custom OCR enhancements, translation providers, and third-party extensions."
+            : "支持导入自定义 OCR 增强、离线翻译与第三方工具扩展插件。";
+        public static string BtnImportPlugin => IsEnglish ? "➕ Import Plugin" : "➕ 导入插件";
+        public static string BtnOpenPluginFolder => IsEnglish ? "📁 Open Folder" : "📁 打开插件目录";
+        public static string BtnRefreshPlugins => IsEnglish ? "🔄 Refresh" : "🔄 刷新";
+        public static string PluginsEmptyTitle => IsEnglish ? "No Plugins Installed" : "暂未安装任何扩展插件";
+        public static string PluginsEmptyDesc => IsEnglish 
+            ? "Click 'Import Plugin' to select a plugin archive (.zip / .7z / .dll) or place plugin files into the plugins directory."
+            : "点击上方【导入插件】选择插件安装包（.zip / .7z / .dll），或直接将插件置于 plugins 目录。";
+        public static string PluginsImportSuccess => IsEnglish ? "Plugin imported successfully!" : "插件导入成功！";
+        public static string PluginsImportFailed => IsEnglish ? "Failed to import plugin:\n" : "导入插件失败:\n";
+        public static string PluginsFilterText => IsEnglish ? "Plugin Package (*.zip;*.7z;*.dll)|*.zip;*.7z;*.dll|All Files (*.*)|*.*" : "插件安装包 (*.zip;*.7z;*.dll)|*.zip;*.7z;*.dll|所有文件 (*.*)|*.*";
+        public static string PluginsLoadedCount(int count, int activeCount) => IsEnglish 
+            ? $"Loaded {count} plugin(s) ({activeCount} enabled, {count - activeCount} disabled)" 
+            : $"当前已加载 {count} 个插件（{activeCount} 个已启用，{count - activeCount} 个已停用）";
+        public static string PluginStatusActive => IsEnglish ? "Enabled" : "已启用";
+        public static string PluginStatusDisabled => IsEnglish ? "Disabled" : "已停用";
+        public static string BtnEnablePlugin => IsEnglish ? "Enable" : "启用";
+        public static string BtnDisablePlugin => IsEnglish ? "Disable" : "关闭";
+        public static string BtnDeletePlugin => IsEnglish ? "Delete" : "删除";
+        public static string MsgConfirmDeletePlugin(string name) => IsEnglish 
+            ? $"Are you sure you want to permanently delete plugin \"{name}\"?\nThis will remove the plugin files from disk."
+            : $"确定要彻底删除插件 \"{name}\" 吗？\n此操作将删除该插件在磁盘上的所有文件且不可恢复。";
+        public static string MsgPluginDeleted => IsEnglish ? "Plugin deleted successfully." : "插件已成功删除。";
+        public static string LabelPluginSectionTitle => IsEnglish ? "Extensions & Plugins" : "扩展功能与插件";
+        public static string CheckEnableTranslationPlugin => IsEnglish 
+            ? "Enable Translation & Script Conversion (Ctrl+Alt+T / OCR Translate)" 
+            : "启用文本翻译与繁简转换插件 (Ctrl+Alt+T / OCR结果一键翻译)";
+        public static string CheckAutoTranslateOcr => IsEnglish 
+            ? "Enable OCR Realtime Translation" 
+            : "开启 OCR 框选自动同步翻译";
+        public static string BtnGoToPluginsTab => IsEnglish ? "Plugin Center →" : "插件中心 →";
+        public static string LabelPluginLaunchHotkey => IsEnglish ? "Launch Hotkey:" : "启动快捷键：";
+        public static string TipPluginHotkeyRecording => IsEnglish ? "Click and press key combination to customize (effective immediately)" : "点击输入框并按下键盘组合键即可自定义，实时生效无需重启";
+        public static string BtnResetHotkey => IsEnglish ? "Reset" : "重置";
+        public static string LabelDefaultTargetLang => IsEnglish ? "Default Target:" : "默认目标语言：";
+        public static string MsgPluginImportSuccessWithHotkey(string name, string hotkey) => IsEnglish
+            ? $"Plugin \"{name}\" imported and activated!\nLaunch hotkey: {hotkey}\nAll associated features are now available."
+            : $"插件 \"{name}\" 导入并激活成功！\n启动快捷键为: {hotkey}\n对应功能与联动组件已立即生效。";
 
         public static string LabelLanguage => IsEnglish ? "Language" : "界面语言";
         public static string LangChinese => "简体中文";
@@ -48,6 +91,9 @@ namespace PixOcrSearch
         public static string CheckAutoCopy => IsEnglish ? "Auto copy to clipboard after OCR" : "识别后自动复制到剪贴板";
         public static string CheckDoNotOpenEditWindow => IsEnglish ? "Do not open edit window after selection" : "框选文字后不打开编辑框";
         public static string CheckMultiRegion => IsEnglish ? "Enable multi-region selection" : "支持多次连续框选识别";
+        public static string LabelResultFontSize => IsEnglish ? "OCR Result Font Size" : "识别结果框字号大小";
+        public static string FontSizeStandard => IsEnglish ? "Standard (13pt - Default)" : "标准字号 (13pt - 默认)";
+        public static string FontSizeExtraLarge => IsEnglish ? "Extra Large (17pt - +2 Sizes)" : "特大号 (17pt - 放大两号)";
         public static string BtnFinishOcr => IsEnglish ? "✓ Done" : "✓ 完成";
         public static string BtnCancelOcr => IsEnglish ? "✕ Cancel" : "✕ 取消";
         public static string BtnSwitchWindow => IsEnglish ? "🔄 Switch Window" : "🔄 切换界面";
@@ -124,6 +170,9 @@ namespace PixOcrSearch
         // --- Edit Window (OCR Result Card) ---
         public static string EditResultTitle => IsEnglish ? "OCR Result" : "OCR 识别结果";
         public static string BtnSettings => IsEnglish ? "Settings" : "设置";
+        public static string BtnTranslate => IsEnglish ? "Translate" : "翻译";
+        public static string BtnToTraditional => IsEnglish ? "Traditional" : "转繁体";
+        public static string BtnToSimplified => IsEnglish ? "Simplified" : "转简体";
         public static string BtnCopy => IsEnglish ? "Copy" : "复制";
         public static string BtnSearch => IsEnglish ? "Search" : "搜索";
         public static string MsgCopyFailed => IsEnglish ? "Failed to copy to clipboard:\n" : "复制到剪贴板失败:\n";
@@ -133,8 +182,10 @@ namespace PixOcrSearch
         // --- Tray & App ---
         public static string TrayToolTip => IsEnglish ? "SnapFind - Screenshot OCR & Search" : "SnapFind - 截图 OCR 搜索";
         public static string TrayMenuScreenshot => IsEnglish ? "Screenshot OCR & Search" : "截图 OCR 搜索";
+        public static string TrayMenuTranslate => IsEnglish ? "Text Translation" : "文本翻译";
         public static string TrayMenuControlPanel => IsEnglish ? "Control Center" : "控制面板";
         public static string TrayMenuExit => IsEnglish ? "Exit" : "退出";
+        public static string LabelTranslateHotkey => IsEnglish ? "Translate Hotkey" : "全局翻译快捷键";
         public static string MsgAlreadyRunning => IsEnglish ? "SnapFind is already running in the background!" : "SnapFind 已经在后台运行中！";
         public static string MsgHotkeyRegisterFailed(string mods, string key, string cpMods, string cpKey) => IsEnglish
             ? $"Failed to register global hotkeys.\nScreenshot: {mods} + {key}\nControl Center: {cpMods} + {cpKey}\nPlease adjust in Settings to avoid conflicts."

@@ -43,8 +43,14 @@ jobs:
             }
 
             New-Item -ItemType Directory -Path "releases/portables" -Force | Out-Null
-            Compress-Archive -Path "$pubDir/*" `
-              -DestinationPath "releases/portables/SnapFindPortable_$($e.Name)_v$version.zip" -Force
+            $sfx = "${{ github.workspace }}/tools/7-Zip/7z.sfx"
+            $exe7z = if (Test-Path "${{ github.workspace }}/tools/7-Zip/7z.exe") { "${{ github.workspace }}/tools/7-Zip/7z.exe" } else { "7z" }
+            $destSfx = "releases/portables/SnapFindPortable_$($e.Name)_v$version.7z.exe"
+            if (Test-Path $sfx) {
+              & $exe7z a -sfx"$sfx" -mx=9 -mmt=on "$destSfx" "$pubDir"
+            } else {
+              & $exe7z a -sfx -mx=9 -mmt=on "$destSfx" "$pubDir"
+            }
           }
 
       - name: Build installers with Inno Setup
@@ -76,4 +82,4 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Release already exists, uploading assets only"
           }
-          gh release upload $tag releases/portables/*.zip releases/installers/*.exe --clobber
+          gh release upload $tag releases/portables/*.7z.exe releases/installers/*.exe --clobber

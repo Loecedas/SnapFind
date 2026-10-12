@@ -67,12 +67,18 @@ Seamlessly capture screenshots across different applications and windows. Select
 
 - 🔒 **100% Offline Local Inference**: Integrated PaddleOCR v6 engine with dynamic runtime switching between `PP-OCRv6_tiny` and `PP-OCRv6_small` models. Zero cloud dependencies, zero privacy risks.
 - ⚡ **Smart Idle Memory Reclamation**: Automatically disposes of the inference engine and invokes Windows `EmptyWorkingSet` after 5 seconds of inactivity, reducing standby memory from ~40MB to **< 10MB**.
+- 🧩 **Modular Plugin Ecosystem**: Core application remains bloat-free and lightweight, powered by a standardized plugin system. Inspect, load, and hot-plug extensions directly via the Control Center.
+- 🌐 **Intelligent Translation Plugin (`SnapFind.Plugin.Translation`)**:
+  - **Synchronous Translation**: Automatically translates extracted text below the OCR results (toggleable in settings; zero overhead when disabled).
+  - **Standalone Translation Window**: Press a customizable global hotkey to summon an instant lookup/translation float window supporting multi-lingual translation and proxy options.
+  - **Clean Native UX**: Borderless UI without redundant scrollbars, one-click SVG copy button, and seamless dark/light theme integration.
 - 🖥️ **Multi-Monitor & DPI Adaptation**: Automatically traverses screen monitors and handles independent DPI scaling factors across multi-screen setups.
 - 🎨 **Modern Windows 11 UI**: Native dark/light theme integration, DWM rounded corners, drop shadows, and 6px ultra-thin Fluent animated scrollbars.
-- 🎛️ **Unified Control Center**: Unified Settings, About, and dual-source (GitHub / Gitee) update notifications with full English and Simplified Chinese bilingual support.
+- 🎛️ **Unified Control Center**: Unified Settings, Plugin Management, About, and dual-source (GitHub / Gitee) update notifications with bilingual support.
 - ⌨️ **Productive Shortcut Ecosystem**:
   - `Ctrl + Alt + S`: Global screenshot OCR trigger (customizable in settings)
   - `Ctrl + Alt + C`: Open the Control Center
+  - `Ctrl + Alt + T`: Open/close standalone Translation Window (requires plugin, customizable)
   - `Ctrl + C`: Copy result and close popup immediately
   - `Enter`: Launch query in default web browser
   - `Ctrl + Z`: Undo accidental deletions/reorderings in staged drawer
@@ -84,10 +90,12 @@ Seamlessly capture screenshots across different applications and windows. Select
 ```text
 SnapFind/
 ├── src/        # Core source code (WPF / C#, UI, hotkey hooks & single-file publish)
+│   └── Plugins/ # Official plugin sources (SnapFind.Plugin.Translation, etc.)
 ├── libs/       # PaddleOCR C++ native dynamic dependencies & offline inference models
 ├── docs/       # Documentation assets and screenshots (docs/images/)
 ├── cache/      # Runtime user configuration (config.json)
-├── releases/   # Auto-built installers (installers/) & portable packages (portables/)
+├── releases/   # Installers (installers/), portable packages (portables/) & plugins (plugins/)
+├── tools/      # 7z SFX self-extracting packaging toolchain
 └── backup/     # Project cleanup & temporary file removal scripts
 ```
 
@@ -135,7 +143,7 @@ SnapFind provides dual OCR engine architectures to satisfy different usage scena
 - Runtime: [.NET 8.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 
 ### Installation & Usage
-1. **Download**: Visit the [Releases Page](https://github.com/Loecedas/SnapFind/releases) to download the installer (`SnapFindSetup_vX.Y.Z.exe`) or portable zip (`SnapFindPortable_vX.Y.Z.zip`).
+1. **Download**: Visit the [Releases Page](https://github.com/Loecedas/SnapFind/releases) to download the installer (`SnapFindSetup_*.exe`) or portable self-extracting package (`SnapFindPortable_*.7z.exe`).
 2. **Build from Source**:
    ```bash
    git clone https://github.com/Loecedas/SnapFind.git
@@ -145,6 +153,22 @@ SnapFind provides dual OCR engine architectures to satisfy different usage scena
    # Or build & run PaddleOCR edition
    dotnet run --project SnapFind.csproj
    ```
+
+---
+
+## 🧩 Plugins & Extensions
+
+SnapFind adopts a clean, modular plugin architecture. The core application contains zero third-party bloat, allowing users to install official plugins on demand:
+
+### Official Translation Plugin (`SnapFind.Plugin.Translation`)
+1. **Download Plugin**: Visit [Releases](https://github.com/Loecedas/SnapFind/releases) and download `SnapFind.Plugin.Translation_v*.zip`.
+2. **Install**:
+   - **Method 1 (Recommended)**: Press `Ctrl + Alt + C` to open the Control Center, navigate to the **Plugins** tab, click **Import Plugin**, and select the downloaded `.zip` file for automatic installation and instant hot-loading.
+   - **Method 2 (Manual)**: Extract the `.zip` archive into the `plugins/SnapFind.Plugin.Translation` folder inside your SnapFind directory.
+3. **Configuration**:
+   - Once installed, the Control Center **Settings** page dynamically displays the **Smart Translation Plugin** configuration card.
+   - Toggle **Sync translation after OCR** as needed; when disabled, SnapFind only extracts text with zero translation requests.
+   - Customize the standalone translation window hotkey (default `Ctrl + Alt + T`) to quickly open and close the float translator.
 
 ---
 

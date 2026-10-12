@@ -63,6 +63,12 @@ namespace PixOcrSearch
             PositionWindow();
 
             // Focus text box and select all/place caret at the end
+            int fontSize = ConfigManager.Current.ResultFontSize;
+            if (fontSize > 0)
+            {
+                OcrTextBox.FontSize = fontSize;
+            }
+
             OcrTextBox.Focus();
             OcrTextBox.SelectAll();
 
@@ -73,12 +79,32 @@ namespace PixOcrSearch
                     ClipboardHelper.SetText(_initialText);
                 }
             }
+            ApplyLocalization();
+            SetupTextBoxContextMenu();
+
+            if (PluginManager.IsTranslationPluginAvailable && ConfigManager.Current.AutoTranslateOcrResult)
+            {
+                OcrTransPanel.Visibility = Visibility.Visible;
+                OcrTransPanel.Attach(OcrTextBox, ConfigManager.Current.DefaultTargetLanguage);
+                TranslateBtn.Visibility = Visibility.Visible;
+                MinHeight = 280;
+                if (Height < 320)
+                {
+                    Height = 320;
+                }
+            }
+            else
+            {
+                OcrTransPanel.Visibility = Visibility.Collapsed;
+                TranslateBtn.Visibility = PluginManager.IsTranslationPluginAvailable ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void ApplyLocalization()
         {
             TitleTextBlock.Text = Localization.EditResultTitle;
             SettingsBtn.Content = Localization.BtnSettings;
+            TranslateBtn.Content = Localization.BtnTranslate;
             CopyBtn.Content = Localization.BtnCopy;
             SearchBtn.Content = Localization.BtnSearch;
         }
@@ -203,6 +229,85 @@ namespace PixOcrSearch
             Close();
         }
 
+        private void TranslateButton_Click(object sender, RoutedEventArgs e)
+        {
+            string text = !string.IsNullOrEmpty(OcrTextBox.SelectedText) ? OcrTextBox.SelectedText : OcrTextBox.Text;
+            PluginManager.ShowTranslationWindow(text);
+        }
+
+        private void SetupTextBoxContextMenu()
+        {
+            var menu = new System.Windows.Controls.ContextMenu();
+
+            var miCut = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Cut (Ctrl+X)" : "剪切 (Ctrl+X)" };
+            miCut.Click += (s, e) => OcrTextBox.Cut();
+
+            var miCopy = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Copy (Ctrl+C)" : "复制 (Ctrl+C)" };
+            miCopy.Click += (s, e) =>
+            {
+                string textToCopy = OcrTextBox.SelectedText.Length > 0 ? OcrTextBox.SelectedText : OcrTextBox.Text;
+                if (!string.IsNullOrEmpty(textToCopy))
+                {
+                    ClipboardHelper.SetText(textToCopy);
+                }
+            };
+
+            var miPaste = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Paste (Ctrl+V)" : "粘贴 (Ctrl+V)" };
+            miPaste.Click += (s, e) => OcrTextBox.Paste();
+
+            menu.Items.Add(miCut);
+            menu.Items.Add(miCopy);
+            menu.Items.Add(miPaste);
+            menu.Items.Add(new System.Windows.Controls.Separator());
+
+            if (PluginManager.IsTranslationPluginAvailable)
+            {
+                var miTranslate = new System.Windows.Controls.MenuItem { Header = $"{Localization.BtnTranslate} (Ctrl+T)" };
+                miTranslate.Click += (s, e) =>
+                {
+                    string textToTranslate = !string.IsNullOrEmpty(OcrTextBox.SelectedText) ? OcrTextBox.SelectedText : OcrTextBox.Text;
+                    PluginManager.ShowTranslationWindow(textToTranslate, this);
+                };
+
+                var miToTrad = new System.Windows.Controls.MenuItem { Header = Localization.BtnToTraditional };
+                miToTrad.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(OcrTextBox.SelectedText))
+                    {
+                        OcrTextBox.SelectedText = PluginManager.ConvertToTraditional(OcrTextBox.SelectedText);
+                    }
+                    else
+                    {
+                        OcrTextBox.Text = PluginManager.ConvertToTraditional(OcrTextBox.Text);
+                    }
+                };
+
+                var miToSimp = new System.Windows.Controls.MenuItem { Header = Localization.BtnToSimplified };
+                miToSimp.Click += (s, e) =>
+                {
+                    if (!string.IsNullOrEmpty(OcrTextBox.SelectedText))
+                    {
+                        OcrTextBox.SelectedText = PluginManager.ConvertToSimplified(OcrTextBox.SelectedText);
+                    }
+                    else
+                    {
+                        OcrTextBox.Text = PluginManager.ConvertToSimplified(OcrTextBox.Text);
+                    }
+                };
+
+                menu.Items.Add(miTranslate);
+                menu.Items.Add(miToTrad);
+                menu.Items.Add(miToSimp);
+                menu.Items.Add(new System.Windows.Controls.Separator());
+            }
+
+            var miSelectAll = new System.Windows.Controls.MenuItem { Header = Localization.IsEnglish ? "Select All (Ctrl+A)" : "全选 (Ctrl+A)" };
+            miSelectAll.Click += (s, e) => OcrTextBox.SelectAll();
+            menu.Items.Add(miSelectAll);
+
+            OcrTextBox.ContextMenu = menu;
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
@@ -227,6 +332,11 @@ namespace PixOcrSearch
             {
                 e.Handled = true;
                 HandleCopyAndClose();
+            }
+            else if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                TranslateButton_Click(sender, e);
             }
         }
 

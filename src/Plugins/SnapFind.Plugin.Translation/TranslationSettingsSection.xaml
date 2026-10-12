@@ -1,0 +1,131 @@
+<UserControl x:Class="SnapFind.Plugin.Translation.TranslationSettingsSection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="40" d:DesignWidth="450">
+
+    <UserControl.Resources>
+        <!-- Default theme color fallbacks -->
+        <SolidColorBrush x:Key="ThemeWindowBg" Color="#1E1E22"/>
+        <SolidColorBrush x:Key="ThemeWindowBorder" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="ThemeText" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="ThemeSubText" Color="#8E8E93"/>
+        <SolidColorBrush x:Key="ThemeInputBg" Color="#121215"/>
+        <SolidColorBrush x:Key="ThemeInputFg" Color="#F1F1F1"/>
+        <SolidColorBrush x:Key="ThemeInputBorder" Color="#2D2D32"/>
+        <SolidColorBrush x:Key="ThemeBtnBg" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="ThemeBtnFg" Color="#E1E1E1"/>
+        <SolidColorBrush x:Key="ThemeBtnBorder" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="ThemeHoverBg" Color="#3F3F46"/>
+
+        <ControlTemplate x:Key="SettingsComboBoxTemplate" TargetType="ComboBox">
+            <Grid SnapsToDevicePixels="true">
+                <ToggleButton Name="ToggleButton" 
+                             BorderBrush="{TemplateBinding BorderBrush}" 
+                             Background="{TemplateBinding Background}" 
+                             Foreground="{TemplateBinding Foreground}" 
+                             Focusable="false"
+                             IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}" 
+                             ClickMode="Press">
+                    <ToggleButton.Template>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border Name="Border" CornerRadius="4" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="22" />
+                                    </Grid.ColumnDefinitions>
+                                    <Path Name="Arrow" Grid.Column="1" Fill="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" Data="M 0 0 L 3.5 3.5 L 7 0 Z"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="true">
+                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                </ToggleButton>
+                <ContentPresenter Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="8,2,24,2" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                    <Grid Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="220">
+                        <Border Name="DropDownBorder" Background="{DynamicResource ThemeWindowBg}" BorderBrush="{DynamicResource ThemeWindowBorder}" BorderThickness="1" CornerRadius="4">
+                            <ScrollViewer Margin="0,3" SnapsToDevicePixels="True">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Popup>
+            </Grid>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeInputFg}"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="itemBorder" Background="{TemplateBinding Background}" CornerRadius="3" Margin="2,1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="itemBorder" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="itemBorder" Property="Background" Value="#0078D7"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid VerticalAlignment="Center">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <CheckBox x:Name="EnableTranslationCheckBox"
+                  Grid.Column="0"
+                  Content="开启 OCR 自动翻译"
+                  Foreground="{DynamicResource ThemeText}"
+                  FontSize="12"
+                  VerticalContentAlignment="Center"
+                  Margin="0,0,24,0"
+                  Checked="EnableTranslationCheckBox_CheckedChanged"
+                  Unchecked="EnableTranslationCheckBox_CheckedChanged"/>
+
+        <StackPanel x:Name="TranslationProviderPanel" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="目标语言：" 
+                       Foreground="{DynamicResource ThemeSubText}" 
+                       FontSize="11" 
+                       VerticalAlignment="Center"
+                       Margin="0,0,6,0"/>
+            <ComboBox x:Name="TargetLanguageComboBox"
+                      Width="140"
+                      Height="30"
+                      Background="{DynamicResource ThemeInputBg}"
+                      Foreground="{DynamicResource ThemeInputFg}"
+                      BorderBrush="{DynamicResource ThemeInputBorder}"
+                      BorderThickness="1"
+                      Padding="6,0,0,0"
+                      FontSize="12"
+                      FontFamily="Segoe UI, Microsoft YaHei UI"
+                      Template="{StaticResource SettingsComboBoxTemplate}"
+                      SelectionChanged="TargetLanguageComboBox_SelectionChanged"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -71,8 +71,20 @@ namespace PixOcrSearch
         private MultiSessionBarWindow? _multiSessionBarWindow;
         private readonly Stack<RegionActionHistoryItem> _multiSessionUndoStack = new Stack<RegionActionHistoryItem>();
 
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            // 初始化系统高 DPI 上下文为 Per-Monitor V2，避免多屏幕混合缩放时出现乘积级畸变
+            try
+            {
+                SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+            }
+            catch { }
+
             // 优先拦截更新部署模式，以防启动 WPF 和 Mutex 实例冲突
             if (e.Args.Length > 0 && e.Args[0] == "--update-mode")
             {
@@ -143,13 +155,20 @@ namespace PixOcrSearch
                         try { System.IO.Directory.Delete(tempDir, true); } catch { }
                     }
 
-                    // 清理安装版更新完成后遗留在 cache 目录下的安装包 (SnapFindSetup_*.exe)
+                    // 清理更新完成后遗留在 cache 目录下的安装包与便携包
                     if (System.IO.Directory.Exists(cacheDir))
                     {
-                        string[] setupFiles = System.IO.Directory.GetFiles(cacheDir, "SnapFindSetup_*.exe");
-                        foreach (string setupFile in setupFiles)
+                        string[] patterns = new[] { "SnapFindSetup_*.exe", "SnapFindPortable_*.7z.exe", "SnapFindPortable_*.zip", "SnapFindUpdate_*.exe" };
+                        foreach (string pattern in patterns)
                         {
-                            try { System.IO.File.Delete(setupFile); } catch { }
+                            try
+                            {
+                                foreach (string file in System.IO.Directory.GetFiles(cacheDir, pattern))
+                                {
+                                    try { System.IO.File.Delete(file); } catch { }
+                                }
+                            }
+                            catch { }
                         }
                     }
                 }
@@ -245,6 +264,10 @@ namespace PixOcrSearch
 
             // Add standard items without emojis, completely plain text
             AppendMenu(hMenu, MF_STRING, 1, Localization.TrayMenuScreenshot);
+            if (PluginManager.IsTranslationPluginAvailable)
+            {
+                AppendMenu(hMenu, MF_STRING, 4, Localization.TrayMenuTranslate);
+            }
             AppendMenu(hMenu, MF_SEPARATOR, 0, string.Empty);
             AppendMenu(hMenu, MF_STRING, 2, Localization.TrayMenuControlPanel);
             AppendMenu(hMenu, MF_STRING, 3, Localization.TrayMenuExit);
@@ -276,6 +299,9 @@ namespace PixOcrSearch
                     break;
                 case 3:
                     ExitApp();
+                    break;
+                case 4:
+                    PluginManager.ShowTranslationWindow();
                     break;
             }
         }
@@ -338,9 +364,13 @@ namespace PixOcrSearch
             string cpMods = ConfigManager.Current.ControlPanelHotkeyModifiers;
             string cpKey = ConfigManager.Current.ControlPanelHotkeyKey;
 
+            string trMods = PluginManager.IsTranslationPluginAvailable ? ConfigManager.Current.TranslateHotkeyModifiers : "";
+            string trKey = PluginManager.IsTranslationPluginAvailable ? ConfigManager.Current.TranslateHotkeyKey : "";
+
             bool success = _hotkeyHelper.Register(_dummyHookWindow, 
                 mods, key, StartScreenshot,
-                cpMods, cpKey, ToggleSettings);
+                cpMods, cpKey, ToggleSettings,
+                trMods, trKey, () => PluginManager.ShowTranslationWindow());
 
             if (!success)
             {
@@ -856,13 +886,13 @@ namespace PixOcrSearch
         private void RunUpdateDeploymentFlow(string[] args)
         {
             int pid = 0;
-            string zipPath = "";
+            string packagePath = "";
             string destDir = "";
 
             for (int i = 1; i < args.Length; i++)
             {
                 if (args[i] == "--pid" && i + 1 < args.Length) pid = int.Parse(args[++i]);
-                else if (args[i] == "--zip" && i + 1 < args.Length) zipPath = args[++i];
+                else if ((args[i] == "--package" || args[i] == "--zip") && i + 1 < args.Length) packagePath = args[++i];
                 else if (args[i] == "--dest" && i + 1 < args.Length) destDir = args[++i];
             }
 
@@ -885,8 +915,35 @@ namespace PixOcrSearch
                 }
                 Directory.CreateDirectory(tempExtractDir);
 
-                // 解压缩 zip 包
-                ZipFile.ExtractToDirectory(zipPath, tempExtractDir);
+                if (packagePath.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase))
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo(packagePath)
+                    {
+                        Arguments = $"-o\"{tempExtractDir}\" -y",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    var extractProcess = System.Diagnostics.Process.Start(psi);
+                    extractProcess?.WaitForExit(60000);
+                }
+                else if (packagePath.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
+                {
+                    string local7z = Path.Combine(destDir, "tools", "7-Zip", "7z.exe");
+                    string exe7z = File.Exists(local7z) ? local7z : "7z";
+                    var psi = new System.Diagnostics.ProcessStartInfo(exe7z)
+                    {
+                        Arguments = $"x \"{packagePath}\" -o\"{tempExtractDir}\" -y",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    var extractProcess = System.Diagnostics.Process.Start(psi);
+                    extractProcess?.WaitForExit(60000);
+                }
+                else
+                {
+                    // 兼容历史 zip 包
+                    ZipFile.ExtractToDirectory(packagePath, tempExtractDir);
+                }
 
                 // 寻找源目录
                 string sourceDir = tempExtractDir;
@@ -900,7 +957,7 @@ namespace PixOcrSearch
                 CopyDirectoryRecursive(sourceDir, destDir);
 
                 try { Directory.Delete(tempExtractDir, true); } catch { }
-                try { File.Delete(zipPath); } catch { }
+                try { File.Delete(packagePath); } catch { }
 
                 // 重启新版本
                 string mainExe = Path.Combine(destDir, "SnapFind.exe");

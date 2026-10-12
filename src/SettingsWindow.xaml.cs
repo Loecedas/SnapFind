@@ -115,6 +115,23 @@ namespace PixOcrSearch
                 LanguageComboBox.SelectedIndex = 0;
             }
 
+            // Result font size
+            int currentFontSize = ConfigManager.Current.ResultFontSize > 0 ? ConfigManager.Current.ResultFontSize : 13;
+            bool fontSizeFound = false;
+            foreach (ComboBoxItem item in ResultFontSizeComboBox.Items)
+            {
+                if (int.TryParse(item.Tag?.ToString(), out int sz) && sz == currentFontSize)
+                {
+                    ResultFontSizeComboBox.SelectedItem = item;
+                    fontSizeFound = true;
+                    break;
+                }
+            }
+            if (!fontSizeFound)
+            {
+                ResultFontSizeComboBox.SelectedIndex = 0;
+            }
+
             // Search engine
             string currentUrl = ConfigManager.Current.SearchEngineUrl;
             bool found = false;
@@ -195,14 +212,40 @@ namespace PixOcrSearch
             DoNotOpenEditWindowCheckBox.IsChecked = ConfigManager.Current.AutoCopyToClipboard && ConfigManager.Current.DoNotOpenEditWindow;
             DoNotOpenEditWindowCheckBox.IsEnabled = AutoCopyCheckBox.IsChecked == true;
             MultiRegionCheckBox.IsChecked = ConfigManager.Current.MultiRegionSelection;
+            AutoTranslateOcrCheckBox.IsChecked = ConfigManager.Current.AutoTranslateOcrResult;
+            UpdatePluginDependentUI();
+        }
+
+        /// <summary>
+        /// 根据是否实际导入安装了翻译扩展插件，动态切换设置页中联动选项的显隐
+        /// </summary>
+        public void UpdatePluginDependentUI()
+        {
+            bool isAvailable = PluginManager.IsTranslationPluginAvailable;
+            AutoTranslateOcrCheckBox.Visibility = isAvailable ? Visibility.Visible : Visibility.Collapsed;
+            if (!isAvailable)
+            {
+                AutoTranslateOcrCheckBox.IsChecked = false;
+                ConfigManager.Current.AutoTranslateOcrResult = false;
+            }
         }
 
         public void ApplyLocalization()
         {
             WindowTitleText.Text = Localization.ControlCenterTitle;
             RadioSettings.Content = Localization.TabSettings;
+            RadioPlugins.Content = Localization.TabPlugins;
             RadioNotifications.Content = Localization.TabUpdates;
             RadioAbout.Content = Localization.TabAbout;
+
+            PluginsTitleText.Text = Localization.PluginsTitle;
+            PluginsDescText.Text = Localization.PluginsDesc;
+            BtnImportPlugin.Content = Localization.BtnImportPlugin;
+            BtnOpenPluginFolder.Content = Localization.BtnOpenPluginFolder;
+            BtnRefreshPlugins.Content = Localization.BtnRefreshPlugins;
+            PluginsEmptyTitleText.Text = Localization.PluginsEmptyTitle;
+            PluginsEmptyDescText.Text = Localization.PluginsEmptyDesc;
+            PluginsCloseButton.Content = Localization.BtnClose;
 
             LabelLanguageText.Text = Localization.LabelLanguage;
             LabelSearchEngineText.Text = Localization.LabelSearchEngine;
@@ -211,13 +254,22 @@ namespace PixOcrSearch
             LabelScreenshotHotkeyText.ToolTip = Localization.HotkeyTooltip;
             LabelControlPanelHotkeyText.Text = Localization.LabelControlPanelHotkey;
             LabelControlPanelHotkeyText.ToolTip = Localization.HotkeyTooltip;
+            LabelResultFontSizeText.Text = Localization.LabelResultFontSize;
 
             AutoStartCheckBox.Content = Localization.CheckAutoStart;
             AutoCopyCheckBox.Content = Localization.CheckAutoCopy;
             DoNotOpenEditWindowCheckBox.Content = Localization.CheckDoNotOpenEditWindow;
             MultiRegionCheckBox.Content = Localization.CheckMultiRegion;
+            AutoTranslateOcrCheckBox.Content = Localization.CheckAutoTranslateOcr;
             SettingsCancelButton.Content = Localization.BtnCancel;
             SettingsSaveButton.Content = Localization.BtnSave;
+
+            // Result Font Size items
+            if (ResultFontSizeComboBox.Items.Count >= 2)
+            {
+                if (ResultFontSizeComboBox.Items[0] is ComboBoxItem fontItem0) fontItem0.Content = Localization.FontSizeStandard;
+                if (ResultFontSizeComboBox.Items[1] is ComboBoxItem fontItem1) fontItem1.Content = Localization.FontSizeExtraLarge;
+            }
 
             // Search Engine items
             if (SearchEngineComboBox.Items.Count >= 2)
@@ -300,11 +352,17 @@ namespace PixOcrSearch
             // Toggle Panels Visibility
             PanelNotifications.Visibility = tabName == "notifications" ? Visibility.Visible : Visibility.Collapsed;
             PanelSettings.Visibility = tabName == "settings" ? Visibility.Visible : Visibility.Collapsed;
+            PanelPlugins.Visibility = tabName == "plugins" ? Visibility.Visible : Visibility.Collapsed;
             PanelAbout.Visibility = tabName == "about" ? Visibility.Visible : Visibility.Collapsed;
 
             // Highlight Sidebar Radio
             if (tabName == "notifications") RadioNotifications.IsChecked = true;
-            else if (tabName == "settings") RadioSettings.IsChecked = true;
+            else if (tabName == "settings") 
+            {
+                RadioSettings.IsChecked = true;
+                UpdatePluginDependentUI();
+            }
+            else if (tabName == "plugins") RadioPlugins.IsChecked = true;
             else if (tabName == "about") RadioAbout.IsChecked = true;
 
             // Custom tab initialization
@@ -318,6 +376,10 @@ namespace PixOcrSearch
                 {
                     FetchLatestReleaseAsync();
                 }
+            }
+            else if (tabName == "plugins")
+            {
+                RefreshPluginsList();
             }
         }
 
@@ -337,6 +399,7 @@ namespace PixOcrSearch
                 // Prevent check change
                 if (_currentActiveTab == "notifications") RadioNotifications.IsChecked = true;
                 else if (_currentActiveTab == "settings") RadioSettings.IsChecked = true;
+                else if (_currentActiveTab == "plugins") RadioPlugins.IsChecked = true;
                 else if (_currentActiveTab == "about") RadioAbout.IsChecked = true;
                 return;
             }
@@ -506,11 +569,20 @@ namespace PixOcrSearch
             ConfigManager.Current.ControlPanelHotkeyKey = _recordedControlPanelKey;
             ConfigManager.Current.OcrModel = model;
             
+            int fontSize = 13;
+            if (ResultFontSizeComboBox.SelectedItem is ComboBoxItem selectedFontItem &&
+                int.TryParse(selectedFontItem.Tag?.ToString(), out int parsedFontSize))
+            {
+                fontSize = parsedFontSize;
+            }
+            ConfigManager.Current.ResultFontSize = fontSize;
+
             bool autoStart = AutoStartCheckBox.IsChecked == true;
             ConfigManager.Current.StartWithWindows = autoStart;
             ConfigManager.Current.AutoCopyToClipboard = AutoCopyCheckBox.IsChecked == true;
             ConfigManager.Current.DoNotOpenEditWindow = AutoCopyCheckBox.IsChecked == true && DoNotOpenEditWindowCheckBox.IsChecked == true;
             ConfigManager.Current.MultiRegionSelection = MultiRegionCheckBox.IsChecked == true;
+            ConfigManager.Current.AutoTranslateOcrResult = AutoTranslateOcrCheckBox.Visibility == Visibility.Visible && AutoTranslateOcrCheckBox.IsChecked == true;
 
             ConfigManager.Save();
 
@@ -952,31 +1024,21 @@ namespace PixOcrSearch
 
                 if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
                 {
+                    var assetList = new List<(string Name, string Url, long Size)>();
                     foreach (var asset in assetsVal.EnumerateArray())
                     {
                         string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                            size = asset.GetProperty("size").GetInt64();
-                            break;
-                        }
+                        string url = asset.GetProperty("browser_download_url").GetString() ?? "";
+                        long sz = asset.TryGetProperty("size", out var sp) ? sp.GetInt64() : 0;
+                        assetList.Add((name, url, sz));
                     }
-                    if (string.IsNullOrEmpty(downloadUrl))
+
+                    string? matchedName = UpdateHelper.SelectAsset(assetList.Select(a => a.Name), CurrentEdition, isInstalled);
+                    if (!string.IsNullOrEmpty(matchedName))
                     {
-                        string legacyPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
-                        foreach (var asset in assetsVal.EnumerateArray())
-                        {
-                            string name = asset.GetProperty("name").GetString() ?? "";
-                            if (name.StartsWith(legacyPattern, StringComparison.OrdinalIgnoreCase) &&
-                                name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase) &&
-                                !name.Contains(OppositeEdition, StringComparison.OrdinalIgnoreCase))
-                            {
-                                downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                                size = asset.GetProperty("size").GetInt64();
-                                break;
-                            }
-                        }
+                        var matched = assetList.FirstOrDefault(a => a.Name.Equals(matchedName, StringComparison.OrdinalIgnoreCase));
+                        downloadUrl = matched.Url;
+                        size = matched.Size;
                     }
                 }
 
@@ -1028,18 +1090,21 @@ namespace PixOcrSearch
 
                 if (root.TryGetProperty("assets", out var assetsVal) && assetsVal.ValueKind == JsonValueKind.Array)
                 {
+                    var assetList = new List<(string Name, string Url, long Size)>();
                     foreach (var asset in assetsVal.EnumerateArray())
                     {
                         string name = asset.GetProperty("name").GetString() ?? "";
-                        if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) && name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
-                        {
-                            downloadUrl = asset.GetProperty("browser_download_url").GetString() ?? "";
-                            if (asset.TryGetProperty("size", out var sizeProp))
-                            {
-                                size = sizeProp.GetInt64();
-                            }
-                            break;
-                        }
+                        string url = asset.GetProperty("browser_download_url").GetString() ?? "";
+                        long sz = asset.TryGetProperty("size", out var sp) ? sp.GetInt64() : 0;
+                        assetList.Add((name, url, sz));
+                    }
+
+                    string? matchedName = UpdateHelper.SelectAsset(assetList.Select(a => a.Name), CurrentEdition, isInstalled);
+                    if (!string.IsNullOrEmpty(matchedName))
+                    {
+                        var matched = assetList.FirstOrDefault(a => a.Name.Equals(matchedName, StringComparison.OrdinalIgnoreCase));
+                        downloadUrl = matched.Url;
+                        size = matched.Size;
                     }
                 }
 
@@ -1131,8 +1196,10 @@ namespace PixOcrSearch
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
             SetChangelogMarkdown(Localization.IsEnglish
                 ? "### 🚀 SnapFind v2.4.9 Changelog\n" +
-                  "- **Precise Edition Update Matching**: Refined release asset matching to ensure Rapid and Paddle editions strictly download their corresponding packages.\n" +
-                  "- **Stale Uninstall Entry Cleanup**: Automatically cleans up legacy and cross-edition uninstall registry entries during setup to eliminate duplicate entries in Windows Installed Apps.\n\n" +
+                  "- **Resizable OCR Result Window**: The recognition result window can now be freely resized by dragging any edge or corner, with responsive layout adapting automatically.\n" +
+                  "- **Result Font Size Setting**: Added font size configuration in Settings (Standard 13pt and Extra Large 17pt) with persistent preferences.\n" +
+                  "- **Multi-Monitor Mixed DPI Fix**: Completely resolved the excessive scaling bug on secondary monitors under mixed DPI configurations (e.g., 225% primary and 175% secondary).\n" +
+                  "- **Seamless 7z SFX Auto-Update**: Upgraded portable packages to 7z SFX self-extracting executables (.7z.exe) with fully automated silent in-place updates, matching Rapid and Paddle editions accurately.\n\n" +
                   "### 🚀 SnapFind v2.4.8 Changelog\n" +
                   "- **Multi-Monitor Cancel Fix**: Resolved an issue where right-clicking empty space to cancel OCR screenshot only dismissed the active monitor's overlay while leaving secondary screens masked.\n" +
                   "- **Unified Capture Cancellation**: Synchronized cancellation triggers (Right Click, Escape, Cancel Button, Empty Click) across all connected displays to instantly clear all overlays and unlock global hotkeys.\n\n" +
@@ -1150,8 +1217,10 @@ namespace PixOcrSearch
                   "- **Bilingual Support**: Added full bilingual language switching support (Simplified Chinese & English) in Settings.\n" +
                   "- **Installer Fix**: Fixed English installer translation coverage in setup wizard."
                 : "### 🚀 SnapFind v2.4.9 更新日志\n" +
-                  "- **优化版本更新匹配规则**: 重构检查更新对发布资产的解析逻辑，使快速版与高精版严格对应各自的安装包与便携包，避免跨版本误下载。\n" +
-                  "- **自动清理旧版残留卸载项**: 安装向导在安装或升级时自动清理旧版本与历史残留的卸载注册表条目，避免系统应用列表中出现重复残留项。\n\n" +
+                  "- **OCR 结果窗口自由缩放**: 识别结果编辑窗口支持通过拖动边缘或四角自由放大缩小，文本框与交互按钮自动自适应拉伸布局。\n" +
+                  "- **结果字号配置**: 设置面板中新增结果框字号设置，支持“标准字号 (13pt - 默认)”与“特大号 (17pt - 放大两号)”。\n" +
+                  "- **跨屏混合 DPI 乘积缩放修复**: 彻底解决主副屏不同 DPI 缩放比例（如主屏 225%、副屏 175%）下副屏截图被双重乘积放大的畸变 Bug。\n" +
+                  "- **7z SFX 免解压无感自动更新**: 便携包全面升级为 7z 自解压程序 (.7z.exe)，软件内更新实现后台静默原地解压替换与双版本严格匹配隔离。\n\n" +
                   "### 🚀 SnapFind v2.4.8 更新日志\n" +
                   "- **多显示器取消截图修复**: 彻底解决在多显示器环境下快捷键呼出 OCR 截图时，鼠标右键点击空白处仅取消当前屏幕、其他副屏仍残留全屏遮罩的问题。\n" +
                   "- **全屏幕取消与解锁同步**: 统一全屏遮罩取消事件广播机制（右键空白、ESC 按键、取消按钮及空白点击），保证在任一屏幕取消均立即关闭所有显示器蒙版并释放快捷键占用。\n\n" +
@@ -1190,11 +1259,12 @@ namespace PixOcrSearch
                 return;
             }
 
-            string ext = Path.GetExtension(_releaseInfo.DownloadUrl);
-            if (string.IsNullOrEmpty(ext)) ext = ".exe";
+            string fileName = Path.GetFileName(_releaseInfo.DownloadUrl);
+            if (string.IsNullOrEmpty(fileName))
+            {
+                fileName = $"SnapFindUpdate_{_releaseInfo.TagName}.exe";
+            }
             string cacheDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache");
-            string prefix = ext.Equals(".zip", StringComparison.OrdinalIgnoreCase) ? $"SnapFindPortable_{CurrentEdition}_" : $"SnapFindSetup_{CurrentEdition}_";
-            string fileName = $"{prefix}{_releaseInfo.TagName}{ext}";
             string filePath = Path.Combine(cacheDir, fileName);
 
             _isDownloading = true;
@@ -1276,7 +1346,11 @@ namespace PixOcrSearch
                 {
                     try
                     {
-                        if (filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                        bool isPortable = filePath.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase) ||
+                                          filePath.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                                          filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+
+                        if (isPortable)
                         {
                             string currentDir = AppDomain.CurrentDomain.BaseDirectory;
                             string cacheDir = Path.Combine(currentDir, "cache");
@@ -1293,11 +1367,11 @@ namespace PixOcrSearch
 
                             int currentPid = Process.GetCurrentProcess().Id;
                             string safeDest = currentDir.TrimEnd('\\');
-                            string safeZip = filePath.TrimEnd('\\');
+                            string safePackage = filePath.TrimEnd('\\');
 
                             Process.Start(new ProcessStartInfo(tempUpdater)
                             {
-                                Arguments = $"--update-mode --pid {currentPid} --zip \"{safeZip}\" --dest \"{safeDest}\"",
+                                Arguments = $"--update-mode --pid {currentPid} --package \"{safePackage}\" --zip \"{safePackage}\" --dest \"{safeDest}\"",
                                 UseShellExecute = true
                             });
                         }
@@ -1313,7 +1387,10 @@ namespace PixOcrSearch
                     }
                     catch (Exception ex)
                     {
-                        string mode = filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) 
+                        bool isPortable = filePath.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase) ||
+                                          filePath.EndsWith(".7z", StringComparison.OrdinalIgnoreCase) ||
+                                          filePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+                        string mode = isPortable
                             ? (Localization.IsEnglish ? "Auto deploy portable package" : "自动部署便携包") 
                             : (Localization.IsEnglish ? "Launch installer" : "启动安装程序");
                         MessageBox.Show($"{mode} {(Localization.IsEnglish ? "failed" : "失败")}: {ex.Message}\n{(Localization.IsEnglish ? "Please operate file manually" : "请手动操作文件")}: {filePath}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1418,6 +1495,668 @@ namespace PixOcrSearch
         {
             base.OnClosed(e);
             OcrHelper.OptimizeMemory();
+        }
+
+        // --- Plugins Page Code ---
+
+        private string GetPluginsDirectory()
+        {
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            return Path.Combine(baseDir, "plugins");
+        }
+
+        private void BtnImportPlugin_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = Localization.IsEnglish ? "Select Plugin Package" : "选择插件安装包",
+                    Filter = Localization.PluginsFilterText
+                };
+
+                if (dlg.ShowDialog() == true)
+                {
+                    string pluginsDir = GetPluginsDirectory();
+                    if (!Directory.Exists(pluginsDir))
+                    {
+                        Directory.CreateDirectory(pluginsDir);
+                    }
+
+                    string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
+                    string detectedPluginName = Path.GetFileNameWithoutExtension(dlg.FileName);
+
+                    if (ext == ".zip")
+                    {
+                        string tempExtract = Path.Combine(Path.GetTempPath(), "SnapFind_Plugin_Ext_" + Guid.NewGuid().ToString("N"));
+                        try
+                        {
+                            System.IO.Compression.ZipFile.ExtractToDirectory(dlg.FileName, tempExtract);
+
+                            // 分析解压后的目录结构
+                            var topDirs = Directory.GetDirectories(tempExtract);
+                            var topFiles = Directory.GetFiles(tempExtract);
+
+                            string targetPluginDir;
+                            if (topDirs.Length == 1 && topFiles.Length == 0)
+                            {
+                                string folderName = Path.GetFileName(topDirs[0]);
+                                targetPluginDir = Path.Combine(pluginsDir, folderName);
+                                if (Directory.Exists(targetPluginDir))
+                                {
+                                    try { Directory.Delete(targetPluginDir, true); } catch { }
+                                }
+                                Directory.CreateDirectory(targetPluginDir);
+                                CopyDirectoryRecursive(topDirs[0], targetPluginDir);
+                                detectedPluginName = folderName;
+                            }
+                            else
+                            {
+                                string cleanName = detectedPluginName.Split('_')[0];
+                                targetPluginDir = Path.Combine(pluginsDir, cleanName);
+                                if (Directory.Exists(targetPluginDir))
+                                {
+                                    try { Directory.Delete(targetPluginDir, true); } catch { }
+                                }
+                                Directory.CreateDirectory(targetPluginDir);
+                                CopyDirectoryRecursive(tempExtract, targetPluginDir);
+                                detectedPluginName = cleanName;
+                            }
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                if (Directory.Exists(tempExtract)) Directory.Delete(tempExtract, true);
+                            }
+                            catch { }
+                        }
+                    }
+                    else
+                    {
+                        string destFile = Path.Combine(pluginsDir, Path.GetFileName(dlg.FileName));
+                        File.Copy(dlg.FileName, destFile, true);
+                    }
+
+                    // 自动激活对应插件并生效
+                    if (detectedPluginName.Contains("Translation", StringComparison.OrdinalIgnoreCase))
+                    {
+                        PluginManager.SetPluginActive("SnapFind.Plugin.Translation", true);
+                    }
+                    else
+                    {
+                        PluginManager.SetPluginActive(detectedPluginName, true);
+                    }
+
+                    if (Application.Current is App app)
+                    {
+                        app.ReRegisterHotkey();
+                        app.UpdateTrayMenuLanguage();
+                    }
+
+                    RefreshPluginsList();
+
+                    string hotkeyDesc = ConfigManager.Current.TranslateHotkeyModifiers.Replace(",", " + ") + " + " + ConfigManager.Current.TranslateHotkeyKey;
+                    MessageBox.Show(
+                        Localization.MsgPluginImportSuccessWithHotkey(detectedPluginName, hotkeyDesc),
+                        Localization.TitleInfo,
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(Localization.PluginsImportFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static void CopyDirectoryRecursive(string sourceDir, string targetDir)
+        {
+            Directory.CreateDirectory(targetDir);
+            foreach (var file in Directory.GetFiles(sourceDir))
+            {
+                string targetFile = Path.Combine(targetDir, Path.GetFileName(file));
+                File.Copy(file, targetFile, true);
+            }
+            foreach (var subDir in Directory.GetDirectories(sourceDir))
+            {
+                string targetSubDir = Path.Combine(targetDir, Path.GetFileName(subDir));
+                CopyDirectoryRecursive(subDir, targetSubDir);
+            }
+        }
+
+        private void BtnOpenPluginFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string pluginsDir = GetPluginsDirectory();
+                if (!Directory.Exists(pluginsDir))
+                {
+                    Directory.CreateDirectory(pluginsDir);
+                }
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = pluginsDir,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnRefreshPlugins_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshPluginsList();
+        }
+
+        private void RefreshPluginsList()
+        {
+            try
+            {
+                PluginsListPanel.Children.Clear();
+
+                var plugins = PluginManager.GetInstalledPlugins();
+
+                if (plugins.Count == 0)
+                {
+                    PluginsEmptyStateBorder.Visibility = Visibility.Visible;
+                    PluginsStatusText.Text = Localization.PluginsLoadedCount(0, 0);
+                    return;
+                }
+
+                PluginsEmptyStateBorder.Visibility = Visibility.Collapsed;
+
+                int activeCount = 0;
+                foreach (var plugin in plugins)
+                {
+                    if (plugin.IsActive) activeCount++;
+                    AddPluginCard(plugin);
+                }
+
+                PluginsStatusText.Text = Localization.PluginsLoadedCount(plugins.Count, activeCount);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshPluginsList Exception: {ex}");
+                PluginsEmptyStateBorder.Visibility = Visibility.Visible;
+                PluginsStatusText.Text = Localization.PluginsLoadedCount(0, 0);
+            }
+            finally
+            {
+                UpdatePluginDependentUI();
+            }
+        }
+
+        private void AddPluginCard(PluginInfo plugin)
+        {
+            var card = new Border
+            {
+                Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
+                BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeWindowBorder"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(14, 12, 14, 12),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+
+            var mainStack = new StackPanel();
+
+            // Top Row: Info + Actions
+            var topGrid = new Grid();
+            topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // Left: Information Panel
+            var leftPanel = new DockPanel { LastChildFill = true };
+
+            // Plugin Icon
+            var iconBorder = new Border
+            {
+                Width = 36,
+                Height = 36,
+                CornerRadius = new CornerRadius(6),
+                Background = plugin.IsActive 
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(20, 128, 134, 139)),
+                BorderBrush = plugin.IsActive
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(60, 0, 120, 215))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 128, 134, 139)),
+                BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 2, 12, 0),
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            DockPanel.SetDock(iconBorder, Dock.Left);
+
+            var iconText = new TextBlock
+            {
+                Text = plugin.Id == "SnapFind.Plugin.Translation" ? "🌐" : "🧩",
+                FontSize = 18,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+            iconBorder.Child = iconText;
+            leftPanel.Children.Add(iconBorder);
+
+            var infoStack = new StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center };
+
+            // Title & Badges
+            var titlePanel = new WrapPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, VerticalAlignment = System.Windows.VerticalAlignment.Center };
+
+            var titleBlock = new TextBlock
+            {
+                Text = string.IsNullOrWhiteSpace(plugin.Name) ? plugin.Id : plugin.Name,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            titlePanel.Children.Add(titleBlock);
+
+            // Version Badge
+            var verBorder = new Border
+            {
+                Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(5, 1, 5, 1),
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            verBorder.Child = new TextBlock
+            {
+                Text = $"v{plugin.Version}",
+                FontSize = 10,
+                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText")
+            };
+            titlePanel.Children.Add(verBorder);
+
+            // Type Badge
+            var typeBadgeBorder = new Border
+            {
+                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215)),
+                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(80, 0, 120, 215)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(5, 1, 5, 1),
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            typeBadgeBorder.Child = new TextBlock
+            {
+                Text = plugin.TypeName,
+                FontSize = 10,
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215))
+            };
+            titlePanel.Children.Add(typeBadgeBorder);
+
+            // Status Badge (Active / Disabled)
+            var statusBadgeBorder = new Border
+            {
+                Background = plugin.IsActive 
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(30, 46, 125, 50))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(25, 128, 134, 139)),
+                BorderBrush = plugin.IsActive
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 46, 125, 50))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(70, 128, 134, 139)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(6, 1, 6, 1),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            statusBadgeBorder.Child = new TextBlock
+            {
+                Text = plugin.IsActive ? Localization.PluginStatusActive : Localization.PluginStatusDisabled,
+                FontSize = 10,
+                FontWeight = FontWeights.Medium,
+                Foreground = plugin.IsActive
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 125, 50))
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 134, 139))
+            };
+            titlePanel.Children.Add(statusBadgeBorder);
+
+            infoStack.Children.Add(titlePanel);
+
+            // Description
+            var descBlock = new TextBlock
+            {
+                Text = plugin.Description,
+                FontSize = 11,
+                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
+                Margin = new Thickness(0, 4, 0, 0),
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 16,
+                MaxWidth = 360
+            };
+            infoStack.Children.Add(descBlock);
+
+            leftPanel.Children.Add(infoStack);
+            Grid.SetColumn(leftPanel, 0);
+            topGrid.Children.Add(leftPanel);
+
+            // Right: Actions Panel
+            var actionsPanel = new StackPanel
+            {
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(10, 0, 0, 0)
+            };
+
+            // 1. Enable / Disable Toggle Button
+            var toggleBtn = new System.Windows.Controls.Button
+            {
+                Content = plugin.IsActive ? Localization.BtnDisablePlugin : Localization.BtnEnablePlugin,
+                Style = plugin.IsActive ? (Style)FindResource("ModernButton") : (Style)FindResource("PrimaryButton"),
+                Padding = new Thickness(10, 4, 10, 4),
+                Margin = new Thickness(0, 0, 6, 0),
+                ToolTip = plugin.IsActive ? "点击停用此插件" : "点击启用此插件"
+            };
+            toggleBtn.Click += (s, ev) =>
+            {
+                PluginManager.SetPluginActive(plugin.Id, !plugin.IsActive);
+                RefreshPluginsList();
+            };
+            actionsPanel.Children.Add(toggleBtn);
+
+            // 2. Test Launch Button (if available)
+            if (plugin.Id == "SnapFind.Plugin.Translation" && plugin.IsActive)
+            {
+                var testBtn = new System.Windows.Controls.Button
+                {
+                    Content = Localization.IsEnglish ? "Test" : "测试",
+                    Style = (Style)FindResource("PrimaryButton"),
+                    Padding = new Thickness(8, 4, 8, 4),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    ToolTip = "测试打开翻译窗口"
+                };
+                testBtn.Click += (s, ev) =>
+                {
+                    PluginManager.ShowTranslationWindow("Hello SnapFind! 这是一个翻译测试。", this);
+                };
+                actionsPanel.Children.Add(testBtn);
+            }
+
+            // 3. Location Button
+            var openFolderBtn = new System.Windows.Controls.Button
+            {
+                Content = Localization.IsEnglish ? "Folder" : "目录",
+                Style = (Style)FindResource("ModernButton"),
+                Padding = new Thickness(8, 4, 8, 4),
+                Margin = new Thickness(0, 0, 6, 0),
+                ToolTip = "打开插件所在文件夹"
+            };
+            openFolderBtn.Click += (s, ev) =>
+            {
+                try
+                {
+                    string target = Directory.Exists(plugin.Location) ? plugin.Location : (Path.GetDirectoryName(plugin.Location) ?? GetPluginsDirectory());
+                    if (!Directory.Exists(target)) target = GetPluginsDirectory();
+                    Process.Start(new ProcessStartInfo { FileName = target, UseShellExecute = true });
+                }
+                catch { }
+            };
+            actionsPanel.Children.Add(openFolderBtn);
+
+            // 4. Delete Plugin Button
+            var deleteBtn = new System.Windows.Controls.Button
+            {
+                Content = Localization.BtnDeletePlugin,
+                Style = (Style)FindResource("DangerButton"),
+                Padding = new Thickness(8, 4, 8, 4),
+                ToolTip = "删除或移除此插件"
+            };
+            deleteBtn.Click += (s, ev) =>
+            {
+                string displayName = string.IsNullOrWhiteSpace(plugin.Name) ? plugin.Id : plugin.Name;
+                var confirm = MessageBox.Show(
+                    Localization.MsgConfirmDeletePlugin(displayName),
+                    Localization.BtnDeletePlugin,
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+                if (confirm == MessageBoxResult.Yes)
+                {
+                    var (ok, msg) = PluginManager.DeletePlugin(plugin.Id);
+                    RefreshPluginsList();
+                    if (!ok)
+                    {
+                        MessageBox.Show(msg, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        MessageBox.Show(msg, Localization.TitleInfo, MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            };
+            actionsPanel.Children.Add(deleteBtn);
+
+            Grid.SetColumn(actionsPanel, 1);
+            topGrid.Children.Add(actionsPanel);
+            mainStack.Children.Add(topGrid);
+
+            // Features badges (if any)
+            if (plugin.Features != null && plugin.Features.Count > 0)
+            {
+                var featPanel = new WrapPanel
+                {
+                    Orientation = System.Windows.Controls.Orientation.Horizontal,
+                    Margin = new Thickness(48, 6, 0, 0)
+                };
+                foreach (var feat in plugin.Features)
+                {
+                    var fBorder = new Border
+                    {
+                        Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                        CornerRadius = new CornerRadius(3),
+                        Padding = new Thickness(6, 2, 6, 2),
+                        Margin = new Thickness(0, 0, 6, 4)
+                    };
+                    fBorder.Child = new TextBlock
+                    {
+                        Text = feat,
+                        FontSize = 10,
+                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText")
+                    };
+                    featPanel.Children.Add(fBorder);
+                }
+                mainStack.Children.Add(featPanel);
+            }
+
+            // Hotkey Configuration Bar
+            if (plugin.HasHotkey || plugin.Id == "SnapFind.Plugin.Translation")
+            {
+                var hotkeyCard = new Border
+                {
+                    Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(12, 8, 12, 8),
+                    Margin = new Thickness(48, 8, 0, 0),
+                    IsEnabled = plugin.IsActive
+                };
+
+                var hotkeyWrap = new WrapPanel
+                {
+                    Orientation = System.Windows.Controls.Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                // Hotkey Label
+                var hotkeyLabel = new TextBlock
+                {
+                    Text = Localization.LabelPluginLaunchHotkey,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 11,
+                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 8, 0)
+                };
+                hotkeyWrap.Children.Add(hotkeyLabel);
+
+                // Hotkey Input Box
+                string curMods = plugin.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : plugin.HotkeyModifiers;
+                string curKey = plugin.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyKey : plugin.HotkeyKey;
+                if (string.IsNullOrEmpty(curMods)) curMods = "Control,Alt";
+                if (string.IsNullOrEmpty(curKey)) curKey = "T";
+
+                var hotkeyBox = new System.Windows.Controls.TextBox
+                {
+                    Text = curMods.Replace(",", " + ") + " + " + curKey,
+                    Width = 140,
+                    Height = 26,
+                    IsReadOnly = true,
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    TextAlignment = TextAlignment.Center,
+                    FontWeight = FontWeights.Medium,
+                    FontSize = 11,
+                    Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
+                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeInputFg"),
+                    BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeInputBorder"),
+                    BorderThickness = new Thickness(1),
+                    Padding = new Thickness(4, 2, 4, 2),
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    ToolTip = Localization.TipPluginHotkeyRecording,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0)
+                };
+
+                hotkeyBox.PreviewKeyDown += (s, ev) =>
+                {
+                    ev.Handled = true;
+                    Key key = ev.Key == Key.System ? ev.SystemKey : ev.Key;
+                    if (key == Key.LeftCtrl || key == Key.RightCtrl ||
+                        key == Key.LeftAlt || key == Key.RightAlt ||
+                        key == Key.LeftShift || key == Key.RightShift ||
+                        key == Key.LWin || key == Key.RWin) return;
+
+                    var sb = new StringBuilder();
+                    var modifiers = Keyboard.Modifiers;
+                    if ((modifiers & ModifierKeys.Control) != 0) sb.Append("Control,");
+                    if ((modifiers & ModifierKeys.Alt) != 0) sb.Append("Alt,");
+                    if ((modifiers & ModifierKeys.Shift) != 0) sb.Append("Shift,");
+                    if ((modifiers & ModifierKeys.Windows) != 0) sb.Append("Windows,");
+
+                    string modStr = sb.ToString().TrimEnd(',');
+                    if (string.IsNullOrEmpty(modStr))
+                    {
+                        MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    if (plugin.Id == "SnapFind.Plugin.Translation")
+                    {
+                        ConfigManager.Current.TranslateHotkeyModifiers = modStr;
+                        ConfigManager.Current.TranslateHotkeyKey = key.ToString();
+                        ConfigManager.Save();
+                        if (Application.Current is App app)
+                        {
+                            app.ReRegisterHotkey();
+                        }
+                    }
+
+                    hotkeyBox.Text = modStr.Replace(",", " + ") + " + " + key.ToString();
+                };
+                hotkeyWrap.Children.Add(hotkeyBox);
+
+                // Reset Hotkey Button
+                var resetBtn = new System.Windows.Controls.Button
+                {
+                    Content = Localization.BtnResetHotkey,
+                    Style = (Style)FindResource("ModernButton"),
+                    Padding = new Thickness(6, 1, 6, 1),
+                    Height = 24,
+                    FontSize = 10,
+                    Margin = new Thickness(0, 0, 14, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    ToolTip = "重置为默认 Ctrl + Alt + T"
+                };
+                resetBtn.Click += (s, ev) =>
+                {
+                    if (plugin.Id == "SnapFind.Plugin.Translation")
+                    {
+                        ConfigManager.Current.TranslateHotkeyModifiers = "Control,Alt";
+                        ConfigManager.Current.TranslateHotkeyKey = "T";
+                        ConfigManager.Save();
+                        if (Application.Current is App app)
+                        {
+                            app.ReRegisterHotkey();
+                        }
+                    }
+                    hotkeyBox.Text = "Control + Alt + T";
+                };
+                hotkeyWrap.Children.Add(resetBtn);
+
+                // Target Language Option (for Translation Plugin)
+                if (plugin.Id == "SnapFind.Plugin.Translation")
+                {
+                    var langLabel = new TextBlock
+                    {
+                        Text = Localization.LabelDefaultTargetLang,
+                        FontSize = 11,
+                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 6, 0)
+                    };
+                    hotkeyWrap.Children.Add(langLabel);
+
+                    var langCombo = new System.Windows.Controls.ComboBox
+                    {
+                        Height = 26,
+                        Width = 110,
+                        Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
+                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeInputFg"),
+                        BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeInputBorder"),
+                        BorderThickness = new Thickness(1),
+                        Padding = new Thickness(6, 0, 0, 0),
+                        FontSize = 11,
+                        FontFamily = new System.Windows.Media.FontFamily("Segoe UI, Microsoft YaHei UI"),
+                        Template = (ControlTemplate)FindResource("ThemeComboBoxTemplate"),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 10, 0)
+                    };
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "简体中文", Tag = "zh-CN" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "繁體中文", Tag = "zh-TW" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "English", Tag = "en" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "日本語", Tag = "ja" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "한국어", Tag = "ko" });
+
+                    string curTarget = ConfigManager.Current.DefaultTargetLanguage;
+                    int selIdx = 0;
+                    for (int i = 0; i < langCombo.Items.Count; i++)
+                    {
+                        if ((langCombo.Items[i] as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString() == curTarget)
+                        {
+                            selIdx = i;
+                            break;
+                        }
+                    }
+                    langCombo.SelectedIndex = selIdx;
+                    langCombo.SelectionChanged += (s, ev) =>
+                    {
+                        if (langCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+                        {
+                            ConfigManager.Current.DefaultTargetLanguage = item.Tag?.ToString() ?? "zh-CN";
+                            ConfigManager.Save();
+                        }
+                    };
+                    hotkeyWrap.Children.Add(langCombo);
+                }
+
+                // Tip text
+                var tipText = new TextBlock
+                {
+                    Text = Localization.TipPluginHotkeyRecording,
+                    FontSize = 10,
+                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                hotkeyWrap.Children.Add(tipText);
+
+                hotkeyCard.Child = hotkeyWrap;
+                mainStack.Children.Add(hotkeyCard);
+            }
+
+            card.Child = mainStack;
+            PluginsListPanel.Children.Add(card);
         }
     }
 }

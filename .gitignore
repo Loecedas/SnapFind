@@ -10,22 +10,39 @@
 # Build & Compilation Outputs
 [Bb]in/
 [Oo]bj/
+[Dd]ist/
 src/bin/
 src/obj/
+*/dist/
 
 # NuGet Packages
 *.nupkg
 project.lock.json
 project.fragment.lock.json
 
-# SnapFind Generated Binaries & Packages
+# SnapFind Generated Binaries & Packages (Never commit releases to GitHub)
 /SnapFind.exe
 /SnapFind_*.exe
-/releases/
+[Rr]elease/
+[Rr]elease
+[Rr]eleases/
+[Rr]eleases
+release/
+releases/
+*.7z.exe
+*.zip
+SnapFindSetup_*.exe
+SnapFindPortable_*
+SnapFind.Plugin.*.zip
 
-# Runtime cache (config.json, temp debug images)
+# Runtime plugins and cache (User imports dynamically at runtime in root directory)
+/plugins/
 /cache/
 
+# Internal guides & Temporary documents (Do not commit to GitHub)
+*插件接入与适配指南*.md
+*接入与适配指南*.md
+*指南*.md
 
 # OS specific files
 .DS_Store

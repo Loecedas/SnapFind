@@ -1,61 +1,58 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using Xunit;
 
 namespace PixOcrSearch.Tests
 {
     public class UpdateMatchingTests
     {
-        private static string? SelectAsset(
-            IEnumerable<string> assets,
-            string currentEdition,
-            bool isInstalled)
-        {
-            string targetPattern = isInstalled ? $"SnapFindSetup_{currentEdition}_" : $"SnapFindPortable_{currentEdition}_";
-            string targetExtension = isInstalled ? ".exe" : ".zip";
-            string oppositeEdition = currentEdition == "Rapid" ? "Paddle" : "Rapid";
-
-            foreach (var name in assets)
-            {
-                if (name.StartsWith(targetPattern, StringComparison.OrdinalIgnoreCase) &&
-                    name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase))
-                {
-                    return name;
-                }
-            }
-
-            string legacyPattern = isInstalled ? "SnapFindSetup_" : "SnapFindPortable_";
-            foreach (var name in assets)
-            {
-                if (name.StartsWith(legacyPattern, StringComparison.OrdinalIgnoreCase) &&
-                    name.EndsWith(targetExtension, StringComparison.OrdinalIgnoreCase) &&
-                    !name.Contains(oppositeEdition, StringComparison.OrdinalIgnoreCase))
-                {
-                    return name;
-                }
-            }
-
-            return null;
-        }
-
         [Fact]
-        public void RapidInstalled_MatchesRapidSetup_NotPaddle()
+        public void RapidInstalled_MatchesRapidSetup_Not7zExe_NotPaddle()
         {
             var assets = new[]
             {
-                "SnapFindPortable_Paddle_v2.4.8.zip",
-                "SnapFindPortable_Rapid_v2.4.8.zip",
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
                 "SnapFindSetup_Paddle_v2.4.8.exe",
                 "SnapFindSetup_Rapid_v2.4.8.exe"
             };
 
-            var matched = SelectAsset(assets, "Rapid", isInstalled: true);
+            var matched = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: true);
             Assert.Equal("SnapFindSetup_Rapid_v2.4.8.exe", matched);
         }
 
         [Fact]
-        public void RapidPortable_MatchesRapidPortable_NotPaddle()
+        public void RapidPortable_MatchesRapid7zExe_NotPaddle_NotSetup()
+        {
+            var assets = new[]
+            {
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
+                "SnapFindSetup_Paddle_v2.4.8.exe",
+                "SnapFindSetup_Rapid_v2.4.8.exe"
+            };
+
+            var matched = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
+            Assert.Equal("SnapFindPortable_Rapid_v2.4.8.7z.exe", matched);
+        }
+
+        [Fact]
+        public void RapidPortable_Prefers7zExe_OverZip()
+        {
+            var assets = new[]
+            {
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
+                "SnapFindPortable_Rapid_v2.4.8.zip",
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
+                "SnapFindSetup_Paddle_v2.4.8.exe",
+                "SnapFindSetup_Rapid_v2.4.8.exe"
+            };
+
+            var matched = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
+            Assert.Equal("SnapFindPortable_Rapid_v2.4.8.7z.exe", matched);
+        }
+
+        [Fact]
+        public void RapidPortable_FallsBackToZip_WhenNo7zExe()
         {
             var assets = new[]
             {
@@ -65,22 +62,37 @@ namespace PixOcrSearch.Tests
                 "SnapFindSetup_Rapid_v2.4.8.exe"
             };
 
-            var matched = SelectAsset(assets, "Rapid", isInstalled: false);
+            var matched = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
             Assert.Equal("SnapFindPortable_Rapid_v2.4.8.zip", matched);
         }
 
         [Fact]
-        public void PaddleInstalled_MatchesPaddleSetup()
+        public void PaddlePortable_MatchesPaddle7zExe_NotRapid_NotSetup()
         {
             var assets = new[]
             {
-                "SnapFindPortable_Paddle_v2.4.8.zip",
-                "SnapFindPortable_Rapid_v2.4.8.zip",
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
                 "SnapFindSetup_Paddle_v2.4.8.exe",
                 "SnapFindSetup_Rapid_v2.4.8.exe"
             };
 
-            var matched = SelectAsset(assets, "Paddle", isInstalled: true);
+            var matched = UpdateHelper.SelectAsset(assets, "Paddle", isInstalled: false);
+            Assert.Equal("SnapFindPortable_Paddle_v2.4.8.7z.exe", matched);
+        }
+
+        [Fact]
+        public void PaddleInstalled_MatchesPaddleSetup_NotRapid_NotPortable()
+        {
+            var assets = new[]
+            {
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
+                "SnapFindSetup_Paddle_v2.4.8.exe",
+                "SnapFindSetup_Rapid_v2.4.8.exe"
+            };
+
+            var matched = UpdateHelper.SelectAsset(assets, "Paddle", isInstalled: true);
             Assert.Equal("SnapFindSetup_Paddle_v2.4.8.exe", matched);
         }
 
@@ -89,12 +101,15 @@ namespace PixOcrSearch.Tests
         {
             var assets = new[]
             {
-                "SnapFindPortable_v2.4.5.zip",
+                "SnapFindPortable_v2.4.5.7z.exe",
                 "SnapFindSetup_v2.4.5.exe"
             };
 
-            var matched = SelectAsset(assets, "Rapid", isInstalled: true);
-            Assert.Equal("SnapFindSetup_v2.4.5.exe", matched);
+            var matchedInstaller = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: true);
+            Assert.Equal("SnapFindSetup_v2.4.5.exe", matchedInstaller);
+
+            var matchedPortable = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
+            Assert.Equal("SnapFindPortable_v2.4.5.7z.exe", matchedPortable);
         }
 
         [Fact]
@@ -102,12 +117,31 @@ namespace PixOcrSearch.Tests
         {
             var assets = new[]
             {
-                "SnapFindPortable_Paddle_v2.4.8.zip",
+                "SnapFindPortable_Paddle_v2.4.8.7z.exe",
                 "SnapFindSetup_Paddle_v2.4.8.exe"
             };
 
-            var matched = SelectAsset(assets, "Rapid", isInstalled: true);
-            Assert.Null(matched);
+            var matchedInstaller = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: true);
+            Assert.Null(matchedInstaller);
+
+            var matchedPortable = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
+            Assert.Null(matchedPortable);
+        }
+
+        [Fact]
+        public void Paddle_DoesNotFallbackToRapid_WhenPaddleMissing()
+        {
+            var assets = new[]
+            {
+                "SnapFindPortable_Rapid_v2.4.8.7z.exe",
+                "SnapFindSetup_Rapid_v2.4.8.exe"
+            };
+
+            var matchedInstaller = UpdateHelper.SelectAsset(assets, "Paddle", isInstalled: true);
+            Assert.Null(matchedInstaller);
+
+            var matchedPortable = UpdateHelper.SelectAsset(assets, "Paddle", isInstalled: false);
+            Assert.Null(matchedPortable);
         }
     }
 }

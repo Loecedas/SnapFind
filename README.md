@@ -67,12 +67,18 @@
 
 - 🔒 **100% 本地离线推理**：集成 PaddleOCR v6 引擎，支持 `PP-OCRv6_tiny` 与 `PP-OCRv6_small` 双模型动态热切换，无需联网，隐私零外泄。
 - ⚡ **智能内存自动回收**：识别完成后闲置 5 秒自动卸载推理引擎并调用 Windows `EmptyWorkingSet`，后台常驻内存从 ~40MB **骤降至 < 10MB**。
+- 🧩 **模块化扩展插件架构**：主程序遵循极简原则零冗余打包，提供标准插件扩展接口。支持在控制中心一键导入、管理与热插拔插件，随需启用。
+- 🌐 **多源智能翻译插件 (SnapFind.Plugin.Translation)**：
+  - **同步翻译**：OCR 框选识别后自动同步翻译译文并在底部贴合展示（可设置开关，未勾选不触发）。
+  - **独立翻译窗口**：支持全局热键随时唤起/关闭独立翻译浮窗，支持实时互译、简繁转换与智能网络代理。
+  - **极简原生交互**：界面无冗余滚动条，一键 SVG 按钮复制译文，无缝契合系统主题。
 - 🖥️ **多显示器与高 DPI 自适应**：精确适配多屏幕与不同 DPI 缩放比例，杜绝跨屏截图下的偏移和黑屏。
 - 🎨 **Win11 原生现代 UI**：自适应系统暗色/亮色主题、Windows 11 原生 DWM 圆角与阴影特效、6px 极细 Fluent 动态滚动条。
-- 🎛️ **三合一控制中心**：集成设置、关于与双源（GitHub / Gitee）并发自动更新通知，支持中英文双语一键无缝切换。
+- 🎛️ **四合一控制中心**：集成通用设置、扩展插件管理、关于与双源（GitHub / Gitee）并发自动更新通知，支持中英文双语一键无缝切换。
 - ⌨️ **便捷快捷键体系**：
   - `Ctrl + Alt + S`：全局极速截图 OCR（支持在控制面板自定义）
   - `Ctrl + Alt + C`：一键呼出控制中心
+  - `Ctrl + Alt + T`：唤起/关闭独立翻译窗口（需安装翻译插件，支持自定义）
   - `Ctrl + C`：结果框内快捷复制并自动关闭窗口
   - `Enter`：一键拉起系统默认浏览器进行网页检索
   - `Ctrl + Z`：暂存抽屉内快速撤销删除/调序操作
@@ -84,10 +90,12 @@
 ```text
 SnapFind/
 ├── src/        # 核心源代码 (WPF / C#、UI 交互、热键钩子及单文件打包)
+│   └── Plugins/ # 官方扩展插件源代码 (SnapFind.Plugin.Translation 等)
 ├── libs/       # PaddleOCR C++ 原生动态依赖项与离线推理模型
 ├── docs/       # 项目文档与演示图片资源 (docs/images/)
 ├── cache/      # 运行时用户偏好配置 (config.json)
-├── releases/   # 自动化生成的安装包 (installers/) 与免安装绿色版 (portables/)
+├── releases/   # 安装包 (installers/)、便携包 (portables/) 与插件包 (plugins/)
+├── tools/      # 便携版 7z SFX 自解压构建工具链
 └── backup/     # 临时编译缓存与历史发布包一键清理脚本
 ```
 
@@ -135,7 +143,7 @@ SnapFind 提供两种 OCR 引擎架构以满足不同用户场景需求：
 - 运行环境：[.NET 8.0 Desktop Runtime (x64)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 
 ### 安装与使用
-1. **下载使用**：前往 [Releases 页面](https://github.com/Loecedas/SnapFind/releases) 下载最新版的安装包（`SnapFindSetup_vX.Y.Z.exe`）或免安装便携版（`SnapFindPortable_vX.Y.Z.zip`）。
+1. **下载使用**：前往 [Releases 页面](https://github.com/Loecedas/SnapFind/releases) 下载最新版的安装包（`SnapFindSetup_*.exe`）或免安装自解压便携版（`SnapFindPortable_*.7z.exe`）。
 2. **源码调试**：
    ```bash
    git clone https://github.com/Loecedas/SnapFind.git
@@ -145,6 +153,22 @@ SnapFind 提供两种 OCR 引擎架构以满足不同用户场景需求：
    # 或编译运行 PaddleOCR 原生版本
    dotnet run --project SnapFind.csproj
    ```
+
+---
+
+## 🧩 扩展插件安装与使用
+
+SnapFind 采用纯净的外部插件架构，核心包零捆绑无冗余。您可以根据需要下载安装官方扩展插件：
+
+### 安装官方翻译插件 (`SnapFind.Plugin.Translation`)
+1. **获取插件包**：前往 [Releases 页面](https://github.com/Loecedas/SnapFind/releases) 下载 `SnapFind.Plugin.Translation_v*.zip`。
+2. **导入安装**：
+   - **方式一（推荐）**：按下 `Ctrl + Alt + C` 打开控制中心，切换至【扩展插件】标签页，点击【导入插件包】选择下载的 zip 文件即可自动解压安装并即时热加载生效。
+   - **方式二（手动）**：将 zip 包内容解压至 SnapFind 运行目录下的 `plugins/SnapFind.Plugin.Translation` 文件夹中。
+3. **功能配置**：
+   - 安装插件后，控制中心的【设置】页面将动态呈现【智能翻译插件】配置区块。
+   - 可随需勾选【OCR 识别后同步翻译】；未勾选时仅作文本提取，不会发起任何翻译操作。
+   - 支持自定义独立翻译浮窗快捷键（默认 `Ctrl + Alt + T`），随时呼出进行多语言文本互译与简繁转换。
 
 ---
 
