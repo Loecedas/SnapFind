@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # SnapFind
 
@@ -66,8 +66,8 @@ Seamlessly capture screenshots across different applications and windows. Select
 ## ✨ Core Features
 
 - 🔒 **100% Offline Local Inference**: Integrated PaddleOCR v6 engine with dynamic runtime switching between `PP-OCRv6_tiny` and `PP-OCRv6_small` models. Zero cloud dependencies, zero privacy risks.
-- ⚡ **Smart Idle Memory Reclamation**: Automatically disposes of the inference engine and invokes Windows `EmptyWorkingSet` after 5 seconds of inactivity, reducing standby memory from ~40MB to **< 10MB**.
-- 🧩 **Modular Plugin Ecosystem**: Core application remains bloat-free and lightweight, powered by a standardized plugin system. Inspect, load, and hot-plug extensions directly via the Control Center.
+- ⚡ **Smart Idle Memory Reclamation**: Automatically disposes of the inference engine and invokes Windows `EmptyWorkingSet` after 5 minutes of inactivity, reducing standby memory from ~40MB to **< 10MB**.
+- 🧩 **Built-in Translation Extension**: Core application includes a clean built-in translation extension module, configurable and toggleable directly via the Control Center.
 - 🌐 **Intelligent Translation Plugin (`SnapFind.Plugin.Translation`)**:
   - **Synchronous Translation**: Automatically translates extracted text below the OCR results (toggleable in settings; zero overhead when disabled).
   - **Standalone Translation Window**: Press a customizable global hotkey to summon an instant lookup/translation float window supporting multi-lingual translation and proxy options.

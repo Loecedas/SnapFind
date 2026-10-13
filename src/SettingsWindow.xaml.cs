@@ -1153,6 +1153,7 @@ namespace PixOcrSearch
                 if (release != null)
                 {
                     _releaseInfo = release;
+                    _ = LastReleaseCache.SaveAsync(release.TagName, release.Body);
                     DisplayReleaseInfo(_releaseInfo);
                 }
                 else
@@ -1173,7 +1174,10 @@ namespace PixOcrSearch
             
             SetChangelogMarkdown(ExtractLocalizedChangelog(release.Body));
 
-            if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer)
+            bool isIgnored = !string.IsNullOrEmpty(ConfigManager.Current.IgnoredVersion) && 
+                             string.Equals(ConfigManager.Current.IgnoredVersion.TrimStart('v', 'V'), cleanTag, StringComparison.OrdinalIgnoreCase);
+
+            if (Version.TryParse(cleanTag, out Version? latestVer) && latestVer > currentVer && !isIgnored)
             {
                 NotificationTitleText.Text = Localization.UpdateTitleNew(release.TagName);
                 DownloadButton.Visibility = Visibility.Visible;
@@ -1193,6 +1197,14 @@ namespace PixOcrSearch
 
         private void DisplayOfflineLog()
         {
+            var cached = LastReleaseCache.Load();
+            if (cached != null && !string.IsNullOrWhiteSpace(cached.Body))
+            {
+                NotificationTitleText.Text = Localization.IsEnglish ? $"Latest Release Notes ({cached.TagName} Offline)" : $"最新更新日志 ({cached.TagName} 离线)";
+                SetChangelogMarkdown(ExtractLocalizedChangelog(cached.Body));
+                return;
+            }
+
             NotificationTitleText.Text = Localization.IsEnglish ? "Latest Release Notes (Offline)" : "最新更新日志 (离线)";
             SetChangelogMarkdown(Localization.IsEnglish
                 ? "### 🚀 SnapFind v2.4.9 Changelog\n" +
@@ -1838,7 +1850,7 @@ namespace PixOcrSearch
                 Style = plugin.IsActive ? (Style)FindResource("ModernButton") : (Style)FindResource("PrimaryButton"),
                 Padding = new Thickness(10, 4, 10, 4),
                 Margin = new Thickness(0, 0, 6, 0),
-                ToolTip = plugin.IsActive ? "点击停用此插件" : "点击启用此插件"
+                ToolTip = Localization.TipPluginToggle(plugin.IsActive)
             };
             toggleBtn.Click += (s, ev) =>
             {
@@ -1856,7 +1868,7 @@ namespace PixOcrSearch
                     Style = (Style)FindResource("PrimaryButton"),
                     Padding = new Thickness(8, 4, 8, 4),
                     Margin = new Thickness(0, 0, 6, 0),
-                    ToolTip = "测试打开翻译窗口"
+                    ToolTip = Localization.TipPluginTestTranslate
                 };
                 testBtn.Click += (s, ev) =>
                 {
@@ -1872,7 +1884,7 @@ namespace PixOcrSearch
                 Style = (Style)FindResource("ModernButton"),
                 Padding = new Thickness(8, 4, 8, 4),
                 Margin = new Thickness(0, 0, 6, 0),
-                ToolTip = "打开插件所在文件夹"
+                ToolTip = Localization.TipPluginOpenFolder
             };
             openFolderBtn.Click += (s, ev) =>
             {
@@ -1892,7 +1904,7 @@ namespace PixOcrSearch
                 Content = Localization.BtnDeletePlugin,
                 Style = (Style)FindResource("DangerButton"),
                 Padding = new Thickness(8, 4, 8, 4),
-                ToolTip = "删除或移除此插件"
+                ToolTip = Localization.TipPluginDelete
             };
             deleteBtn.Click += (s, ev) =>
             {
@@ -2073,7 +2085,7 @@ namespace PixOcrSearch
                     FontSize = 10,
                     Margin = new Thickness(0, 0, 10, 0),
                     VerticalAlignment = VerticalAlignment.Center,
-                    ToolTip = "重置为默认 Ctrl + Alt + T"
+                    ToolTip = Localization.TipResetDefaultHotkey
                 };
                 resetBtn.Click += (s, ev) =>
                 {
@@ -2138,11 +2150,11 @@ namespace PixOcrSearch
                         VerticalAlignment = VerticalAlignment.Center,
                         Margin = new Thickness(0, 0, 10, 0)
                     };
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "简体中文", Tag = "zh-CN" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "繁體中文", Tag = "zh-TW" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangChinese, Tag = "zh-CN" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangTraditionalChinese, Tag = "zh-TW" });
                     langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "English", Tag = "en" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "日本語", Tag = "ja" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "한국어", Tag = "ko" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangJapanese, Tag = "ja" });
+                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangKorean, Tag = "ko" });
 
                     string curTarget = ConfigManager.Current.DefaultTargetLanguage;
                     int selIdx = 0;
@@ -2177,3 +2189,5 @@ namespace PixOcrSearch
         }
     }
 }
+
+
