@@ -1742,7 +1742,7 @@ namespace PixOcrSearch
             var infoStack = new StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center };
 
             // Title & Badges
-            var titlePanel = new WrapPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, VerticalAlignment = System.Windows.VerticalAlignment.Center };
+            var titlePanel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, VerticalAlignment = System.Windows.VerticalAlignment.Center };
 
             var titleBlock = new TextBlock
             {
@@ -1818,18 +1818,6 @@ namespace PixOcrSearch
 
             infoStack.Children.Add(titlePanel);
 
-            // Description
-            var descBlock = new TextBlock
-            {
-                Text = plugin.Description,
-                FontSize = 11,
-                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
-                Margin = new Thickness(0, 4, 0, 0),
-                TextWrapping = TextWrapping.Wrap,
-                LineHeight = 16,
-                MaxWidth = 360
-            };
-            infoStack.Children.Add(descBlock);
 
             leftPanel.Children.Add(infoStack);
             Grid.SetColumn(leftPanel, 0);
@@ -1933,6 +1921,18 @@ namespace PixOcrSearch
             Grid.SetColumn(actionsPanel, 1);
             topGrid.Children.Add(actionsPanel);
             mainStack.Children.Add(topGrid);
+            // Description (Full card width, left aligned, stable)
+            var descBlock = new TextBlock
+            {
+                Text = plugin.Description,
+                FontSize = 11,
+                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
+                Margin = new Thickness(0, 6, 0, 0),
+                TextWrapping = TextWrapping.Wrap,
+                LineHeight = 16,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left
+            };
+            mainStack.Children.Add(descBlock);
 
             // Features badges (if any)
             if (plugin.Features != null && plugin.Features.Count > 0)
@@ -1940,7 +1940,7 @@ namespace PixOcrSearch
                 var featPanel = new WrapPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
-                    Margin = new Thickness(48, 6, 0, 0)
+                    Margin = new Thickness(0, 8, 0, 0)
                 };
                 foreach (var feat in plugin.Features)
                 {
@@ -1969,12 +1969,18 @@ namespace PixOcrSearch
                 {
                     Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
                     CornerRadius = new CornerRadius(6),
-                    Padding = new Thickness(12, 8, 12, 8),
-                    Margin = new Thickness(48, 8, 0, 0),
+                    Padding = new Thickness(12, 10, 12, 10),
+                    Margin = new Thickness(0, 10, 0, 0),
                     IsEnabled = plugin.IsActive
                 };
 
-                var hotkeyWrap = new WrapPanel
+                var configStack = new StackPanel
+                {
+                    Orientation = System.Windows.Controls.Orientation.Vertical
+                };
+
+                // Row 1: Hotkey Settings
+                var hotkeyRow = new StackPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
                     VerticalAlignment = VerticalAlignment.Center
@@ -1990,7 +1996,7 @@ namespace PixOcrSearch
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
-                hotkeyWrap.Children.Add(hotkeyLabel);
+                hotkeyRow.Children.Add(hotkeyLabel);
 
                 // Hotkey Input Box
                 string curMods = plugin.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : plugin.HotkeyModifiers;
@@ -2001,7 +2007,7 @@ namespace PixOcrSearch
                 var hotkeyBox = new System.Windows.Controls.TextBox
                 {
                     Text = curMods.Replace(",", " + ") + " + " + curKey,
-                    Width = 140,
+                    Width = 120,
                     Height = 26,
                     IsReadOnly = true,
                     Cursor = System.Windows.Input.Cursors.Hand,
@@ -2016,7 +2022,7 @@ namespace PixOcrSearch
                     VerticalContentAlignment = VerticalAlignment.Center,
                     ToolTip = Localization.TipPluginHotkeyRecording,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(0, 0, 6, 0)
+                    Margin = new Thickness(0, 0, 8, 0)
                 };
 
                 hotkeyBox.PreviewKeyDown += (s, ev) =>
@@ -2055,7 +2061,7 @@ namespace PixOcrSearch
 
                     hotkeyBox.Text = modStr.Replace(",", " + ") + " + " + key.ToString();
                 };
-                hotkeyWrap.Children.Add(hotkeyBox);
+                hotkeyRow.Children.Add(hotkeyBox);
 
                 // Reset Hotkey Button
                 var resetBtn = new System.Windows.Controls.Button
@@ -2065,7 +2071,7 @@ namespace PixOcrSearch
                     Padding = new Thickness(6, 1, 6, 1),
                     Height = 24,
                     FontSize = 10,
-                    Margin = new Thickness(0, 0, 14, 0),
+                    Margin = new Thickness(0, 0, 10, 0),
                     VerticalAlignment = VerticalAlignment.Center,
                     ToolTip = "重置为默认 Ctrl + Alt + T"
                 };
@@ -2083,25 +2089,44 @@ namespace PixOcrSearch
                     }
                     hotkeyBox.Text = "Control + Alt + T";
                 };
-                hotkeyWrap.Children.Add(resetBtn);
+                hotkeyRow.Children.Add(resetBtn);
 
-                // Target Language Option (for Translation Plugin)
+                // Tip text
+                var tipText = new TextBlock
+                {
+                    Text = Localization.TipPluginHotkeyRecording,
+                    FontSize = 10,
+                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                hotkeyRow.Children.Add(tipText);
+
+                configStack.Children.Add(hotkeyRow);
+
+                // Row 2: Target Language Option (for Translation Plugin)
                 if (plugin.Id == "SnapFind.Plugin.Translation")
                 {
+                    var langRow = new StackPanel
+                    {
+                        Orientation = System.Windows.Controls.Orientation.Horizontal,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 8, 0, 0)
+                    };
+
                     var langLabel = new TextBlock
                     {
                         Text = Localization.LabelDefaultTargetLang,
                         FontSize = 11,
                         Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
                         VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 6, 0)
+                        Margin = new Thickness(0, 0, 8, 0)
                     };
-                    hotkeyWrap.Children.Add(langLabel);
+                    langRow.Children.Add(langLabel);
 
                     var langCombo = new System.Windows.Controls.ComboBox
                     {
                         Height = 26,
-                        Width = 110,
+                        Width = 120,
                         Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
                         Foreground = (System.Windows.Media.Brush)FindResource("ThemeInputFg"),
                         BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeInputBorder"),
@@ -2138,20 +2163,12 @@ namespace PixOcrSearch
                             ConfigManager.Save();
                         }
                     };
-                    hotkeyWrap.Children.Add(langCombo);
+                    langRow.Children.Add(langCombo);
+
+                    configStack.Children.Add(langRow);
                 }
 
-                // Tip text
-                var tipText = new TextBlock
-                {
-                    Text = Localization.TipPluginHotkeyRecording,
-                    FontSize = 10,
-                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                hotkeyWrap.Children.Add(tipText);
-
-                hotkeyCard.Child = hotkeyWrap;
+                hotkeyCard.Child = configStack;
                 mainStack.Children.Add(hotkeyCard);
             }
 
