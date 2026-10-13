@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using MessageBox = System.Windows.MessageBox;
-using SnapFind.Plugin.Translation;
+using SnapFind.Plugin.Abstractions;
 
 namespace PixOcrSearch
 {
@@ -24,36 +26,72 @@ namespace PixOcrSearch
         public List<string> Features { get; set; } = new List<string>();
     }
 
-    /// <summary>
-    /// 全局插件管理器：负责插件生命周期管理、服务发现与跨模块功能分发
-    /// </summary>
     public static class PluginManager
     {
+        private static readonly Dictionary<string, LoadedPluginInstance> _loadedPlugins = new(StringComparer.OrdinalIgnoreCase);
+
+        public static IReadOnlyDictionary<string, LoadedPluginInstance> LoadedPlugins => _loadedPlugins;
+
         public static bool IsTranslationPluginAvailable
         {
             get
             {
                 if (!ConfigManager.Current.EnableTranslation) return false;
-                string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
-                if (!Directory.Exists(pluginsDir)) return false;
-
-                string pluginDir = Path.Combine(pluginsDir, "SnapFind.Plugin.Translation");
-                if (!Directory.Exists(pluginDir)) return false;
-
-                return File.Exists(Path.Combine(pluginDir, "plugin.json")) ||
-                       Directory.GetFiles(pluginDir, "*.dll", SearchOption.AllDirectories).Length > 0;
+                return _loadedPlugins.ContainsKey("SnapFind.Plugin.Translation");
             }
         }
 
-        /// <summary>
-        /// 唤起翻译窗口
-        /// </summary>
+        public static void InitializeAll()
+        {
+            string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
+            if (!Directory.Exists(pluginsDir)) return;
+
+            foreach (var dir in Directory.GetDirectories(pluginsDir))
+            {
+                try
+                {
+                    var instance = PluginLoader.LoadPlugin(dir);
+                    if (instance != null)
+                    {
+                        string id = instance.Manifest.Id;
+                        _loadedPlugins[id] = instance;
+
+                        var host = new HostServices(dir);
+                        instance.Plugin.InitializeAsync(host).GetAwaiter().GetResult();
+
+                        if (IsPluginActive(id))
+                        {
+                            instance.Plugin.ActivateAsync().GetAwaiter().GetResult();
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        public static FrameworkElement? CreateOcrPanel(string pluginId, System.Windows.Controls.TextBox resultTextBox)
+        {
+            if (_loadedPlugins.TryGetValue(pluginId, out var instance) && IsPluginActive(pluginId))
+            {
+                if (instance.Plugin is IUiContribution ui)
+                {
+                    return ui.CreateOcrPanel(resultTextBox);
+                }
+            }
+            return null;
+        }
+
         public static void ShowTranslationWindow(string text = "", Window? owner = null)
         {
-            if (!IsTranslationPluginAvailable) return;
+            if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return;
             try
             {
-                TranslationPlugin.ShowWindow(text, owner);
+                var plugin = instance.Plugin;
+                var method = plugin.GetType().GetMethod("OpenTranslateWindow", BindingFlags.Public | BindingFlags.Instance);
+                if (method != null)
+                {
+                    method.Invoke(plugin, new object?[] { text, owner });
+                }
             }
             catch (Exception ex)
             {
@@ -61,36 +99,58 @@ namespace PixOcrSearch
             }
         }
 
-        /// <summary>
-        /// 异步文本翻译
-        /// </summary>
         public static async System.Threading.Tasks.Task<string> TranslateAsync(string text, string from = "auto", string to = "zh-CN")
         {
-            if (!IsTranslationPluginAvailable) return text;
-            return await TranslationPlugin.Translate(text, from, to);
+            if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return text;
+            try
+            {
+                var plugin = instance.Plugin;
+                var method = plugin.GetType().GetMethod("TranslateAsync", BindingFlags.Public | BindingFlags.Instance);
+                if (method != null)
+                {
+                    var task = method.Invoke(plugin, new object[] { text, "Microsoft", from, to }) as System.Threading.Tasks.Task<string>;
+                    if (task != null)
+                    {
+                        return await task;
+                    }
+                }
+            }
+            catch { }
+            return text;
         }
 
-        /// <summary>
-        /// 简繁转换 - 转为繁体
-        /// </summary>
         public static string ConvertToTraditional(string text)
         {
-            if (!IsTranslationPluginAvailable) return text;
-            return TranslationPlugin.ConvertToTraditional(text);
+            if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return text;
+            try
+            {
+                var plugin = instance.Plugin;
+                var method = plugin.GetType().GetMethod("ToTraditional", BindingFlags.Public | BindingFlags.Instance);
+                if (method != null)
+                {
+                    return method.Invoke(plugin, new object[] { text }) as string ?? text;
+                }
+            }
+            catch { }
+            return text;
         }
 
-        /// <summary>
-        /// 简繁转换 - 转为简体
-        /// </summary>
         public static string ConvertToSimplified(string text)
         {
-            if (!IsTranslationPluginAvailable) return text;
-            return TranslationPlugin.ConvertToSimplified(text);
+            if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return text;
+            try
+            {
+                var plugin = instance.Plugin;
+                var method = plugin.GetType().GetMethod("ToSimplified", BindingFlags.Public | BindingFlags.Instance);
+                if (method != null)
+                {
+                    return method.Invoke(plugin, new object[] { text }) as string ?? text;
+                }
+            }
+            catch { }
+            return text;
         }
 
-        /// <summary>
-        /// 检查指定插件当前是否处于启用激活状态
-        /// </summary>
         public static bool IsPluginActive(string id)
         {
             if (string.Equals(id, "SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase))
@@ -102,9 +162,6 @@ namespace PixOcrSearch
             return !disabledList.Contains(id);
         }
 
-        /// <summary>
-        /// 开启或关闭指定插件
-        /// </summary>
         public static void SetPluginActive(string id, bool active)
         {
             if (string.Equals(id, "SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase))
@@ -120,6 +177,10 @@ namespace PixOcrSearch
             if (active)
             {
                 ConfigManager.Current.DisabledPlugins.RemoveAll(x => string.Equals(x, id, StringComparison.OrdinalIgnoreCase));
+                if (_loadedPlugins.TryGetValue(id, out var inst))
+                {
+                    inst.Plugin.ActivateAsync().GetAwaiter().GetResult();
+                }
             }
             else
             {
@@ -127,220 +188,224 @@ namespace PixOcrSearch
                 {
                     ConfigManager.Current.DisabledPlugins.Add(id);
                 }
+                if (_loadedPlugins.TryGetValue(id, out var inst))
+                {
+                    inst.Plugin.DeactivateAsync().GetAwaiter().GetResult();
+                }
             }
 
             ConfigManager.Save();
-
-            // 若变更了翻译插件，即时同步热键与托盘菜单
-            if (string.Equals(id, "SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase))
-            {
-                if (System.Windows.Application.Current is App app)
-                {
-                    app.ReRegisterHotkey();
-                    app.UpdateTrayMenuLanguage();
-                }
-            }
         }
 
-        /// <summary>
-        /// 彻底删除指定插件（完全从磁盘物理删除，无任何内置特权）
-        /// </summary>
-        public static (bool Success, string Message) DeletePlugin(string id)
+        public static bool ImportPluginPackage(string packagePath, out string errorMessage)
         {
-            var plugins = GetInstalledPlugins();
-            var target = plugins.Find(p => string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase));
-            if (target == null)
-            {
-                return (false, "找不到指定的插件文件或目录。");
-            }
-
+            errorMessage = "";
             try
             {
-                if (Directory.Exists(target.Location))
+                string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
+                if (!Directory.Exists(pluginsDir)) Directory.CreateDirectory(pluginsDir);
+
+                string ext = Path.GetExtension(packagePath).ToLowerInvariant();
+                string targetDir = "";
+
+                if (ext == ".zip")
                 {
-                    Directory.Delete(target.Location, true);
-                }
-                else if (File.Exists(target.Location))
-                {
-                    File.Delete(target.Location);
-                }
+                    string tempExtract = Path.Combine(Path.GetTempPath(), "SnapFind_Plugin_" + Guid.NewGuid().ToString("N"));
+                    System.IO.Compression.ZipFile.ExtractToDirectory(packagePath, tempExtract, true);
 
-                if (string.Equals(id, "SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase))
-                {
-                    ConfigManager.Current.EnableTranslation = false;
-                }
+                    string manifestFile = Path.Combine(tempExtract, "plugin.json");
+                    string pluginId = "";
 
-                if (ConfigManager.Current.DisabledPlugins != null)
-                {
-                    ConfigManager.Current.DisabledPlugins.RemoveAll(x => string.Equals(x, id, StringComparison.OrdinalIgnoreCase));
-                }
-                ConfigManager.Save();
-
-                if (System.Windows.Application.Current is App app)
-                {
-                    app.ReRegisterHotkey();
-                    app.UpdateTrayMenuLanguage();
-                }
-
-                return (true, Localization.MsgPluginDeleted);
-            }
-            catch (Exception ex)
-            {
-                return (false, "删除插件失败: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// 获取所有已安装与加载的插件列表（全量外部扫描，无任何写死内置项）
-        /// </summary>
-        public static List<PluginInfo> GetInstalledPlugins()
-        {
-            var list = new List<PluginInfo>();
-            string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
-            if (!Directory.Exists(pluginsDir))
-            {
-                return list;
-            }
-
-            try
-            {
-                foreach (var dir in Directory.GetDirectories(pluginsDir))
-                {
-                    string dirName = Path.GetFileName(dir);
-
-                    // 严密过滤非插件文件夹（如包、源码、临时缓存等）
-                    if (dirName.Equals("packages", StringComparison.OrdinalIgnoreCase) ||
-                        dirName.Equals("src", StringComparison.OrdinalIgnoreCase) ||
-                        dirName.Equals("temp", StringComparison.OrdinalIgnoreCase) ||
-                        dirName.Equals("cache", StringComparison.OrdinalIgnoreCase) ||
-                        dirName.StartsWith("."))
-                    {
-                        continue;
-                    }
-
-                    string pluginJsonPath = Path.Combine(dir, "plugin.json");
-                    var dllFiles = Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories);
-
-                    // 必须包含 plugin.json 或至少一个 dll，才是合法外部扩展插件
-                    if (!File.Exists(pluginJsonPath) && dllFiles.Length == 0)
-                    {
-                        continue;
-                    }
-
-                    string id = dirName;
-                    string name = dirName;
-                    string ver = "1.0.0";
-                    string desc = Localization.IsEnglish ? "External extension plugin" : "外部导入扩展插件";
-                    string author = "Third Party";
-                    var features = new List<string>();
-                    bool hasHotkey = false;
-
-                    if (File.Exists(pluginJsonPath))
+                    if (File.Exists(manifestFile))
                     {
                         try
                         {
-                            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(pluginJsonPath));
-                            var root = doc.RootElement;
-                            if (root.TryGetProperty("id", out var ip)) id = ip.GetString() ?? id;
-                            
-                            string nameKey = Localization.IsEnglish ? "name_en" : "name";
-                            if (root.TryGetProperty(nameKey, out var np) && !string.IsNullOrWhiteSpace(np.GetString()))
+                            var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(manifestFile));
+                            if (doc.RootElement.TryGetProperty("id", out var idProp))
                             {
-                                name = np.GetString()!;
-                            }
-                            else if (root.TryGetProperty("name", out var npFallback) && !string.IsNullOrWhiteSpace(npFallback.GetString()))
-                            {
-                                name = npFallback.GetString()!;
-                            }
-
-                            if (root.TryGetProperty("version", out var vp)) ver = vp.GetString() ?? ver;
-
-                            string descKey = Localization.IsEnglish ? "description_en" : "description";
-                            if (root.TryGetProperty(descKey, out var dp) && !string.IsNullOrWhiteSpace(dp.GetString()))
-                            {
-                                desc = dp.GetString()!;
-                            }
-                            else if (root.TryGetProperty("description", out var dpFallback) && !string.IsNullOrWhiteSpace(dpFallback.GetString()))
-                            {
-                                desc = dpFallback.GetString()!;
-                            }
-
-                            if (root.TryGetProperty("author", out var ap)) author = ap.GetString() ?? author;
-                            if (root.TryGetProperty("hasHotkey", out var hp)) hasHotkey = hp.GetBoolean();
-                            if (root.TryGetProperty("features", out var fp) && fp.ValueKind == System.Text.Json.JsonValueKind.Array)
-                            {
-                                foreach (var fItem in fp.EnumerateArray())
-                                {
-                                    string? fStr = fItem.GetString();
-                                    if (!string.IsNullOrEmpty(fStr)) features.Add(fStr);
-                                }
+                                pluginId = idProp.GetString() ?? "";
                             }
                         }
                         catch { }
                     }
 
-                    // 适配 Translation 插件专有配置
-                    if (id.Equals("SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase) ||
-                        dirName.Equals("SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(pluginId))
                     {
-                        id = "SnapFind.Plugin.Translation";
-                        hasHotkey = true;
-                        if (string.IsNullOrEmpty(name) || name == dirName)
+                        var subDirs = Directory.GetDirectories(tempExtract);
+                        if (subDirs.Length == 1 && File.Exists(Path.Combine(subDirs[0], "plugin.json")))
                         {
-                            name = Localization.IsEnglish ? "Translation & Script Conversion" : "文本翻译与繁简转换插件";
-                        }
-                        if (string.IsNullOrEmpty(desc) || desc == "外部导入扩展插件")
-                        {
-                            desc = Localization.IsEnglish
-                                ? "Integrates Microsoft Edge translation, Win32 native traditional/simplified conversion, and OCR linking."
-                                : "集成微软 Edge 在线翻译通道、Win32 原生离线繁简转换、独立翻译窗口与 OCR 结果一键联动。";
-                        }
-                        if (features.Count == 0)
-                        {
-                            features.Add(Localization.IsEnglish ? "🌐 Standalone Translation Window" : "🌐 独立翻译工具窗口");
-                            features.Add(Localization.IsEnglish ? "⚡ OCR Realtime Translation" : "⚡ OCR 框选结果自动同步翻译");
-                            features.Add(Localization.IsEnglish ? "🔄 Win32 Native Offline Script Conversion" : "🔄 Win32 原生离线繁简转换");
+                            try
+                            {
+                                var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(subDirs[0], "plugin.json")));
+                                if (doc.RootElement.TryGetProperty("id", out var idProp))
+                                {
+                                    pluginId = idProp.GetString() ?? "";
+                                }
+                            }
+                            catch { }
                         }
                     }
 
-                    list.Add(new PluginInfo
+                    if (string.IsNullOrEmpty(pluginId))
                     {
-                        Id = id,
-                        Name = name,
-                        Version = ver,
-                        Description = desc,
-                        Author = author,
-                        IsActive = IsPluginActive(id),
-                        TypeName = Localization.IsEnglish ? "External Plugin" : "扩展插件",
-                        Location = dir,
-                        HasHotkey = hasHotkey,
-                        HotkeyModifiers = id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : "",
-                        HotkeyKey = id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyKey : "",
-                        Features = features
-                    });
+                        pluginId = Path.GetFileNameWithoutExtension(packagePath);
+                    }
+
+                    targetDir = Path.Combine(pluginsDir, pluginId);
+                    if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
+
+                    if (File.Exists(Path.Combine(tempExtract, "plugin.json")))
+                    {
+                        Directory.Move(tempExtract, targetDir);
+                    }
+                    else
+                    {
+                        var subDirs = Directory.GetDirectories(tempExtract);
+                        if (subDirs.Length == 1)
+                        {
+                            Directory.Move(subDirs[0], targetDir);
+                            Directory.Delete(tempExtract, true);
+                        }
+                        else
+                        {
+                            Directory.Move(tempExtract, targetDir);
+                        }
+                    }
+                }
+                else if (ext == ".dll")
+                {
+                    string fileName = Path.GetFileName(packagePath);
+                    string dest = Path.Combine(pluginsDir, fileName);
+                    File.Copy(packagePath, dest, true);
+                    return true;
+                }
+                else
+                {
+                    errorMessage = "不支持的插件文件格式，仅支持 .zip 插件压缩包或 .dll 程序集。";
+                    return false;
                 }
 
-                foreach (var dll in Directory.GetFiles(pluginsDir, "*.dll"))
+                if (!string.IsNullOrEmpty(targetDir) && Directory.Exists(targetDir))
                 {
-                    string fileName = Path.GetFileName(dll);
-                    if (fileName.StartsWith("SnapFind.Plugin.Translation", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    list.Add(new PluginInfo
+                    var instance = PluginLoader.LoadPlugin(targetDir);
+                    if (instance != null)
                     {
-                        Id = fileName,
-                        Name = fileName,
-                        Version = "1.0.0",
-                        Description = Localization.IsEnglish ? "External assembly binary extension" : "外部导入扩展插件",
-                        Author = "Third Party",
-                        IsActive = IsPluginActive(fileName),
-                        TypeName = Localization.IsEnglish ? "External Plugin" : "扩展插件",
-                        Location = dll
+                        _loadedPlugins[instance.Manifest.Id] = instance;
+                        var host = new HostServices(targetDir);
+                        instance.Plugin.InitializeAsync(host).GetAwaiter().GetResult();
+                        instance.Plugin.ActivateAsync().GetAwaiter().GetResult();
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+                return false;
+            }
+        }
+
+        public static (bool ok, string errorMessage) DeletePlugin(string idOrLocation)
+        {
+            try
+            {
+                string targetPath = idOrLocation;
+                string foundKey = "";
+                foreach (var pair in _loadedPlugins)
+                {
+                    if (string.Equals(pair.Key, idOrLocation, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(pair.Value.PluginDirectory, idOrLocation, StringComparison.OrdinalIgnoreCase))
+                    {
+                        foundKey = pair.Key;
+                        targetPath = pair.Value.PluginDirectory;
+                        pair.Value.Dispose();
+                        break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(foundKey))
+                {
+                    _loadedPlugins.Remove(foundKey);
+                }
+
+                if (Directory.Exists(targetPath))
+                {
+                    Directory.Delete(targetPath, true);
+                    return (true, "");
+                }
+                if (File.Exists(targetPath))
+                {
+                    File.Delete(targetPath);
+                    return (true, "");
+                }
+
+                string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", idOrLocation);
+                if (Directory.Exists(pluginsDir))
+                {
+                    Directory.Delete(pluginsDir, true);
+                    return (true, "");
+                }
+
+                return (false, "目标插件文件或目录不存在。");
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+        }
+
+        public static void OpenPluginFolder(string location)
+        {
+            try
+            {
+                string target = Directory.Exists(location) ? location : Path.GetDirectoryName(location) ?? location;
+                if (Directory.Exists(target))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{target}\"",
+                        UseShellExecute = true
                     });
                 }
             }
             catch { }
+        }
+
+        public static List<PluginInfo> GetInstalledPlugins()
+        {
+            var list = new List<PluginInfo>();
+            string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
+
+            if (!Directory.Exists(pluginsDir))
+            {
+                try { Directory.CreateDirectory(pluginsDir); } catch { return list; }
+            }
+
+            foreach (var pair in _loadedPlugins)
+            {
+                var manifest = pair.Value.Manifest;
+                list.Add(new PluginInfo
+                {
+                    Id = manifest.Id,
+                    Name = Localization.IsEnglish && !string.IsNullOrEmpty(manifest.NameEn) ? manifest.NameEn : manifest.Name,
+                    Version = manifest.Version,
+                    Description = Localization.IsEnglish && !string.IsNullOrEmpty(manifest.DescriptionEn) ? manifest.DescriptionEn : manifest.Description,
+                    Author = manifest.Author,
+                    IsActive = IsPluginActive(manifest.Id),
+                    TypeName = Localization.IsEnglish ? "External Plugin" : "扩展插件",
+                    Location = pair.Value.PluginDirectory,
+                    HasHotkey = manifest.HasHotkey,
+                    HotkeyModifiers = manifest.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : "",
+                    HotkeyKey = manifest.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyKey : "",
+                    Features = Localization.IsEnglish && manifest.FeaturesEn.Count > 0 ? manifest.FeaturesEn : manifest.Features
+                });
+            }
 
             return list;
         }
     }
 }
+
+

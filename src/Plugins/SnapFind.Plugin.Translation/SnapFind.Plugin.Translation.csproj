@@ -13,4 +13,8 @@
     <Description>Standalone Translation Plugin for SnapFind and WPF applications</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\SnapFind.Plugin.Abstractions\SnapFind.Plugin.Abstractions.csproj" Private="false" />
+  </ItemGroup>
+
 </Project>

@@ -84,8 +84,16 @@ namespace PixOcrSearch
 
             if (PluginManager.IsTranslationPluginAvailable && ConfigManager.Current.AutoTranslateOcrResult)
             {
+                if (OcrTransPanel.Content == null)
+                {
+                    var customPanel = PluginManager.CreateOcrPanel("SnapFind.Plugin.Translation", OcrTextBox);
+                    if (customPanel != null)
+                    {
+                        OcrTransPanel.Content = customPanel;
+                    }
+                }
+
                 OcrTransPanel.Visibility = Visibility.Visible;
-                OcrTransPanel.Attach(OcrTextBox, ConfigManager.Current.DefaultTargetLanguage);
                 TranslateBtn.Visibility = Visibility.Visible;
                 MinHeight = 280;
                 if (Height < 320)
@@ -388,3 +396,4 @@ namespace PixOcrSearch
         }
     }
 }
+

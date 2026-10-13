@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:trans="clr-namespace:SnapFind.Plugin.Translation;assembly=SnapFind.Plugin.Translation"
         WindowStyle="SingleBorderWindow"
         AllowsTransparency="False"
         Background="{DynamicResource ThemeWindowBg}"
@@ -167,7 +166,7 @@
                      PreviewKeyDown="OcrTextBox_PreviewKeyDown"/>
 
             <!-- Embedded OCR Real-time Translation Panel -->
-            <trans:OcrTranslationPanel x:Name="OcrTransPanel"
+            <ContentControl x:Name="OcrTransPanel"
                                        Grid.Row="2"
                                        Margin="0,4,0,0"
                                        Visibility="Collapsed"/>
@@ -199,3 +198,4 @@
         </Grid>
     </Border>
 </Window>
+
