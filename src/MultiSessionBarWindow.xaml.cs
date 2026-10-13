@@ -60,11 +60,18 @@ namespace PixOcrSearch
             IntPtr hBitmap = bitmap.GetHbitmap();
             try
             {
-                return Imaging.CreateBitmapSourceFromHBitmap(
+                BitmapSource source = Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
+                // Freezing detaches the GDI handle from the dispatcher lifecycle so repeated
+                // refreshes of the session bar do not leak GDI Bitmap objects.
+                if (source.CanFreeze)
+                {
+                    source.Freeze();
+                }
+                return source;
             }
             finally
             {
