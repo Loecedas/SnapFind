@@ -984,14 +984,22 @@ namespace PixOcrSearch
 
         private void CopyDirectoryRecursive(string source, string target)
         {
+            Directory.CreateDirectory(target);
             foreach (string dirPath in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
             {
-                Directory.CreateDirectory(dirPath.Replace(source, target));
+                string relDir = Path.GetRelativePath(source, dirPath);
+                Directory.CreateDirectory(Path.Combine(target, relDir));
             }
 
             foreach (string newPath in Directory.GetFiles(source, "*.*", SearchOption.AllDirectories))
             {
-                string destFile = newPath.Replace(source, target);
+                string relFile = Path.GetRelativePath(source, newPath);
+                string destFile = Path.Combine(target, relFile);
+                string? destDir = Path.GetDirectoryName(destFile);
+                if (!string.IsNullOrEmpty(destDir))
+                {
+                    Directory.CreateDirectory(destDir);
+                }
                 bool copied = false;
                 string lastError = "";
                 for (int i = 0; i < 10; i++)

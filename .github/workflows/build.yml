@@ -11,7 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [SnapFind.Rapid, SnapFind]
+        project:
+          - src/SnapFind.Rapid.csproj
+          - src/SnapFind.csproj
+          - src/Plugins/SnapFind.Plugin.Translation/SnapFind.Plugin.Translation.csproj
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +24,7 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Build ${{ matrix.project }}
-        run: dotnet build src/${{ matrix.project }}.csproj -c Release
+        run: dotnet build ${{ matrix.project }} -c Release
 
   test:
     runs-on: windows-latest
@@ -34,4 +37,4 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Test
-        run: dotnet test tests/SnapFind.Tests.csproj -c Release
+        run: dotnet test tests/SnapFind.Tests.csproj -c Release --collect:"XPlat Code Coverage"

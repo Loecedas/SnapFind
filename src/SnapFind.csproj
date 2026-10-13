@@ -14,6 +14,8 @@
     <Version>2.5.0</Version>
     <AssemblyVersion>2.5.0.0</AssemblyVersion>
     <FileVersion>2.5.0.0</FileVersion>
+      <BaseIntermediateOutputPath>obj\SnapFind\</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin\SnapFind\</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\libs\**\*">
+    <None Include="..\libs\**\*" Exclude="..\libs\rapid\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>libs\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </None>

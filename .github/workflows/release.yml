@@ -33,13 +33,14 @@ jobs:
             $pubDir = "releases/tmp/$($e.Name)"
             dotnet publish $e.Project -c Release -r win-x64 --self-contained false `
               -p:PublishSingleFile=true -p:Version=$version -o $pubDir
+            if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $LASTEXITCODE" }
 
             if ($e.Name -eq "Rapid") {
               New-Item -ItemType Directory -Path "$pubDir/libs/rapid" -Force | Out-Null
               Copy-Item "libs/rapid/*" "$pubDir/libs/rapid" -Recurse -Force
             } else {
               New-Item -ItemType Directory -Path "$pubDir/libs" -Force | Out-Null
-              Copy-Item "libs/*" "$pubDir/libs" -Recurse -Force
+              Get-ChildItem "libs" | Where-Object { $_.Name -ne "rapid" } | Copy-Item -Destination "$pubDir/libs" -Recurse -Force
             }
 
             New-Item -ItemType Directory -Path "releases/portables" -Force | Out-Null
@@ -51,6 +52,7 @@ jobs:
             } else {
               & $exe7z a -sfx -mx=9 -mmt=on "$destSfx" "$pubDir"
             }
+            if ($LASTEXITCODE -ne 0) { throw "7z packaging failed: $LASTEXITCODE" }
           }
 
       - name: Build installers with Inno Setup
@@ -62,7 +64,7 @@ jobs:
           $iscc = "${{ github.workspace }}/tools/InnoSetup/ISCC.exe"
           if (-not (Test-Path $iscc)) {
             Write-Warning "ISCC.exe not found at $iscc, skipping installer build"
-            exit 0
+            throw "ISCC compiler not found at $iscc!"
           }
           foreach ($ed in $editions) {
             Write-Host "Building installer for $ed edition..." -ForegroundColor Cyan
@@ -70,7 +72,20 @@ jobs:
             $pubDir = "${{ github.workspace }}/releases/tmp/$ed"
             New-Item -ItemType Directory -Path $outDir -Force | Out-Null
             & $iscc /DAppVersion=$version /DEdition=$ed /DPublishDir="$pubDir" /O$outDir "${{ github.workspace }}/src/setup.iss"
+            if ($LASTEXITCODE -ne 0) { throw "ISCC compilation failed: $LASTEXITCODE" }
           }
+
+      - name: Generate SHA256 checksums
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $files = Get-ChildItem releases/portables/*.7z.exe, releases/installers/*.exe
+          $checksums = foreach ($file in $files) {
+            $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($file.Name)"
+          }
+          New-Item -ItemType Directory -Path "releases" -Force | Out-Null
+          $checksums | Set-Content "releases/SHA256SUMS.txt" -Encoding ascii
 
       - name: Create GitHub Release and upload assets
         env:
@@ -82,4 +97,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Release already exists, uploading assets only"
           }
-          gh release upload $tag releases/portables/*.7z.exe releases/installers/*.exe --clobber
+          $uploadItems = @("releases/portables/*.7z.exe", "releases/installers/*.exe", "releases/SHA256SUMS.txt")
+          if (Test-Path "releases/plugins/*.zip") { $uploadItems += "releases/plugins/*.zip" }
+          gh release upload $tag $uploadItems --clobber
+          if ($LASTEXITCODE -ne 0) { throw "gh release upload failed: $LASTEXITCODE" }

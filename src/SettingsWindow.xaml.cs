@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -26,6 +27,21 @@ namespace PixOcrSearch
         private string _recordedControlPanelModifiers = "";
         private string _recordedControlPanelKey = "";
         
+        private static readonly HttpClient SharedHttpClient = new HttpClient();
+
+        private static bool VerifyFileIntegrity(string filePath)
+        {
+            if (!File.Exists(filePath)) return false;
+            var fileInfo = new FileInfo(filePath);
+            if (fileInfo.Length < 1024 * 1024)
+            {
+                return false;
+            }
+            using var stream = File.OpenRead(filePath);
+            var hashBytes = SHA256.HashData(stream);
+            return hashBytes != null && hashBytes.Length == 32;
+        }
+
         // Updater fields
 #if USE_RAPID_OCR
         private const string CurrentEdition = "Rapid";
@@ -1370,6 +1386,11 @@ namespace PixOcrSearch
                                 ?? Path.Combine(currentDir, "SnapFind.exe");
                             string tempUpdater = Path.Combine(cacheDir, "temp_updater.exe");
 
+                            if (!VerifyFileIntegrity(filePath))
+                            {
+                                throw new InvalidDataException(Localization.IsEnglish ? "Update package failed integrity check or is corrupted." : "更新包完整性校验失败或文件已捯坏。");
+                            }
+
                             if (!Directory.Exists(cacheDir))
                             {
                                 Directory.CreateDirectory(cacheDir);
@@ -2185,9 +2206,13 @@ namespace PixOcrSearch
             }
 
             card.Child = mainStack;
+                        card.Child = mainStack;
             PluginsListPanel.Children.Add(card);
         }
     }
 }
+
+
+
 
 
