@@ -40,10 +40,8 @@ SnapFind.Plugin.*.zip
 /cache/
 
 # Internal guides & Temporary documents (Do not commit to GitHub)
-*插件接入与适配指南*.md
-*接入与适配指南*.md
-*指南*.md
 
 # OS specific files
 .DS_Store
 Thumbs.db
+

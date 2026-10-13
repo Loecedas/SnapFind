@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapFind", "src\SnapFind.csproj", "{37894ABC-F144-4D27-8E2D-65693A0D3B55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapFind.Rapid", "src\SnapFind.Rapid.csproj", "{BA13B66F-21F5-4CD9-9C31-276BB3DF2B30}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BE364158-17DA-492B-845A-43CA752D26B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapFind.Plugin.Abstractions", "src\SnapFind.Plugin.Abstractions\SnapFind.Plugin.Abstractions.csproj", "{191341A0-78B5-4BEC-BDC2-B7DA9DC08926}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{EE5836EF-CA75-4893-A7EB-2E376D0EA2EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapFind.Plugin.Translation", "src\Plugins\SnapFind.Plugin.Translation\SnapFind.Plugin.Translation.csproj", "{2599EA48-B98F-496E-AA92-03C68F5F8D1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapFind.Tests", "tests\SnapFind.Tests.csproj", "{60F1EDB3-DC2A-43BC-A1A2-651D12BE6EE1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{37894ABC-F144-4D27-8E2D-65693A0D3B55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{37894ABC-F144-4D27-8E2D-65693A0D3B55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{37894ABC-F144-4D27-8E2D-65693A0D3B55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{37894ABC-F144-4D27-8E2D-65693A0D3B55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA13B66F-21F5-4CD9-9C31-276BB3DF2B30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA13B66F-21F5-4CD9-9C31-276BB3DF2B30}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA13B66F-21F5-4CD9-9C31-276BB3DF2B30}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA13B66F-21F5-4CD9-9C31-276BB3DF2B30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{191341A0-78B5-4BEC-BDC2-B7DA9DC08926}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{191341A0-78B5-4BEC-BDC2-B7DA9DC08926}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{191341A0-78B5-4BEC-BDC2-B7DA9DC08926}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{191341A0-78B5-4BEC-BDC2-B7DA9DC08926}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2599EA48-B98F-496E-AA92-03C68F5F8D1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2599EA48-B98F-496E-AA92-03C68F5F8D1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2599EA48-B98F-496E-AA92-03C68F5F8D1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2599EA48-B98F-496E-AA92-03C68F5F8D1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60F1EDB3-DC2A-43BC-A1A2-651D12BE6EE1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60F1EDB3-DC2A-43BC-A1A2-651D12BE6EE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60F1EDB3-DC2A-43BC-A1A2-651D12BE6EE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60F1EDB3-DC2A-43BC-A1A2-651D12BE6EE1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{191341A0-78B5-4BEC-BDC2-B7DA9DC08926} = {BE364158-17DA-492B-845A-43CA752D26B9}
+		{EE5836EF-CA75-4893-A7EB-2E376D0EA2EE} = {BE364158-17DA-492B-845A-43CA752D26B9}
+		{2599EA48-B98F-496E-AA92-03C68F5F8D1F} = {EE5836EF-CA75-4893-A7EB-2E376D0EA2EE}
+	EndGlobalSection
+EndGlobal

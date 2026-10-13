@@ -64,7 +64,7 @@ foreach ($ed in $editions) {
             Copy-Item "$workspaceRoot\libs\rapid\*" "$zipTempDir\libs\rapid" -Recurse -Force
         } else {
             New-Item -ItemType Directory -Path "$zipTempDir\libs" -Force | Out-Null
-            Copy-Item "$workspaceRoot\libs\*" "$zipTempDir\libs" -Recurse -Force
+            Get-ChildItem "$workspaceRoot\libs" | Where-Object { $_.Name -ne "rapid" } | Copy-Item -Destination "$zipTempDir\libs" -Recurse -Force
         }
 
         # 优先使用 tools/7-Zip 下的便携工具链，其次探测系统 7z

@@ -53,7 +53,7 @@ Source: "{#PublishDir}\SnapFind.exe"; DestDir: "{app}"; Flags: ignoreversion
 #if Edition == "Rapid"
 Source: "..\libs\rapid\*"; DestDir: "{app}\libs\rapid"; Flags: recursesubdirs createallsubdirs ignoreversion
 #else
-Source: "..\libs\*"; DestDir: "{app}\libs"; Flags: recursesubdirs createallsubdirs ignoreversion
+Source: "..\libs\*"; DestDir: "{app}\libs"; Excludes: "rapid\*"; Flags: recursesubdirs createallsubdirs ignoreversion
 #endif
 
 [Icons]
