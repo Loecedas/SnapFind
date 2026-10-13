@@ -18,14 +18,14 @@
 
   <ItemGroup>
     <PackageReference Include="PaddleOCRSharp" Version="6.2.0" />
-    <ProjectReference Include="Plugins\SnapFind.Plugin.Translation\SnapFind.Plugin.Translation.csproj" />
+    <ProjectReference Include="SnapFind.Plugin.Abstractions\SnapFind.Plugin.Abstractions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Plugins\**" />
-    <Page Remove="Plugins\**" />
-    <Resource Remove="Plugins\**" />
-    <None Remove="Plugins\**" />
+    <Compile Remove="Plugins\**;SnapFind.Plugin.Abstractions\**" />
+    <Page Remove="Plugins\**;SnapFind.Plugin.Abstractions\**" />
+    <Resource Remove="Plugins\**;SnapFind.Plugin.Abstractions\**" />
+    <None Remove="Plugins\**;SnapFind.Plugin.Abstractions\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,3 +41,5 @@
   </ItemGroup>
 
 </Project>
+
+

@@ -187,6 +187,9 @@ namespace PixOcrSearch
             // Load Configuration
             ConfigManager.Load();
 
+            // Initialize dynamic plugin architecture
+            PluginManager.InitializeAll();
+
             // Apply System Theme
             ApplyTheme();
 
@@ -1023,3 +1026,4 @@ namespace PixOcrSearch
         public long DurationMs { get; set; }
     }
 }
+
