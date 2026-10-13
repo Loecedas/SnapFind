@@ -41,7 +41,15 @@ namespace PixOcrSearch
         private static Task? _initTask;
         private static System.Threading.Timer? _disposeTimer;
         private static string _currentModel = "";
+        // _lock guards the engine/timer/initTask state for short-lived mutations.
         private static readonly object _lock = new object();
+        // _syncLock serializes long-lived inference operations against engine disposal/replacement
+        // so that an in-flight OCR inference cannot collide with a model swap or timer-triggered
+        // disposal (which previously caused ObjectDisposedException / NullReferenceException crashes).
+        private static readonly object _syncLock = new object();
+        // Tracks the number of in-flight OCR inference operations so that Dispose/StartInitialize
+        // can wait for all current users of the engine to finish before tearing it down.
+        private static int _inFlightCount = 0;
 
         static OcrHelper()
         {
@@ -85,19 +93,26 @@ namespace PixOcrSearch
         public static void StartInitialize()
         {
             string modelToLoad = ConfigManager.Current.OcrModel;
+            IDisposable? engineToDispose = null;
+            Task? newInitTask = null;
             lock (_lock)
             {
                 if (_engine == null || _currentModel != modelToLoad)
                 {
-                    // If model is changing, dispose old engine first to avoid memory leaks
-                    if (_engine != null)
-                    {
-                        _engine.Dispose();
-                        _engine = null;
-                    }
+                    // If model is changing, dispose old engine after all in-flight inferences
+                    // have finished to avoid ObjectDisposedException / native crashes.
+                    engineToDispose = _engine as IDisposable;
+                    _engine = null;
                     _currentModel = modelToLoad;
-                    _initTask = Task.Run(() => InitializeInternal(modelToLoad));
+                    newInitTask = Task.Run(() => InitializeInternal(modelToLoad));
+                    _initTask = newInitTask;
                 }
+            }
+
+            // Defer disposing the previous engine until no caller is using it anymore.
+            if (engineToDispose != null)
+            {
+                DisposeEngineWhenIdle(engineToDispose);
             }
         }
 
@@ -246,7 +261,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(Localization.MsgOcrInitFailed(ex.Message), Localization.TitleOcrError, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                ShowErrorOnUiThread(Localization.MsgOcrInitFailed(ex.Message), Localization.TitleOcrError);
             }
         }
 
@@ -265,207 +280,24 @@ namespace PixOcrSearch
 
             string result = await Task.Run(() =>
             {
+                Interlocked.Increment(ref _inFlightCount);
                 try
                 {
-#if USE_RAPID_OCR
-                    RapidOcr? engine;
-                    lock (_lock)
+                    // Hold _syncLock across the entire inference so a concurrent Dispose /
+                    // engine-replacement triggered by the timer or a model change will wait
+                    // for the inference to finish before tearing down the engine.
+                    lock (_syncLock)
                     {
-                        engine = _engine;
+                        return RunOcrInference(bitmap);
                     }
-
-                    if (engine != null)
-                    {
-                        using var ms = new MemoryStream();
-                        bitmap.Save(ms, ImageFormat.Png);
-                        ms.Position = 0;
-                        using var skBmp = SKBitmap.Decode(ms);
-
-                        if (skBmp != null)
-                        {
-                            var ocrResult = engine.Detect(skBmp, RapidOcrOptions.Default, CancellationToken.None);
-                            if (ocrResult != null && ocrResult.TextBlocks != null && ocrResult.TextBlocks.Length > 0)
-                            {
-                                var lines = new List<List<RapidOcrNet.TextBlock>>();
-                                var sortedByY = ocrResult.TextBlocks
-                                    .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Length > 0 ? b.BoxPoints[0].Y : 0)
-                                    .ToList();
-
-                                foreach (var block in sortedByY)
-                                {
-                                    if (block.BoxPoints == null || block.BoxPoints.Length < 4) continue;
-
-                                    double blockY = block.BoxPoints[0].Y;
-                                    double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
-                                    if (blockHeight == 0) blockHeight = 15;
-
-                                    bool added = false;
-                                    foreach (var line in lines)
-                                    {
-                                        double lineY = line.Average(b => b.BoxPoints[0].Y);
-                                        if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
-                                        {
-                                            line.Add(block);
-                                            added = true;
-                                            break;
-                                        }
-                                    }
-
-                                    if (!added)
-                                    {
-                                        lines.Add(new List<RapidOcrNet.TextBlock> { block });
-                                    }
-                                }
-
-                                var sortedLines = lines
-                                    .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
-                                    .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
-                                    .ToList();
-
-                                StringBuilder sb = new StringBuilder();
-                                foreach (var line in sortedLines)
-                                {
-                                    StringBuilder lineBuilder = new StringBuilder();
-                                    for (int i = 0; i < line.Count; i++)
-                                    {
-                                        var block = line[i];
-                                        if (i > 0)
-                                        {
-                                            string prev = line[i - 1].Text;
-                                            string curr = block.Text;
-                                            bool needSpace = false;
-                                            if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
-                                            {
-                                                char lastChar = prev[prev.Length - 1];
-                                                char firstChar = curr[0];
-                                                if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
-                                                    ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
-                                                {
-                                                    needSpace = true;
-                                                }
-                                            }
-                                            if (needSpace)
-                                            {
-                                                lineBuilder.Append(" ");
-                                            }
-                                        }
-                                        lineBuilder.Append(block.Text);
-                                    }
-                                    sb.AppendLine(lineBuilder.ToString());
-                                }
-                                return sb.ToString().Trim();
-                            }
-                            else if (ocrResult != null && !string.IsNullOrEmpty(ocrResult.StrRes))
-                            {
-                                return ocrResult.StrRes.Trim();
-                            }
-                        }
-                    }
-#else
-                    PaddleOCREngine? engine;
-                    lock (_lock)
-                    {
-                        engine = _engine;
-                    }
-
-                    if (engine != null)
-                    {
-                        // Run OCR directly on the selected model
-                        var ocrResult = engine.DetectText(bitmap);
-                        if (ocrResult != null)
-                        {
-                            string text = string.Empty;
-                            if (ocrResult.TextBlocks != null && ocrResult.TextBlocks.Count > 0)
-                            {
-                                var lines = new List<List<PaddleOCRSharp.TextBlock>>();
-                                var sortedByY = ocrResult.TextBlocks
-                                    .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Count > 0 ? b.BoxPoints[0].Y : 0)
-                                    .ToList();
-
-                                foreach (var block in sortedByY)
-                                {
-                                    if (block.BoxPoints == null || block.BoxPoints.Count == 0) continue;
-
-                                    double blockY = block.BoxPoints[0].Y;
-                                    double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
-                                    if (blockHeight == 0) blockHeight = 15;
-
-                                    bool added = false;
-                                    foreach (var line in lines)
-                                    {
-                                        double lineY = line.Average(b => b.BoxPoints[0].Y);
-                                        if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
-                                        {
-                                            line.Add(block);
-                                            added = true;
-                                            break;
-                                        }
-                                    }
-
-                                    if (!added)
-                                    {
-                                        lines.Add(new List<PaddleOCRSharp.TextBlock> { block });
-                                    }
-                                }
-
-                                var sortedLines = lines
-                                    .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
-                                    .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
-                                    .ToList();
-
-                                StringBuilder sb = new StringBuilder();
-                                foreach (var line in sortedLines)
-                                {
-                                    StringBuilder lineBuilder = new StringBuilder();
-                                    for (int i = 0; i < line.Count; i++)
-                                    {
-                                        var block = line[i];
-                                        if (i > 0)
-                                        {
-                                            string prev = line[i - 1].Text;
-                                            string curr = block.Text;
-                                            bool needSpace = false;
-                                            if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
-                                            {
-                                                char lastChar = prev[prev.Length - 1];
-                                                char firstChar = curr[0];
-                                                if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
-                                                    ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
-                                                {
-                                                    needSpace = true;
-                                                }
-                                            }
-                                            if (needSpace)
-                                            {
-                                                lineBuilder.Append(" ");
-                                            }
-                                        }
-                                        lineBuilder.Append(block.Text);
-                                    }
-                                    sb.AppendLine(lineBuilder.ToString());
-                                }
-                                text = sb.ToString().Trim();
-                            }
-                            else
-                            {
-                                text = ocrResult.Text?.Trim() ?? string.Empty;
-                            }
-
-                            if (ocrResult is IDisposable disposable)
-                            {
-                                disposable.Dispose();
-                            }
-                            return text;
-                        }
-                    }
-#endif
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show(Localization.MsgOcrRecognitionFailed(ex.Message), Localization.TitleOcrError, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    ShowErrorOnUiThread(Localization.MsgOcrRecognitionFailed(ex.Message), Localization.TitleOcrError);
                 }
                 finally
                 {
+                    Interlocked.Decrement(ref _inFlightCount);
                     // Reset timer again after OCR completes to start the countdown
                     ResetDisposeTimer();
                 }
@@ -476,6 +308,219 @@ namespace PixOcrSearch
             OptimizeMemory();
 
             return result;
+        }
+
+        // Runs the actual OCR inference against the engine currently held by _engine.
+        // MUST be called from inside a lock (_syncLock) block so that the engine is not
+        // disposed or replaced mid-call.
+        private static string RunOcrInference(System.Drawing.Bitmap bitmap)
+        {
+#if USE_RAPID_OCR
+            RapidOcr? engine;
+            lock (_lock)
+            {
+                engine = _engine;
+            }
+
+            if (engine == null)
+            {
+                return string.Empty;
+            }
+
+            using var ms = new MemoryStream();
+            bitmap.Save(ms, ImageFormat.Png);
+            ms.Position = 0;
+            using var skBmp = SKBitmap.Decode(ms);
+
+            if (skBmp == null)
+            {
+                return string.Empty;
+            }
+
+            var ocrResult = engine.Detect(skBmp, RapidOcrOptions.Default, CancellationToken.None);
+            if (ocrResult != null && ocrResult.TextBlocks != null && ocrResult.TextBlocks.Length > 0)
+            {
+                var lines = new List<List<RapidOcrNet.TextBlock>>();
+                var sortedByY = ocrResult.TextBlocks
+                    .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Length > 0 ? b.BoxPoints[0].Y : 0)
+                    .ToList();
+
+                foreach (var block in sortedByY)
+                {
+                    if (block.BoxPoints == null || block.BoxPoints.Length < 4) continue;
+
+                    double blockY = block.BoxPoints[0].Y;
+                    double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
+                    if (blockHeight == 0) blockHeight = 15;
+
+                    bool added = false;
+                    foreach (var line in lines)
+                    {
+                        double lineY = line.Average(b => b.BoxPoints[0].Y);
+                        if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
+                        {
+                            line.Add(block);
+                            added = true;
+                            break;
+                        }
+                    }
+
+                    if (!added)
+                    {
+                        lines.Add(new List<RapidOcrNet.TextBlock> { block });
+                    }
+                }
+
+                var sortedLines = lines
+                    .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
+                    .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
+                    .ToList();
+
+                StringBuilder sb = new StringBuilder();
+                foreach (var line in sortedLines)
+                {
+                    StringBuilder lineBuilder = new StringBuilder();
+                    for (int i = 0; i < line.Count; i++)
+                    {
+                        var block = line[i];
+                        if (i > 0)
+                        {
+                            string prev = line[i - 1].Text;
+                            string curr = block.Text;
+                            bool needSpace = false;
+                            if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
+                            {
+                                char lastChar = prev[prev.Length - 1];
+                                char firstChar = curr[0];
+                                if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
+                                    ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
+                                {
+                                    needSpace = true;
+                                }
+                            }
+                            if (needSpace)
+                            {
+                                lineBuilder.Append(" ");
+                            }
+                        }
+                        lineBuilder.Append(block.Text);
+                    }
+                    sb.AppendLine(lineBuilder.ToString());
+                }
+                return sb.ToString().Trim();
+            }
+            else if (ocrResult != null && !string.IsNullOrEmpty(ocrResult.StrRes))
+            {
+                return ocrResult.StrRes.Trim();
+            }
+            return string.Empty;
+#else
+            PaddleOCREngine? engine;
+            lock (_lock)
+            {
+                engine = _engine;
+            }
+
+            if (engine == null)
+            {
+                return string.Empty;
+            }
+
+            // Run OCR directly on the selected model
+            var ocrResult = engine.DetectText(bitmap);
+            if (ocrResult == null)
+            {
+                return string.Empty;
+            }
+
+            string text = string.Empty;
+            try
+            {
+                if (ocrResult.TextBlocks != null && ocrResult.TextBlocks.Count > 0)
+                {
+                    var lines = new List<List<PaddleOCRSharp.TextBlock>>();
+                    var sortedByY = ocrResult.TextBlocks
+                        .OrderBy(b => b.BoxPoints != null && b.BoxPoints.Count > 0 ? b.BoxPoints[0].Y : 0)
+                        .ToList();
+
+                    foreach (var block in sortedByY)
+                    {
+                        if (block.BoxPoints == null || block.BoxPoints.Count == 0) continue;
+
+                        double blockY = block.BoxPoints[0].Y;
+                        double blockHeight = Math.Abs(block.BoxPoints[2].Y - block.BoxPoints[0].Y);
+                        if (blockHeight == 0) blockHeight = 15;
+
+                        bool added = false;
+                        foreach (var line in lines)
+                        {
+                            double lineY = line.Average(b => b.BoxPoints[0].Y);
+                            if (Math.Abs(blockY - lineY) < blockHeight * 0.5)
+                            {
+                                line.Add(block);
+                                added = true;
+                                break;
+                            }
+                        }
+
+                        if (!added)
+                        {
+                            lines.Add(new List<PaddleOCRSharp.TextBlock> { block });
+                        }
+                    }
+
+                    var sortedLines = lines
+                        .OrderBy(l => l.Average(b => b.BoxPoints[0].Y))
+                        .Select(l => l.OrderBy(b => b.BoxPoints[0].X).ToList())
+                        .ToList();
+
+                    StringBuilder sb = new StringBuilder();
+                    foreach (var line in sortedLines)
+                    {
+                        StringBuilder lineBuilder = new StringBuilder();
+                        for (int i = 0; i < line.Count; i++)
+                        {
+                            var block = line[i];
+                            if (i > 0)
+                            {
+                                string prev = line[i - 1].Text;
+                                string curr = block.Text;
+                                bool needSpace = false;
+                                if (!string.IsNullOrEmpty(prev) && !string.IsNullOrEmpty(curr))
+                                {
+                                    char lastChar = prev[prev.Length - 1];
+                                    char firstChar = curr[0];
+                                    if (((lastChar >= 'a' && lastChar <= 'z') || (lastChar >= 'A' && lastChar <= 'Z') || (lastChar >= '0' && lastChar <= '9')) &&
+                                        ((firstChar >= 'a' && firstChar <= 'z') || (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= '0' && firstChar <= '9')))
+                                    {
+                                        needSpace = true;
+                                    }
+                                }
+                                if (needSpace)
+                                {
+                                    lineBuilder.Append(" ");
+                                }
+                            }
+                            lineBuilder.Append(block.Text);
+                        }
+                        sb.AppendLine(lineBuilder.ToString());
+                    }
+                    text = sb.ToString().Trim();
+                }
+                else
+                {
+                    text = ocrResult.Text?.Trim() ?? string.Empty;
+                }
+            }
+            finally
+            {
+                if (ocrResult is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            return text;
+#endif
         }
 
 #if !USE_RAPID_OCR
@@ -522,6 +567,7 @@ namespace PixOcrSearch
 
         public static void Dispose()
         {
+            IDisposable? engineToDispose = null;
             lock (_lock)
             {
                 if (_disposeTimer != null)
@@ -531,15 +577,68 @@ namespace PixOcrSearch
                 }
                 if (_engine != null)
                 {
-                    _engine.Dispose();
+                    engineToDispose = _engine as IDisposable;
                     _engine = null;
                 }
                 _initTask = null;
+            }
+
+            // Defer the actual engine release until any in-flight inference completes so
+            // we never tear the engine down while RecognizeTextAsync is still using it.
+            if (engineToDispose != null)
+            {
+                DisposeEngineWhenIdle(engineToDispose);
             }
 #if !USE_RAPID_OCR
             // Free Intel MKL internal buffers upon engine disposal
             FreeMklBuffers();
 #endif
+        }
+
+        // Wait until no inference is in flight (or a short timeout elapses) and then dispose
+        // the supplied engine. This avoids ObjectDisposedException when a model swap or the
+        // 5-minute timer fires while a screenshot's OCR is still running.
+        private static void DisposeEngineWhenIdle(IDisposable engine)
+        {
+            if (engine == null) return;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    // Acquire _syncLock and immediately release it to ensure all currently
+                    // running inferences have exited, then dispose the engine afterwards.
+                    lock (_syncLock)
+                    {
+                        // The lock is held; no other inference can be running.
+                    }
+
+                    // Also wait for the in-flight counter to drain (the inference thread may
+                    // have incremented the counter just before the lock was released).
+                    SpinWait sw = new SpinWait();
+                    while (Volatile.Read(ref _inFlightCount) > 0)
+                    {
+                        sw.SpinOnce();
+                        if (sw.Count > 200)
+                        {
+                            Thread.Sleep(1);
+                        }
+                    }
+
+                    try
+                    {
+                        engine.Dispose();
+                    }
+                    catch
+                    {
+                        // Suppress disposal errors to avoid crashing timer-driven cleanup.
+                    }
+                }
+                catch
+                {
+                    // Defensive: never let this background path throw out of Task.Run.
+                }
+            });
         }
 
         private static void ResetDisposeTimer()
@@ -561,6 +660,37 @@ namespace PixOcrSearch
         {
             Dispose();
             OptimizeMemory();
+        }
+
+        // Dispatch an error dialog to the WPF UI thread. Calling MessageBox.Show from a
+        // background thread (e.g. when OCR init/recognition fails inside Task.Run) throws
+        // InvalidOperationException because there is no interactive user on that thread.
+        private static void ShowErrorOnUiThread(string message, string title)
+        {
+            try
+            {
+                var app = System.Windows.Application.Current;
+                if (app == null)
+                {
+                    System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    return;
+                }
+                if (app.Dispatcher.CheckAccess())
+                {
+                    System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+                else
+                {
+                    app.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    }));
+                }
+            }
+            catch
+            {
+                // Never let notification failures crash the OCR pipeline.
+            }
         }
     }
 }

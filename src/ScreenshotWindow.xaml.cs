@@ -223,6 +223,10 @@ namespace PixOcrSearch
             int physicalWidth = _screen.Bounds.Width;
             int physicalHeight = _screen.Bounds.Height;
 
+            // Replace any previous snapshot to avoid leaking both the GDI Bitmap and its
+            // managed wrapper across consecutive screenshot sessions.
+            DisposeScreenSnapshot();
+
             _screenSnapshot = new Bitmap(physicalWidth, physicalHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(_screenSnapshot))
             {
@@ -245,16 +249,41 @@ namespace PixOcrSearch
             BackgroundImg.Height = Height;
         }
 
+        private void DisposeScreenSnapshot()
+        {
+            if (_screenSnapshot != null)
+            {
+                try
+                {
+                    _screenSnapshot.Dispose();
+                }
+                catch
+                {
+                    // Suppress disposal errors so screenshot retries never crash the window.
+                }
+                _screenSnapshot = null;
+            }
+        }
+
         private ImageSource BitmapToImageSource(Bitmap bitmap)
         {
+            if (bitmap == null) return null!;
             IntPtr hBitmap = bitmap.GetHbitmap();
             try
             {
-                return Imaging.CreateBitmapSourceFromHBitmap(
+                BitmapSource source = Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
+                // Freezing the BitmapSource detaches its underlying GDI handle from the
+                // UI dispatcher lifecycle and allows it to be reclaimed by the GC promptly,
+                // which prevents the GDI handle leak we observed after many captures.
+                if (source.CanFreeze)
+                {
+                    source.Freeze();
+                }
+                return source;
             }
             finally
             {
@@ -930,8 +959,7 @@ namespace PixOcrSearch
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-            _screenSnapshot?.Dispose();
-            _screenSnapshot = null;
+            DisposeScreenSnapshot();
 
             if (!_isCompleted)
             {
