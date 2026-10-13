@@ -63,6 +63,14 @@ namespace PixOcrSearch
         public static string BtnGoToPluginsTab => IsEnglish ? "Plugin Center →" : "插件中心 →";
         public static string LabelPluginLaunchHotkey => IsEnglish ? "Launch Hotkey:" : "启动快捷键：";
         public static string TipPluginHotkeyRecording => IsEnglish ? "Click and press key combination to customize (effective immediately)" : "点击输入框并按下键盘组合键即可自定义，实时生效无需重启";
+        public static string TipPluginToggle(bool isActive) => isActive ? (IsEnglish ? "Click to disable this plugin" : "点击停用此插件") : (IsEnglish ? "Click to enable this plugin" : "点击启用此插件");
+        public static string TipPluginTestTranslate => IsEnglish ? "Test opening translation window" : "测试打开翻译窗口";
+        public static string TipPluginOpenFolder => IsEnglish ? "Open plugin folder" : "打开插件所在文件夹";
+        public static string TipPluginDelete => IsEnglish ? "Delete or remove this plugin" : "删除或移除此插件";
+        public static string TipResetDefaultHotkey => IsEnglish ? "Reset to default Ctrl + Alt + T" : "重置为默认 Ctrl + Alt + T";
+        public static string LangTraditionalChinese => IsEnglish ? "Traditional Chinese" : "繁體中文";
+        public static string LangJapanese => IsEnglish ? "Japanese" : "日本語";
+        public static string LangKorean => IsEnglish ? "Korean" : "한국어";
         public static string BtnResetHotkey => IsEnglish ? "Reset" : "重置";
         public static string LabelDefaultTargetLang => IsEnglish ? "Default Target:" : "默认目标语言：";
         public static string MsgPluginImportSuccessWithHotkey(string name, string hotkey) => IsEnglish
@@ -200,3 +208,4 @@ namespace PixOcrSearch
         public static string TitleOcrError => IsEnglish ? "OCR Error" : "OCR 错误";
     }
 }
+

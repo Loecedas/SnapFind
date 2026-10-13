@@ -8,10 +8,12 @@
         Topmost="False"
         ShowInTaskbar="True"
         Icon="pack://application:,,,/app.ico"
-        Width="590"
-        Height="480"
-        MinWidth="590"
+        Width="640"
+        Height="500"
+        MinWidth="600"
         MinHeight="480"
+        MaxWidth="820"
+        MaxHeight="640"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterScreen"
         MouseLeftButtonDown="Window_MouseLeftButtonDown"
@@ -431,7 +433,7 @@
 
                         <TextBlock x:Name="NotificationTitleText" Grid.Row="0" Text="最新更新日志" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource ThemeText}" Margin="0,0,0,8"/>
                         
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" Focusable="False" FocusVisualStyle="{x:Null}">
                             <StackPanel x:Name="ChangelogPanel" Margin="0,0,8,0"/>
                         </ScrollViewer>
 
@@ -475,7 +477,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False">
+                        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False" FocusVisualStyle="{x:Null}">
                             <StackPanel Margin="0,0,10,0">
                                 <!-- Row 1: Search Engine and OCR Model -->
                                 <Grid Margin="0,0,0,10">
@@ -756,7 +758,7 @@
                         </Grid>
 
                         <!-- Plugins List & Empty State container -->
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" Focusable="False" FocusVisualStyle="{x:Null}">
                             <StackPanel x:Name="PluginsContainerPanel">
                                 <!-- Empty state view -->
                                 <Border x:Name="PluginsEmptyStateBorder" 
@@ -839,7 +841,7 @@
                         </Grid>
 
                         <!-- Descriptions and Links -->
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10">
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10" Focusable="False" FocusVisualStyle="{x:Null}">
                             <StackPanel>
                                 <TextBlock x:Name="AboutIntroTitleText" Text="项目简介与声明" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource ThemeText}" Margin="0,4,0,4"/>
                                 <TextBlock x:Name="AboutIntroContentText" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource ThemeSubText}" LineHeight="18" Margin="0,0,0,8"/>
