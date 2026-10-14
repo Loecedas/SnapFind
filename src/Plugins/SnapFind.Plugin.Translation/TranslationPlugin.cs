@@ -83,6 +83,13 @@ namespace SnapFind.Plugin.Translation
         public void Configure(TranslationOptions options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            Application.Current?.Dispatcher.Invoke(() =>
+            {
+                if (_activeWindow != null && _activeWindow.IsLoaded)
+                {
+                    _activeWindow.SetDefaultTargetLanguage(_options.DefaultTargetLanguage);
+                }
+            });
         }
 
         public Task<string> TranslateAsync(string text, string provider = "Microsoft", string fromLang = "auto", string toLang = "zh-CN")

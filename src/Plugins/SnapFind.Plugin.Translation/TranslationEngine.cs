@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -47,7 +48,7 @@ namespace SnapFind.Plugin.Translation
             {
                 Proxy = new DynamicSystemWebProxy(),
                 UseProxy = true,
-                PooledConnectionLifetime = TimeSpan.FromSeconds(2) // 2秒连接回收，敏捷响应系统VPN与代理路由变化
+                PooledConnectionLifetime = TimeSpan.FromSeconds(2) // 2 秒连接回收，敏捷响应系统 VPN 与代理路由变化
             };
             var client = new HttpClient(handler);
             client.Timeout = TimeSpan.FromSeconds(10);
@@ -86,15 +87,7 @@ namespace SnapFind.Plugin.Translation
             if (toLang == "auto")
             {
                 // 智能检测：包含中文字符则目标语言为英语，否则为简体中文
-                bool containsChinese = false;
-                foreach (char c in text)
-                {
-                    if (c >= 0x4E00 && c <= 0x9FFF)
-                    {
-                        containsChinese = true;
-                        break;
-                    }
-                }
+                bool containsChinese = Regex.IsMatch(text, @"[\u4e00-\u9fa5]");
                 toLang = containsChinese ? "en" : "zh-CN";
             }
 
@@ -118,7 +111,7 @@ namespace SnapFind.Plugin.Translation
             }
             catch (Exception ex)
             {
-                return $"[翻译失败: {ex.Message}]";
+                return $"[翻译失败：{ex.Message}]";
             }
         }
 

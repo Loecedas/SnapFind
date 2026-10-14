@@ -16,7 +16,6 @@
     <AssemblyVersion>2.5.0.0</AssemblyVersion>
     <FileVersion>2.5.0.0</FileVersion>
     <DefineConstants>$(DefineConstants);USE_RAPID_OCR</DefineConstants>
-      <BaseIntermediateOutputPath>obj\SnapFind.Rapid\</BaseIntermediateOutputPath>
     <BaseOutputPath>bin\SnapFind.Rapid\</BaseOutputPath>
   </PropertyGroup>
 

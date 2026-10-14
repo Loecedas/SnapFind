@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectFile)' == 'SnapFind.Rapid.csproj'">
+    <BaseIntermediateOutputPath>obj\SnapFind.Rapid\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectFile)' == 'SnapFind.csproj'">
+    <BaseIntermediateOutputPath>obj\SnapFind\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

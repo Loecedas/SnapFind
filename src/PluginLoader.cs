@@ -16,6 +16,22 @@ namespace PixOcrSearch
             _resolver = new AssemblyDependencyResolver(pluginMainPath);
         }
 
+        public Assembly LoadAssemblyFromMemory(string assemblyPath)
+        {
+            byte[] assemblyBytes = File.ReadAllBytes(assemblyPath);
+            using var assemblyStream = new MemoryStream(assemblyBytes);
+
+            string pdbPath = Path.ChangeExtension(assemblyPath, ".pdb");
+            if (File.Exists(pdbPath))
+            {
+                byte[] pdbBytes = File.ReadAllBytes(pdbPath);
+                using var pdbStream = new MemoryStream(pdbBytes);
+                return LoadFromStream(assemblyStream, pdbStream);
+            }
+
+            return LoadFromStream(assemblyStream);
+        }
+
         protected override Assembly? Load(AssemblyName assemblyName)
         {
             // Do not reload Abstractions or host assemblies; share them
@@ -26,9 +42,9 @@ namespace PixOcrSearch
             }
 
             string? assemblyPath = _resolver.ResolveAssemblyToPath(assemblyName);
-            if (assemblyPath != null)
+            if (assemblyPath != null && File.Exists(assemblyPath))
             {
-                return LoadFromAssemblyPath(assemblyPath);
+                return LoadAssemblyFromMemory(assemblyPath);
             }
 
             return null;
@@ -112,7 +128,7 @@ namespace PixOcrSearch
                 }
 
                 var alc = new PluginLoadContext(entryDllPath);
-                var assembly = alc.LoadFromAssemblyPath(entryDllPath);
+                var assembly = alc.LoadAssemblyFromMemory(entryDllPath);
 
                 Type? pluginType = null;
                 if (!string.IsNullOrWhiteSpace(manifest.EntryType))

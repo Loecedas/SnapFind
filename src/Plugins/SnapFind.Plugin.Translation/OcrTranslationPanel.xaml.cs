@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
@@ -124,6 +125,10 @@ namespace SnapFind.Plugin.Translation
             TranslateTextBox.Text = "正在翻译中...";
 
             string targetLang = _currentTargetLang;
+            if (targetLang == "auto")
+            {
+                targetLang = Regex.IsMatch(_lastSourceText, @"[\u4e00-\u9fa5]") ? "en" : "zh-CN";
+            }
             string source = _lastSourceText;
 
             Task.Run(async () =>
