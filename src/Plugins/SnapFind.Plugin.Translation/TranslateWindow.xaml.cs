@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -125,6 +126,12 @@ namespace SnapFind.Plugin.Translation
             }
         }
 
+        public void SetDefaultTargetLanguage(string defaultTargetLanguage)
+        {
+            if (string.IsNullOrEmpty(defaultTargetLanguage)) return;
+            SetComboBoxSelectedTag(TargetLangComboBox, defaultTargetLanguage);
+        }
+
         public void SetInputText(string text)
         {
             InputTextBox.Text = text;
@@ -154,6 +161,11 @@ namespace SnapFind.Plugin.Translation
             if (TargetLangComboBox.SelectedItem is ComboBoxItem targetItem)
             {
                 toLang = targetItem.Tag?.ToString() ?? "zh-CN";
+            }
+
+            if (toLang == "auto")
+            {
+                toLang = Regex.IsMatch(text, @"[\u4e00-\u9fa5]") ? "en" : "zh-CN";
             }
 
             if (toLang == "s2t" || toLang == "t2s")

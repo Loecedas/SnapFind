@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Navigation;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MessageBox = System.Windows.MessageBox;
@@ -26,7 +27,64 @@ namespace PixOcrSearch
         private string _recordedKey = "";
         private string _recordedControlPanelModifiers = "";
         private string _recordedControlPanelKey = "";
-        
+
+        // === Cached theme brushes + styles for plugin cards (snapfind-fix-flicker)
+        // These are populated once at Window_Loaded by RefreshThemeBridge() so that
+        // BuildPluginCard() never has to call FindResource per element per redraw.
+        private System.Windows.Media.Brush _brushText = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushSubText = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushInputBg = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushInputFg = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushInputBorder = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushHoverBg = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushWindowBorder = System.Windows.Media.Brushes.Transparent;
+        private System.Windows.Media.Brush _brushWindowBg = System.Windows.Media.Brushes.Transparent;
+
+        // Frozen accent brushes for plugin list badges. Frozen once, thread-safe.
+        private static readonly System.Windows.Media.Brush s_brushBgActive     = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215)));
+        private static readonly System.Windows.Media.Brush s_brushBdActive    = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(60, 0, 120, 215)));
+        private static readonly System.Windows.Media.Brush s_brushBgInactive  = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(20, 128, 134, 139)));
+        private static readonly System.Windows.Media.Brush s_brushBdInactive  = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 128, 134, 139)));
+        private static readonly System.Windows.Media.Brush s_brushTypeBg      = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215)));
+        private static readonly System.Windows.Media.Brush s_brushTypeBd      = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(80, 0, 120, 215)));
+        private static readonly System.Windows.Media.Brush s_brushTypeFg      = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOnBg  = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(30, 46, 125, 50)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOnBd  = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 46, 125, 50)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOnFg  = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 125, 50)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOffBg = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(25, 128, 134, 139)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOffBd = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(70, 128, 134, 139)));
+        private static readonly System.Windows.Media.Brush s_brushStatusOffFg = FreezeBrush(new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 134, 139)));
+
+        private static readonly (string Name, string Code)[] s_supportedTargetLanguages = new[]
+        {
+            ("自动检测", "auto"),
+            ("简体中文", "zh-CN"),
+            ("繁体中文", "zh-TW"),
+            ("英语", "en"),
+            ("日语", "ja"),
+            ("韩语", "ko"),
+            ("法语", "fr"),
+            ("德语", "de"),
+            ("俄语", "ru"),
+            ("西班牙语", "es"),
+            ("意大利语", "it"),
+            ("葡萄牙语", "pt"),
+            ("阿拉伯语", "ar"),
+            ("越南语", "vi"),
+            ("泰语", "th")
+        };
+
+        private static System.Windows.Media.Brush FreezeBrush(System.Windows.Media.Brush b)
+        {
+            if (b.CanFreeze) b.Freeze();
+            return b;
+        }
+
+        private Style _styleModernButton = null!;
+        private Style _stylePrimaryButton = null!;
+        private Style _styleDangerButton = null!;
+        private ControlTemplate _tplComboBox = null!;
+
         private static readonly HttpClient SharedHttpClient = new HttpClient();
 
         private static bool VerifyFileIntegrity(string filePath)
@@ -99,6 +157,10 @@ namespace PixOcrSearch
 
             // Dynamically refresh system theme resources before rendering
             App.ApplyTheme();
+
+            // Cache the theme brushes + styles so plugin cards don't have to call
+            // FindResource during redraws (the source of drag-time flicker).
+            RefreshThemeBridge();
 
             // Load current config settings
             LoadSettingsConfig();
@@ -256,9 +318,9 @@ namespace PixOcrSearch
 
             PluginsTitleText.Text = Localization.PluginsTitle;
             PluginsDescText.Text = Localization.PluginsDesc;
-            BtnImportPlugin.Content = Localization.BtnImportPlugin;
-            BtnOpenPluginFolder.Content = Localization.BtnOpenPluginFolder;
-            BtnRefreshPlugins.Content = Localization.BtnRefreshPlugins;
+            BtnImportPluginText.Text = Localization.BtnImportPlugin;
+            BtnOpenPluginFolderText.Text = Localization.BtnOpenPluginFolder;
+            BtnRefreshPluginsText.Text = Localization.BtnRefreshPlugins;
             PluginsEmptyTitleText.Text = Localization.PluginsEmptyTitle;
             PluginsEmptyDescText.Text = Localization.PluginsEmptyDesc;
             PluginsCloseButton.Content = Localization.BtnClose;
@@ -542,18 +604,18 @@ namespace PixOcrSearch
         {
             if (string.IsNullOrEmpty(_recordedModifiers))
             {
-                MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ModernDialog.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (string.IsNullOrEmpty(_recordedControlPanelModifiers))
             {
-                MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ModernDialog.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             if (_recordedModifiers == _recordedControlPanelModifiers && _recordedKey == _recordedControlPanelKey)
             {
-                MessageBox.Show(Localization.MsgHotkeyConflict, Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ModernDialog.Show(Localization.MsgHotkeyConflict, Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -650,7 +712,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Localization.MsgAutoStartFailed + ex.Message, Localization.TitleWarning, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ModernDialog.Show(Localization.MsgAutoStartFailed + ex.Message, Localization.TitleWarning, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -727,18 +789,18 @@ namespace PixOcrSearch
                     else
                     {
                         AboutStatusText.Visibility = Visibility.Collapsed;
-                        MessageBox.Show(Localization.MsgAlreadyLatest($"{currentVer.Major}.{currentVer.Minor}.{currentVer.Build}"), Localization.BtnCheckUpdate, MessageBoxButton.OK, MessageBoxImage.Information);
+                        ModernDialog.Show(Localization.MsgAlreadyLatest($"{currentVer.Major}.{currentVer.Minor}.{currentVer.Build}"), Localization.BtnCheckUpdate, MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
                 }
 
                 AboutStatusText.Visibility = Visibility.Collapsed;
-                MessageBox.Show(Localization.MsgNoReleaseFound, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(Localization.MsgNoReleaseFound, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 AboutStatusText.Visibility = Visibility.Collapsed;
-                MessageBox.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1282,7 +1344,7 @@ namespace PixOcrSearch
             if (_releaseInfo == null || string.IsNullOrEmpty(_releaseInfo.DownloadUrl))
             {
                 string fallbackUrl = _releaseInfo?.HtmlUrl ?? "https://github.com/Loecedas/SnapFind/releases/latest";
-                MessageBox.Show(Localization.IsEnglish ? "Failed to retrieve download link. Please visit the release page manually." : "获取下载链接失败，请尝试手动访问发布页面获取更新。", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(Localization.IsEnglish ? "Failed to retrieve download link. Please visit the release page manually." : "获取下载链接失败，请尝试手动访问发布页面获取更新。", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
                 try { Process.Start(new ProcessStartInfo(fallbackUrl) { UseShellExecute = true }); } catch { }
                 return;
             }
@@ -1426,7 +1488,7 @@ namespace PixOcrSearch
                         string mode = isPortable
                             ? (Localization.IsEnglish ? "Auto deploy portable package" : "自动部署便携包") 
                             : (Localization.IsEnglish ? "Launch installer" : "启动安装程序");
-                        MessageBox.Show($"{mode} {(Localization.IsEnglish ? "failed" : "失败")}: {ex.Message}\n{(Localization.IsEnglish ? "Please operate file manually" : "请手动操作文件")}: {filePath}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                        ModernDialog.Show($"{mode} {(Localization.IsEnglish ? "failed" : "失败")}: {ex.Message}\n{(Localization.IsEnglish ? "Please operate file manually" : "请手动操作文件")}: {filePath}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 });
             }
@@ -1443,7 +1505,7 @@ namespace PixOcrSearch
                 {
                     try { File.Delete(filePath); } catch { }
                 }
-                MessageBox.Show($"{Localization.UpdateDownloadFailed}{ex.Message}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show($"{Localization.UpdateDownloadFailed}{ex.Message}", Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1558,6 +1620,7 @@ namespace PixOcrSearch
 
                     string ext = Path.GetExtension(dlg.FileName).ToLowerInvariant();
                     string detectedPluginName = Path.GetFileNameWithoutExtension(dlg.FileName);
+                    string targetPluginDir = "";
 
                     if (ext == ".zip")
                     {
@@ -1566,11 +1629,9 @@ namespace PixOcrSearch
                         {
                             System.IO.Compression.ZipFile.ExtractToDirectory(dlg.FileName, tempExtract);
 
-                            // 分析解压后的目录结构
                             var topDirs = Directory.GetDirectories(tempExtract);
                             var topFiles = Directory.GetFiles(tempExtract);
 
-                            string targetPluginDir;
                             if (topDirs.Length == 1 && topFiles.Length == 0)
                             {
                                 string folderName = Path.GetFileName(topDirs[0]);
@@ -1585,7 +1646,7 @@ namespace PixOcrSearch
                             }
                             else
                             {
-                                string cleanName = detectedPluginName.Split('_')[0];
+                                string cleanName = detectedPluginName.Split(new[] { '_' })[0];
                                 targetPluginDir = Path.Combine(pluginsDir, cleanName);
                                 if (Directory.Exists(targetPluginDir))
                                 {
@@ -1605,10 +1666,20 @@ namespace PixOcrSearch
                             catch { }
                         }
                     }
-                    else
+                    else if (ext == ".dll")
                     {
-                        string destFile = Path.Combine(pluginsDir, Path.GetFileName(dlg.FileName));
+                        string cleanName = detectedPluginName.Split(new[] { '_' })[0];
+                        targetPluginDir = Path.Combine(pluginsDir, cleanName);
+                        if (!Directory.Exists(targetPluginDir)) Directory.CreateDirectory(targetPluginDir);
+                        string destFile = Path.Combine(targetPluginDir, Path.GetFileName(dlg.FileName));
                         File.Copy(dlg.FileName, destFile, true);
+                        string manifestPath = Path.Combine(targetPluginDir, "plugin.json");
+                        if (!File.Exists(manifestPath))
+                        {
+                            string json = "{\n  \"id\": \"" + cleanName + "\",\n  \"name\": \"" + cleanName + "\",\n  \"version\": \"1.0.0\",\n  \"entry\": \"" + Path.GetFileName(dlg.FileName) + "\"\n}";
+                            File.WriteAllText(manifestPath, json, Encoding.UTF8);
+                        }
+                        detectedPluginName = cleanName;
                     }
 
                     // 自动激活对应插件并生效
@@ -1627,10 +1698,14 @@ namespace PixOcrSearch
                         app.UpdateTrayMenuLanguage();
                     }
 
+                    if (!string.IsNullOrEmpty(targetPluginDir) && Directory.Exists(targetPluginDir))
+                    {
+                        PluginManager.LoadAndRegisterPlugin(targetPluginDir);
+                    }
                     RefreshPluginsList();
 
                     string hotkeyDesc = ConfigManager.Current.TranslateHotkeyModifiers.Replace(",", " + ") + " + " + ConfigManager.Current.TranslateHotkeyKey;
-                    MessageBox.Show(
+                    ModernDialog.Show(
                         Localization.MsgPluginImportSuccessWithHotkey(detectedPluginName, hotkeyDesc),
                         Localization.TitleInfo,
                         MessageBoxButton.OK,
@@ -1639,7 +1714,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Localization.PluginsImportFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(Localization.PluginsImportFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1675,7 +1750,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1688,33 +1763,32 @@ namespace PixOcrSearch
         {
             try
             {
-                PluginsListPanel.Children.Clear();
+                PluginsItemsHost.Items.Clear();
 
                 var plugins = PluginManager.GetInstalledPlugins();
 
                 if (plugins.Count == 0)
                 {
-                    PluginsEmptyStateBorder.Visibility = Visibility.Visible;
                     PluginsStatusText.Text = Localization.PluginsLoadedCount(0, 0);
+                    UpdatePluginsEmptyState();
                     return;
                 }
-
-                PluginsEmptyStateBorder.Visibility = Visibility.Collapsed;
 
                 int activeCount = 0;
                 foreach (var plugin in plugins)
                 {
                     if (plugin.IsActive) activeCount++;
-                    AddPluginCard(plugin);
+                    PluginsItemsHost.Items.Add(BuildPluginCard(plugin));
                 }
 
                 PluginsStatusText.Text = Localization.PluginsLoadedCount(plugins.Count, activeCount);
+                UpdatePluginsEmptyState();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"RefreshPluginsList Exception: {ex}");
-                PluginsEmptyStateBorder.Visibility = Visibility.Visible;
                 PluginsStatusText.Text = Localization.PluginsLoadedCount(0, 0);
+                UpdatePluginsEmptyState();
             }
             finally
             {
@@ -1722,12 +1796,47 @@ namespace PixOcrSearch
             }
         }
 
-        private void AddPluginCard(PluginInfo plugin)
+        /// <summary>
+        /// Toggle the empty-state banner vs. the virtualized plugin list.
+        /// </summary>
+        private void UpdatePluginsEmptyState()
+        {
+            bool empty = PluginsItemsHost.Items.Count == 0;
+            PluginsEmptyStateBorder.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+            PluginsItemsHost.Visibility        = empty ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Snapshot the theme brushes + styles once. BuildPluginCard reads from these
+        /// cached fields instead of calling FindResource per element per redraw.
+        /// </summary>
+        private void RefreshThemeBridge()
+        {
+            var res = Application.Current?.Resources;
+            if (res != null)
+            {
+                _brushText         = (res["ThemeText"]         as System.Windows.Media.Brush) ?? _brushText;
+                _brushSubText      = (res["ThemeSubText"]      as System.Windows.Media.Brush) ?? _brushSubText;
+                _brushInputBg      = (res["ThemeInputBg"]      as System.Windows.Media.Brush) ?? _brushInputBg;
+                _brushInputFg      = (res["ThemeInputFg"]      as System.Windows.Media.Brush) ?? _brushInputFg;
+                _brushInputBorder  = (res["ThemeInputBorder"]  as System.Windows.Media.Brush) ?? _brushInputBorder;
+                _brushHoverBg      = (res["ThemeHoverBg"]      as System.Windows.Media.Brush) ?? _brushHoverBg;
+                _brushWindowBorder = (res["ThemeWindowBorder"] as System.Windows.Media.Brush) ?? _brushWindowBorder;
+                _brushWindowBg     = (res["ThemeWindowBg"]     as System.Windows.Media.Brush) ?? _brushWindowBg;
+
+                if (FindResource("ModernButton") is Style ms)                  _styleModernButton = ms;
+                if (FindResource("PrimaryButton") is Style ps)                 _stylePrimaryButton = ps;
+                if (FindResource("DangerButton") is Style ds)                  _styleDangerButton = ds;
+                if (FindResource("ThemeComboBoxTemplate") is ControlTemplate ct) _tplComboBox = ct;
+            }
+        }
+
+        private FrameworkElement BuildPluginCard(PluginInfo plugin)
         {
             var card = new Border
             {
-                Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
-                BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeWindowBorder"),
+                Background = _brushInputBg,
+                BorderBrush = _brushWindowBorder,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(14, 12, 14, 12),
@@ -1750,26 +1859,15 @@ namespace PixOcrSearch
                 Width = 36,
                 Height = 36,
                 CornerRadius = new CornerRadius(6),
-                Background = plugin.IsActive 
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(20, 128, 134, 139)),
-                BorderBrush = plugin.IsActive
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(60, 0, 120, 215))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(40, 128, 134, 139)),
+                Background = plugin.IsActive ? s_brushBgActive : s_brushBgInactive,
+                BorderBrush = plugin.IsActive ? s_brushBdActive : s_brushBdInactive,
                 BorderThickness = new Thickness(1),
                 Margin = new Thickness(0, 2, 12, 0),
                 VerticalAlignment = VerticalAlignment.Top
             };
             DockPanel.SetDock(iconBorder, Dock.Left);
 
-            var iconText = new TextBlock
-            {
-                Text = plugin.Id == "SnapFind.Plugin.Translation" ? "🌐" : "🧩",
-                FontSize = 18,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                VerticalAlignment = System.Windows.VerticalAlignment.Center
-            };
-            iconBorder.Child = iconText;
+            var iconPath = new System.Windows.Shapes.Path { Width = 18, Height = 18, Stretch = Stretch.Uniform, Fill = plugin.IsActive ? s_brushTypeFg : _brushSubText, HorizontalAlignment = System.Windows.HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Data = plugin.Id == "SnapFind.Plugin.Translation" ? Geometry.Parse("M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z") : Geometry.Parse("M20.5 11H19V7c0-1.1-.9-2-2-2h-4V3.5C13 2.12 11.88 1 10.5 1S8 2.12 8 3.5V5H4C2.9 5 2 5.9 2 7v3.8h1.5c1.48 0 2.7 1.22 2.7 2.7s-1.22 2.7-2.7 2.7H2V20c0 1.1.9 2 2 2h3.8v-1.5c0-1.48 1.22-2.7 2.7-2.7s2.7 1.22 2.7 2.7V22H17c1.1 0 2-.9 2-2v-4h1.5c1.38 0 2.5-1.12 2.5-2.5S21.88 11 20.5 11z") }; iconBorder.Child = iconPath;
             leftPanel.Children.Add(iconBorder);
 
             var infoStack = new StackPanel { VerticalAlignment = System.Windows.VerticalAlignment.Center };
@@ -1782,7 +1880,7 @@ namespace PixOcrSearch
                 Text = string.IsNullOrWhiteSpace(plugin.Name) ? plugin.Id : plugin.Name,
                 FontWeight = FontWeights.SemiBold,
                 FontSize = 13,
-                Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                Foreground = _brushText,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 8, 0)
             };
@@ -1791,7 +1889,7 @@ namespace PixOcrSearch
             // Version Badge
             var verBorder = new Border
             {
-                Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                Background = _brushHoverBg,
                 CornerRadius = new CornerRadius(3),
                 Padding = new Thickness(5, 1, 5, 1),
                 Margin = new Thickness(0, 0, 6, 0),
@@ -1801,53 +1899,11 @@ namespace PixOcrSearch
             {
                 Text = $"v{plugin.Version}",
                 FontSize = 10,
-                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText")
+                Foreground = _brushSubText
             };
             titlePanel.Children.Add(verBorder);
 
-            // Type Badge
-            var typeBadgeBorder = new Border
-            {
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 0, 120, 215)),
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(80, 0, 120, 215)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(3),
-                Padding = new Thickness(5, 1, 5, 1),
-                Margin = new Thickness(0, 0, 6, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            typeBadgeBorder.Child = new TextBlock
-            {
-                Text = plugin.TypeName,
-                FontSize = 10,
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 120, 215))
-            };
-            titlePanel.Children.Add(typeBadgeBorder);
 
-            // Status Badge (Active / Disabled)
-            var statusBadgeBorder = new Border
-            {
-                Background = plugin.IsActive 
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(30, 46, 125, 50))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(25, 128, 134, 139)),
-                BorderBrush = plugin.IsActive
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(100, 46, 125, 50))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(70, 128, 134, 139)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(3),
-                Padding = new Thickness(6, 1, 6, 1),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            statusBadgeBorder.Child = new TextBlock
-            {
-                Text = plugin.IsActive ? Localization.PluginStatusActive : Localization.PluginStatusDisabled,
-                FontSize = 10,
-                FontWeight = FontWeights.Medium,
-                Foreground = plugin.IsActive
-                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 125, 50))
-                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 134, 139))
-            };
-            titlePanel.Children.Add(statusBadgeBorder);
 
             infoStack.Children.Add(titlePanel);
 
@@ -1868,8 +1924,8 @@ namespace PixOcrSearch
             var toggleBtn = new System.Windows.Controls.Button
             {
                 Content = plugin.IsActive ? Localization.BtnDisablePlugin : Localization.BtnEnablePlugin,
-                Style = plugin.IsActive ? (Style)FindResource("ModernButton") : (Style)FindResource("PrimaryButton"),
-                Padding = new Thickness(10, 4, 10, 4),
+                Style = plugin.IsActive ? _styleModernButton : _stylePrimaryButton,
+                Padding = new Thickness(8, 3, 8, 3), Height = 26, FontSize = 11,
                 Margin = new Thickness(0, 0, 6, 0),
                 ToolTip = Localization.TipPluginToggle(plugin.IsActive)
             };
@@ -1886,8 +1942,8 @@ namespace PixOcrSearch
                 var testBtn = new System.Windows.Controls.Button
                 {
                     Content = Localization.IsEnglish ? "Test" : "测试",
-                    Style = (Style)FindResource("PrimaryButton"),
-                    Padding = new Thickness(8, 4, 8, 4),
+                    Style = _stylePrimaryButton,
+                    Padding = new Thickness(7, 3, 7, 3), Height = 26, FontSize = 11,
                     Margin = new Thickness(0, 0, 6, 0),
                     ToolTip = Localization.TipPluginTestTranslate
                 };
@@ -1902,8 +1958,8 @@ namespace PixOcrSearch
             var openFolderBtn = new System.Windows.Controls.Button
             {
                 Content = Localization.IsEnglish ? "Folder" : "目录",
-                Style = (Style)FindResource("ModernButton"),
-                Padding = new Thickness(8, 4, 8, 4),
+                Style = _styleModernButton,
+                Padding = new Thickness(7, 3, 7, 3), Height = 26, FontSize = 11,
                 Margin = new Thickness(0, 0, 6, 0),
                 ToolTip = Localization.TipPluginOpenFolder
             };
@@ -1923,14 +1979,14 @@ namespace PixOcrSearch
             var deleteBtn = new System.Windows.Controls.Button
             {
                 Content = Localization.BtnDeletePlugin,
-                Style = (Style)FindResource("DangerButton"),
-                Padding = new Thickness(8, 4, 8, 4),
+                Style = _styleDangerButton,
+                Padding = new Thickness(7, 3, 7, 3), Height = 26, FontSize = 11,
                 ToolTip = Localization.TipPluginDelete
             };
             deleteBtn.Click += (s, ev) =>
             {
                 string displayName = string.IsNullOrWhiteSpace(plugin.Name) ? plugin.Id : plugin.Name;
-                var confirm = MessageBox.Show(
+                var confirm = ModernDialog.Show(
                     Localization.MsgConfirmDeletePlugin(displayName),
                     Localization.BtnDeletePlugin,
                     MessageBoxButton.YesNo,
@@ -1939,13 +1995,9 @@ namespace PixOcrSearch
                 {
                     var (ok, msg) = PluginManager.DeletePlugin(plugin.Id);
                     RefreshPluginsList();
-                    if (!ok)
+                    if (!ok && !string.IsNullOrEmpty(msg))
                     {
-                        MessageBox.Show(msg, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                    else
-                    {
-                        MessageBox.Show(msg, Localization.TitleInfo, MessageBoxButton.OK, MessageBoxImage.Information);
+                        ModernDialog.Show(msg, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 }
             };
@@ -1959,7 +2011,7 @@ namespace PixOcrSearch
             {
                 Text = plugin.Description,
                 FontSize = 11,
-                Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
+                Foreground = _brushSubText,
                 Margin = new Thickness(0, 6, 0, 0),
                 TextWrapping = TextWrapping.Wrap,
                 LineHeight = 16,
@@ -1979,7 +2031,7 @@ namespace PixOcrSearch
                 {
                     var fBorder = new Border
                     {
-                        Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                        Background = _brushHoverBg,
                         CornerRadius = new CornerRadius(3),
                         Padding = new Thickness(6, 2, 6, 2),
                         Margin = new Thickness(0, 0, 6, 4)
@@ -1988,7 +2040,7 @@ namespace PixOcrSearch
                     {
                         Text = feat,
                         FontSize = 10,
-                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText")
+                        Foreground = _brushSubText
                     };
                     featPanel.Children.Add(fBorder);
                 }
@@ -2000,11 +2052,12 @@ namespace PixOcrSearch
             {
                 var hotkeyCard = new Border
                 {
-                    Background = (System.Windows.Media.Brush)FindResource("ThemeHoverBg"),
+                    Background = _brushHoverBg,
                     CornerRadius = new CornerRadius(6),
                     Padding = new Thickness(12, 10, 12, 10),
                     Margin = new Thickness(0, 10, 0, 0),
-                    IsEnabled = plugin.IsActive
+                    IsEnabled = plugin.IsActive,
+                    Opacity = plugin.IsActive ? 1.0 : 0.45
                 };
 
                 var configStack = new StackPanel
@@ -2012,8 +2065,8 @@ namespace PixOcrSearch
                     Orientation = System.Windows.Controls.Orientation.Vertical
                 };
 
-                // Row 1: Hotkey Settings
-                var hotkeyRow = new StackPanel
+                // Row 1: Inline Controls (Launch Hotkey + Reset + Default Target Language)
+                var controlsRow = new WrapPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
                     VerticalAlignment = VerticalAlignment.Center
@@ -2025,11 +2078,11 @@ namespace PixOcrSearch
                     Text = Localization.LabelPluginLaunchHotkey,
                     FontWeight = FontWeights.SemiBold,
                     FontSize = 11,
-                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                    Foreground = _brushText,
                     VerticalAlignment = VerticalAlignment.Center,
                     Margin = new Thickness(0, 0, 8, 0)
                 };
-                hotkeyRow.Children.Add(hotkeyLabel);
+                controlsRow.Children.Add(hotkeyLabel);
 
                 // Hotkey Input Box
                 string curMods = plugin.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : plugin.HotkeyModifiers;
@@ -2040,16 +2093,16 @@ namespace PixOcrSearch
                 var hotkeyBox = new System.Windows.Controls.TextBox
                 {
                     Text = curMods.Replace(",", " + ") + " + " + curKey,
-                    Width = 120,
+                    Width = 110,
                     Height = 26,
                     IsReadOnly = true,
                     Cursor = System.Windows.Input.Cursors.Hand,
                     TextAlignment = TextAlignment.Center,
                     FontWeight = FontWeights.Medium,
                     FontSize = 11,
-                    Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
-                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeInputFg"),
-                    BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeInputBorder"),
+                    Background = _brushInputBg,
+                    Foreground = _brushInputFg,
+                    BorderBrush = _brushInputBorder,
                     BorderThickness = new Thickness(1),
                     Padding = new Thickness(4, 2, 4, 2),
                     VerticalContentAlignment = VerticalAlignment.Center,
@@ -2077,7 +2130,7 @@ namespace PixOcrSearch
                     string modStr = sb.ToString().TrimEnd(',');
                     if (string.IsNullOrEmpty(modStr))
                     {
-                        MessageBox.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
+                        ModernDialog.Show(Localization.MsgModifierRequired, Localization.TitleModifierRequired, MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
 
@@ -2094,17 +2147,17 @@ namespace PixOcrSearch
 
                     hotkeyBox.Text = modStr.Replace(",", " + ") + " + " + key.ToString();
                 };
-                hotkeyRow.Children.Add(hotkeyBox);
+                controlsRow.Children.Add(hotkeyBox);
 
                 // Reset Hotkey Button
                 var resetBtn = new System.Windows.Controls.Button
                 {
                     Content = Localization.BtnResetHotkey,
-                    Style = (Style)FindResource("ModernButton"),
+                    Style = _styleModernButton,
                     Padding = new Thickness(6, 1, 6, 1),
                     Height = 24,
                     FontSize = 10,
-                    Margin = new Thickness(0, 0, 10, 0),
+                    Margin = new Thickness(0, 0, 20, 0),
                     VerticalAlignment = VerticalAlignment.Center,
                     ToolTip = Localization.TipResetDefaultHotkey
                 };
@@ -2122,60 +2175,40 @@ namespace PixOcrSearch
                     }
                     hotkeyBox.Text = "Control + Alt + T";
                 };
-                hotkeyRow.Children.Add(resetBtn);
+                controlsRow.Children.Add(resetBtn);
 
-                // Tip text
-                var tipText = new TextBlock
-                {
-                    Text = Localization.TipPluginHotkeyRecording,
-                    FontSize = 10,
-                    Foreground = (System.Windows.Media.Brush)FindResource("ThemeSubText"),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                hotkeyRow.Children.Add(tipText);
-
-                configStack.Children.Add(hotkeyRow);
-
-                // Row 2: Target Language Option (for Translation Plugin)
+                // Target Language Option (for Translation Plugin)
                 if (plugin.Id == "SnapFind.Plugin.Translation")
                 {
-                    var langRow = new StackPanel
-                    {
-                        Orientation = System.Windows.Controls.Orientation.Horizontal,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 8, 0, 0)
-                    };
-
                     var langLabel = new TextBlock
                     {
                         Text = Localization.LabelDefaultTargetLang,
                         FontSize = 11,
-                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeText"),
+                        Foreground = _brushText,
                         VerticalAlignment = VerticalAlignment.Center,
                         Margin = new Thickness(0, 0, 8, 0)
                     };
-                    langRow.Children.Add(langLabel);
+                    controlsRow.Children.Add(langLabel);
 
                     var langCombo = new System.Windows.Controls.ComboBox
                     {
                         Height = 26,
-                        Width = 120,
-                        Background = (System.Windows.Media.Brush)FindResource("ThemeInputBg"),
-                        Foreground = (System.Windows.Media.Brush)FindResource("ThemeInputFg"),
-                        BorderBrush = (System.Windows.Media.Brush)FindResource("ThemeInputBorder"),
+                        Width = 110,
+                        Background = _brushInputBg,
+                        Foreground = _brushInputFg,
+                        BorderBrush = _brushInputBorder,
                         BorderThickness = new Thickness(1),
                         Padding = new Thickness(6, 0, 0, 0),
                         FontSize = 11,
                         FontFamily = new System.Windows.Media.FontFamily("Segoe UI, Microsoft YaHei UI"),
-                        Template = (ControlTemplate)FindResource("ThemeComboBoxTemplate"),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 10, 0)
+                        Template = _tplComboBox,
+                        VerticalAlignment = VerticalAlignment.Center
                     };
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangChinese, Tag = "zh-CN" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangTraditionalChinese, Tag = "zh-TW" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = "English", Tag = "en" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangJapanese, Tag = "ja" });
-                    langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = Localization.LangKorean, Tag = "ko" });
+
+                    foreach (var (langName, langCode) in s_supportedTargetLanguages)
+                    {
+                        langCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = langName, Tag = langCode });
+                    }
 
                     string curTarget = ConfigManager.Current.DefaultTargetLanguage;
                     int selIdx = 0;
@@ -2192,22 +2225,34 @@ namespace PixOcrSearch
                     {
                         if (langCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item)
                         {
-                            ConfigManager.Current.DefaultTargetLanguage = item.Tag?.ToString() ?? "zh-CN";
+                            string newLang = item.Tag?.ToString() ?? "zh-CN";
+                            ConfigManager.Current.DefaultTargetLanguage = newLang;
                             ConfigManager.Save();
+                            PluginManager.UpdateTranslationOptions(); // 同步下发给插件
                         }
                     };
-                    langRow.Children.Add(langCombo);
-
-                    configStack.Children.Add(langRow);
+                    controlsRow.Children.Add(langCombo);
                 }
+
+                configStack.Children.Add(controlsRow);
+
+                // Row 2: Secondary Hint Note
+                var tipText = new TextBlock
+                {
+                    Text = Localization.TipPluginHotkeyRecording,
+                    FontSize = 10,
+                    Foreground = _brushSubText,
+                    Margin = new Thickness(0, 6, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                configStack.Children.Add(tipText);
 
                 hotkeyCard.Child = configStack;
                 mainStack.Children.Add(hotkeyCard);
             }
 
             card.Child = mainStack;
-                        card.Child = mainStack;
-            PluginsListPanel.Children.Add(card);
+            return card;
         }
     }
 }

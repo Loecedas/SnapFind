@@ -31,9 +31,9 @@ namespace PixOcrSearch
         public static string PluginsDesc => IsEnglish 
             ? "Support importing custom OCR enhancements, translation providers, and third-party extensions."
             : "支持导入自定义 OCR 增强、离线翻译与第三方工具扩展插件。";
-        public static string BtnImportPlugin => IsEnglish ? "➕ Import Plugin" : "➕ 导入插件";
-        public static string BtnOpenPluginFolder => IsEnglish ? "📁 Open Folder" : "📁 打开插件目录";
-        public static string BtnRefreshPlugins => IsEnglish ? "🔄 Refresh" : "🔄 刷新";
+        public static string BtnImportPlugin => IsEnglish ? "Import Plugin" : "导入插件";
+        public static string BtnOpenPluginFolder => IsEnglish ? "Open Folder" : "打开插件目录";
+        public static string BtnRefreshPlugins => IsEnglish ? "Refresh" : "刷新";
         public static string PluginsEmptyTitle => IsEnglish ? "No Plugins Installed" : "暂未安装任何扩展插件";
         public static string PluginsEmptyDesc => IsEnglish 
             ? "Click 'Import Plugin' to select a plugin archive (.zip / .7z / .dll) or place plugin files into the plugins directory."
@@ -102,10 +102,10 @@ namespace PixOcrSearch
         public static string LabelResultFontSize => IsEnglish ? "OCR Result Font Size" : "识别结果框字号大小";
         public static string FontSizeStandard => IsEnglish ? "Standard (13pt - Default)" : "标准字号 (13pt - 默认)";
         public static string FontSizeExtraLarge => IsEnglish ? "Extra Large (17pt - +2 Sizes)" : "特大号 (17pt - 放大两号)";
-        public static string BtnFinishOcr => IsEnglish ? "✓ Done" : "✓ 完成";
-        public static string BtnCancelOcr => IsEnglish ? "✕ Cancel" : "✕ 取消";
-        public static string BtnSwitchWindow => IsEnglish ? "🔄 Switch Window" : "🔄 切换界面";
-        public static string BtnSwitchContinue => IsEnglish ? "➕ Continue" : "➕ 继续框选";
+        public static string BtnFinishOcr => IsEnglish ? "Done" : "完成";
+        public static string BtnCancelOcr => IsEnglish ? "Cancel" : "取消";
+        public static string BtnSwitchWindow => IsEnglish ? "Switch Window" : "切换界面";
+        public static string BtnSwitchContinue => IsEnglish ? "Continue" : "继续框选";
         public static string MultiRegionCountBadge(int n) => IsEnglish ? $"Selected {n} regions" : $"已框选 {n} 处";
         public static string SwitchSessionBadge(int n) => IsEnglish ? $"Captured {n} regions" : $"已暂存 {n} 处区域";
         public static string SwitchSessionTip(string hotkey) => IsEnglish ? $"Switch to target window and press {hotkey} or click here to continue" : $"切换至目标界面后按 {hotkey} 或点击此处继续框选";

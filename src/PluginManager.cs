@@ -41,6 +41,41 @@ namespace PixOcrSearch
             }
         }
 
+        public static LoadedPluginInstance? LoadAndRegisterPlugin(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+            {
+                return null;
+            }
+
+            try
+            {
+                var instance = PluginLoader.LoadPlugin(dir);
+                if (instance == null)
+                {
+                    return null;
+                }
+
+                string id = instance.Manifest.Id;
+                UnloadPluginByIdOrDirectory(id);
+                _loadedPlugins[id] = instance;
+
+                var host = new HostServices(dir);
+                instance.Plugin.InitializeAsync(host).GetAwaiter().GetResult();
+
+                if (IsPluginActive(id))
+                {
+                    instance.Plugin.ActivateAsync().GetAwaiter().GetResult();
+                }
+
+                return instance;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public static void InitializeAll()
         {
             string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
@@ -48,24 +83,7 @@ namespace PixOcrSearch
 
             foreach (var dir in Directory.GetDirectories(pluginsDir))
             {
-                try
-                {
-                    var instance = PluginLoader.LoadPlugin(dir);
-                    if (instance != null)
-                    {
-                        string id = instance.Manifest.Id;
-                        _loadedPlugins[id] = instance;
-
-                        var host = new HostServices(dir);
-                        instance.Plugin.InitializeAsync(host).GetAwaiter().GetResult();
-
-                        if (IsPluginActive(id))
-                        {
-                            instance.Plugin.ActivateAsync().GetAwaiter().GetResult();
-                        }
-                    }
-                }
-                catch { }
+                LoadAndRegisterPlugin(dir);
             }
         }
 
@@ -81,11 +99,38 @@ namespace PixOcrSearch
             return null;
         }
 
+        public static void UpdateTranslationOptions()
+        {
+            if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return;
+            try
+            {
+                var plugin = instance.Plugin;
+                var pluginType = plugin.GetType();
+                var configureMethod = pluginType.GetMethod("Configure", BindingFlags.Public | BindingFlags.Instance);
+                if (configureMethod != null)
+                {
+                    var parameters = configureMethod.GetParameters();
+                    if (parameters.Length > 0)
+                    {
+                        var optionsType = parameters[0].ParameterType;
+                        var optionsObj = Activator.CreateInstance(optionsType);
+                        var targetProp = optionsType.GetProperty("DefaultTargetLanguage");
+                        targetProp?.SetValue(optionsObj, ConfigManager.Current.DefaultTargetLanguage);
+                        configureMethod.Invoke(plugin, new object?[] { optionsObj });
+                    }
+                }
+            }
+            catch
+            {
+            }
+        }
+
         public static void ShowTranslationWindow(string text = "", Window? owner = null)
         {
             if (!_loadedPlugins.TryGetValue("SnapFind.Plugin.Translation", out var instance)) return;
             try
             {
+                UpdateTranslationOptions();
                 var plugin = instance.Plugin;
                 var method = plugin.GetType().GetMethod("OpenTranslateWindow", BindingFlags.Public | BindingFlags.Instance);
                 if (method != null)
@@ -197,6 +242,137 @@ namespace PixOcrSearch
             ConfigManager.Save();
         }
 
+        private static void SafeUnloadPluginInstance(LoadedPluginInstance instance)
+        {
+            try
+            {
+                instance.Dispose();
+            }
+            catch { }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        private static void UnloadPluginByIdOrDirectory(string idOrDir)
+        {
+            string? foundKey = null;
+            LoadedPluginInstance? foundInstance = null;
+
+            foreach (var pair in _loadedPlugins)
+            {
+                if (string.Equals(pair.Key, idOrDir, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(pair.Value.PluginDirectory, idOrDir, StringComparison.OrdinalIgnoreCase))
+                {
+                    foundKey = pair.Key;
+                    foundInstance = pair.Value;
+                    break;
+                }
+            }
+
+            if (foundKey != null && foundInstance != null)
+            {
+                _loadedPlugins.Remove(foundKey);
+                SafeUnloadPluginInstance(foundInstance);
+            }
+        }
+
+        private static bool SafeDeleteDirectory(string path, int maxRetries = 3, int delayMs = 50)
+        {
+            if (!Directory.Exists(path)) return true;
+
+            for (int i = 0; i < maxRetries; i++)
+            {
+                try
+                {
+                    Directory.Delete(path, true);
+                    return true;
+                }
+                catch
+                {
+                    if (i < maxRetries - 1)
+                    {
+                        System.Threading.Thread.Sleep(delayMs);
+                    }
+                }
+            }
+
+            try
+            {
+                string tempDeleted = Path.Combine(Path.GetTempPath(), $"SnapFind_{Path.GetFileName(path)}_{Guid.NewGuid():N}.deleted");
+                Directory.Move(path, tempDeleted);
+
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        System.Threading.Thread.Sleep(200);
+                        try
+                        {
+                            if (!Directory.Exists(tempDeleted)) break;
+                            Directory.Delete(tempDeleted, true);
+                            break;
+                        }
+                        catch { }
+                    }
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new IOException($"无法删除或移动目录 '{path}': {ex.Message}", ex);
+            }
+        }
+
+        private static bool SafeDeleteFile(string path, int maxRetries = 3, int delayMs = 50)
+        {
+            if (!File.Exists(path)) return true;
+
+            for (int i = 0; i < maxRetries; i++)
+            {
+                try
+                {
+                    File.Delete(path);
+                    return true;
+                }
+                catch
+                {
+                    if (i < maxRetries - 1)
+                    {
+                        System.Threading.Thread.Sleep(delayMs);
+                    }
+                }
+            }
+
+            try
+            {
+                string tempDeleted = Path.Combine(Path.GetTempPath(), $"SnapFind_{Path.GetFileName(path)}_{Guid.NewGuid():N}.deleted");
+                File.Move(path, tempDeleted);
+
+                System.Threading.Tasks.Task.Run(() =>
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        System.Threading.Thread.Sleep(200);
+                        try
+                        {
+                            if (!File.Exists(tempDeleted)) break;
+                            File.Delete(tempDeleted);
+                            break;
+                        }
+                        catch { }
+                    }
+                });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new IOException($"无法删除或移动文件 '{path}': {ex.Message}", ex);
+            }
+        }
+
         public static bool ImportPluginPackage(string packagePath, out string errorMessage)
         {
             errorMessage = "";
@@ -252,7 +428,14 @@ namespace PixOcrSearch
                     }
 
                     targetDir = Path.Combine(pluginsDir, pluginId);
-                    if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
+
+                    UnloadPluginByIdOrDirectory(pluginId);
+                    UnloadPluginByIdOrDirectory(targetDir);
+
+                    if (Directory.Exists(targetDir))
+                    {
+                        SafeDeleteDirectory(targetDir);
+                    }
 
                     if (File.Exists(Path.Combine(tempExtract, "plugin.json")))
                     {
@@ -264,7 +447,7 @@ namespace PixOcrSearch
                         if (subDirs.Length == 1)
                         {
                             Directory.Move(subDirs[0], targetDir);
-                            Directory.Delete(tempExtract, true);
+                            SafeDeleteDirectory(tempExtract);
                         }
                         else
                         {
@@ -276,6 +459,13 @@ namespace PixOcrSearch
                 {
                     string fileName = Path.GetFileName(packagePath);
                     string dest = Path.Combine(pluginsDir, fileName);
+
+                    UnloadPluginByIdOrDirectory(dest);
+                    if (File.Exists(dest))
+                    {
+                        SafeDeleteFile(dest);
+                    }
+
                     File.Copy(packagePath, dest, true);
                     return true;
                 }
@@ -287,14 +477,7 @@ namespace PixOcrSearch
 
                 if (!string.IsNullOrEmpty(targetDir) && Directory.Exists(targetDir))
                 {
-                    var instance = PluginLoader.LoadPlugin(targetDir);
-                    if (instance != null)
-                    {
-                        _loadedPlugins[instance.Manifest.Id] = instance;
-                        var host = new HostServices(targetDir);
-                        instance.Plugin.InitializeAsync(host).GetAwaiter().GetResult();
-                        instance.Plugin.ActivateAsync().GetAwaiter().GetResult();
-                    }
+                    LoadAndRegisterPlugin(targetDir);
                 }
 
                 return true;
@@ -312,6 +495,8 @@ namespace PixOcrSearch
             {
                 string targetPath = idOrLocation;
                 string foundKey = "";
+                LoadedPluginInstance? targetInstance = null;
+
                 foreach (var pair in _loadedPlugins)
                 {
                     if (string.Equals(pair.Key, idOrLocation, StringComparison.OrdinalIgnoreCase) ||
@@ -319,31 +504,32 @@ namespace PixOcrSearch
                     {
                         foundKey = pair.Key;
                         targetPath = pair.Value.PluginDirectory;
-                        pair.Value.Dispose();
+                        targetInstance = pair.Value;
                         break;
                     }
                 }
 
-                if (!string.IsNullOrEmpty(foundKey))
+                if (!string.IsNullOrEmpty(foundKey) && targetInstance != null)
                 {
                     _loadedPlugins.Remove(foundKey);
+                    SafeUnloadPluginInstance(targetInstance);
                 }
 
                 if (Directory.Exists(targetPath))
                 {
-                    Directory.Delete(targetPath, true);
+                    SafeDeleteDirectory(targetPath);
                     return (true, "");
                 }
                 if (File.Exists(targetPath))
                 {
-                    File.Delete(targetPath);
+                    SafeDeleteFile(targetPath);
                     return (true, "");
                 }
 
                 string pluginsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", idOrLocation);
                 if (Directory.Exists(pluginsDir))
                 {
-                    Directory.Delete(pluginsDir, true);
+                    SafeDeleteDirectory(pluginsDir);
                     return (true, "");
                 }
 
@@ -391,7 +577,7 @@ namespace PixOcrSearch
                     Id = manifest.Id,
                     Name = Localization.IsEnglish && !string.IsNullOrEmpty(manifest.NameEn) ? manifest.NameEn : manifest.Name,
                     Version = manifest.Version,
-                    Description = Localization.IsEnglish && !string.IsNullOrEmpty(manifest.DescriptionEn) ? manifest.DescriptionEn : manifest.Description,
+                    Description = (Localization.IsEnglish && !string.IsNullOrEmpty(manifest.DescriptionEn) ? manifest.DescriptionEn : manifest.Description) ?? "",
                     Author = manifest.Author,
                     IsActive = IsPluginActive(manifest.Id),
                     TypeName = Localization.IsEnglish ? "External Plugin" : "扩展插件",
@@ -399,7 +585,7 @@ namespace PixOcrSearch
                     HasHotkey = manifest.HasHotkey,
                     HotkeyModifiers = manifest.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyModifiers : "",
                     HotkeyKey = manifest.Id == "SnapFind.Plugin.Translation" ? ConfigManager.Current.TranslateHotkeyKey : "",
-                    Features = Localization.IsEnglish && manifest.FeaturesEn.Count > 0 ? manifest.FeaturesEn : manifest.Features
+                    Features = Localization.IsEnglish && manifest.FeaturesEn != null && manifest.FeaturesEn.Count > 0 ? manifest.FeaturesEn : (manifest.Features ?? new List<string>())
                 });
             }
 

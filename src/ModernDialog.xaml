@@ -1,0 +1,155 @@
+<Window x:Class="PixOcrSearch.ModernDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        MinWidth="340"
+        MaxWidth="440"
+        KeyDown="Window_KeyDown"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+
+    <Window.Resources>
+        <!-- Modern flat button style matching SettingsWindow -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource ThemeBtnBg}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ThemeBtnFg}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ThemeBtnBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinWidth" Value="72"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                    <Setter Property="BorderBrush" Value="#AAAAAA"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ThemeText}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#0078D7"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#005A9E"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1084E3"/>
+                    <Setter Property="BorderBrush" Value="#0078D7"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <!-- Outer shadow margin ensures smooth non-clipped soft shadow -->
+    <Border Margin="16"
+            Background="{DynamicResource ThemeWindowBg}"
+            BorderBrush="{DynamicResource ThemeWindowBorder}"
+            BorderThickness="1"
+            CornerRadius="8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16"
+                              ShadowDepth="3"
+                              Direction="270"
+                              Color="#000000"
+                              Opacity="0.22"/>
+        </Border.Effect>
+
+        <Grid Margin="16,12,16,14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- 1. Header: Icon + Title + Close Button -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Path x:Name="HeaderIconPath"
+                      Grid.Column="0"
+                      Width="18"
+                      Height="18"
+                      Stretch="Uniform"
+                      VerticalAlignment="Center"
+                      Margin="0,0,8,0"/>
+
+                <TextBlock x:Name="TitleText"
+                           Grid.Column="1"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeText}"
+                           VerticalAlignment="Center"/>
+
+                <Button Grid.Column="2"
+                        Width="22"
+                        Height="22"
+                        Click="CloseButton_Click"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        Cursor="Hand"
+                        FocusVisualStyle="{x:Null}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" Background="Transparent" CornerRadius="3">
+                                <Path x:Name="path"
+                                      Data="M 0,0 L 8,8 M 0,8 L 8,0"
+                                      Stroke="{DynamicResource ThemeSubText}"
+                                      StrokeThickness="1"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background" Value="{DynamicResource ThemeHoverBg}"/>
+                                    <Setter TargetName="path" Property="Stroke" Value="{DynamicResource ThemeText}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- 2. Clean Flat Body -->
+            <TextBlock x:Name="MessageText"
+                       Grid.Row="1"
+                       FontSize="12"
+                       LineHeight="20"
+                       Foreground="{DynamicResource ThemeText}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,16"/>
+
+            <!-- 3. Footer Actions -->
+            <StackPanel x:Name="ButtonsPanel"
+                        Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"/>
+        </Grid>
+    </Border>
+</Window>

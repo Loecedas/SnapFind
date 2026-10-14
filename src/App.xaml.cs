@@ -78,6 +78,9 @@ namespace PixOcrSearch
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            // Apply System Theme immediately so that all dialogs (including single-instance notice) match system theme
+            ApplyTheme();
+
             // 初始化系统高 DPI 上下文为 Per-Monitor V2，避免多屏幕混合缩放时出现乘积级畸变
             try
             {
@@ -179,7 +182,7 @@ namespace PixOcrSearch
             _mutex = new Mutex(true, "SnapFind-SingleInstance-Mutex-Key", out bool isNewInstance);
             if (!isNewInstance)
             {
-                MessageBox.Show(Localization.MsgAlreadyRunning, Localization.TitleInfo, MessageBoxButton.OK, MessageBoxImage.Information);
+                ModernDialog.Show(Localization.MsgAlreadyRunning, Localization.TitleInfo, MessageBoxButton.OK, MessageBoxImage.Information);
                 Shutdown();
                 return;
             }
@@ -377,7 +380,7 @@ namespace PixOcrSearch
 
             if (!success)
             {
-                MessageBox.Show(Localization.MsgHotkeyRegisterFailed(mods, key, cpMods, cpKey), Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
+                ModernDialog.Show(Localization.MsgHotkeyRegisterFailed(mods, key, cpMods, cpKey), Localization.TitleHotkeyConflict, MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -580,7 +583,7 @@ namespace PixOcrSearch
             {
                 CloseAllScreenshotWindows();
                 ClearMultiSession();
-                MessageBox.Show(Localization.MsgScreenshotFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show(Localization.MsgScreenshotFailed + ex.Message, Localization.TitleError, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -968,7 +971,7 @@ namespace PixOcrSearch
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"SnapFind 自动更新覆盖失败：{ex.Message}\n\n请尝试手动解压 cache 目录下的压缩包进行覆盖。", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                ModernDialog.Show($"SnapFind 自动更新覆盖失败：{ex.Message}\n\n请尝试手动解压 cache 目录下的压缩包进行覆盖。", "更新失败", MessageBoxButton.OK, MessageBoxImage.Error);
                 try
                 {
                     string mainExe = Path.Combine(destDir, "SnapFind.exe");
@@ -1034,4 +1037,5 @@ namespace PixOcrSearch
         public long DurationMs { get; set; }
     }
 }
+
 

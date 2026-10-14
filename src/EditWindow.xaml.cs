@@ -217,7 +217,7 @@ namespace PixOcrSearch
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(Localization.MsgSearchFailed + ex.Message, Localization.TitleSearchFailed, MessageBoxButton.OK, MessageBoxImage.Error);
+                    ModernDialog.Show(Localization.MsgSearchFailed + ex.Message, Localization.TitleSearchFailed, MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             Close();

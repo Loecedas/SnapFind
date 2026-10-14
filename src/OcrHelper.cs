@@ -672,18 +672,18 @@ namespace PixOcrSearch
                 var app = System.Windows.Application.Current;
                 if (app == null)
                 {
-                    System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    ModernDialog.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     return;
                 }
                 if (app.Dispatcher.CheckAccess())
                 {
-                    System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    ModernDialog.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
                 else
                 {
                     app.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                        ModernDialog.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                     }));
                 }
             }
