@@ -1,4 +1,4 @@
-name: Release
+﻿name: Release
 
 on:
   push:
@@ -43,17 +43,28 @@ jobs:
               Get-ChildItem "libs" | Where-Object { $_.Name -ne "rapid" } | Copy-Item -Destination "$pubDir/libs" -Recurse -Force
             }
 
-            New-Item -ItemType Directory -Path "releases/portables" -Force | Out-Null
+            New-Item -ItemType Directory -Path "${{ github.workspace }}/releases/portables" -Force | Out-Null
             $sfx = "${{ github.workspace }}/tools/7-Zip/7z.sfx"
             $exe7z = if (Test-Path "${{ github.workspace }}/tools/7-Zip/7z.exe") { "${{ github.workspace }}/tools/7-Zip/7z.exe" } else { "7z" }
-            $destSfx = "releases/portables/SnapFindPortable_$($e.Name)_v$version.7z.exe"
-            if (Test-Path $sfx) {
-              & $exe7z a -sfx"$sfx" -mx=9 -mmt=on "$destSfx" "$pubDir"
-            } else {
-              & $exe7z a -sfx -mx=9 -mmt=on "$destSfx" "$pubDir"
+            $destSfx = "${{ github.workspace }}/releases/portables/SnapFindPortable_$($e.Name)_v$version.7z.exe"
+            Push-Location $pubDir
+            try {
+              if (Test-Path $sfx) {
+                & $exe7z a -sfx"$sfx" -mx=9 -mmt=on "$destSfx" *
+              } else {
+                & $exe7z a -sfx -mx=9 -mmt=on "$destSfx" *
+              }
+              if ($LASTEXITCODE -ne 0) { throw "7z packaging failed: $LASTEXITCODE" }
+            } finally {
+              Pop-Location
             }
-            if ($LASTEXITCODE -ne 0) { throw "7z packaging failed: $LASTEXITCODE" }
           }
+
+      - name: Build and package official translation plugin
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          & "${{ github.workspace }}/src/Plugins/SnapFind.Plugin.Translation/build-plugin.ps1" -Configuration Release
 
       - name: Build installers with Inno Setup
         shell: pwsh
@@ -93,7 +104,14 @@ jobs:
         shell: pwsh
         run: |
           $tag = $env:GITHUB_REF_NAME
-          gh release create $tag --generate-notes 2>$null
+          $tagNotes = git tag -l --format="%(contents)" $tag
+          if ($tagNotes -and $tagNotes.Trim()) {
+            $notesFile = "${{ github.workspace }}/releases/release_notes.md"
+            [System.IO.File]::WriteAllText($notesFile, $tagNotes, [System.Text.Encoding]::UTF8)
+            gh release create $tag -F $notesFile 2>$null
+          } else {
+            gh release create $tag --generate-notes 2>$null
+          }
           if ($LASTEXITCODE -ne 0) {
             Write-Host "Release already exists, uploading assets only"
           }

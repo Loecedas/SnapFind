@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -951,12 +951,16 @@ namespace PixOcrSearch
                     ZipFile.ExtractToDirectory(packagePath, tempExtractDir);
                 }
 
-                // 寻找源目录
+                // 寻找源目录（优先穿透查找包含 SnapFind.exe 的深层或平铺根目录）
                 string sourceDir = tempExtractDir;
-                string nestedDir = Path.Combine(tempExtractDir, "SnapFind");
-                if (File.Exists(Path.Combine(nestedDir, "SnapFind.exe")))
+                if (!File.Exists(Path.Combine(sourceDir, "SnapFind.exe")))
                 {
-                    sourceDir = nestedDir;
+                    var matchedExe = Directory.GetFiles(tempExtractDir, "SnapFind.exe", SearchOption.AllDirectories)
+                        .FirstOrDefault();
+                    if (!string.IsNullOrEmpty(matchedExe))
+                    {
+                        sourceDir = Path.GetDirectoryName(matchedExe) ?? tempExtractDir;
+                    }
                 }
 
                 // 递归覆盖拷贝
