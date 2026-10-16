@@ -12,9 +12,9 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <AssemblyName>SnapFind</AssemblyName>
-    <Version>2.5.0</Version>
-    <AssemblyVersion>2.5.0.0</AssemblyVersion>
-    <FileVersion>2.5.0.0</FileVersion>
+    <Version>2.5.1</Version>
+    <AssemblyVersion>2.5.1.0</AssemblyVersion>
+    <FileVersion>2.5.1.0</FileVersion>
     <DefineConstants>$(DefineConstants);USE_RAPID_OCR</DefineConstants>
     <BaseOutputPath>bin\SnapFind.Rapid\</BaseOutputPath>
   </PropertyGroup>

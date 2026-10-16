@@ -6,7 +6,7 @@ namespace PixOcrSearch
 {
     public class HostServices : IHostServices
     {
-        public string AppVersion => "2.5.0";
+        public string AppVersion => "2.5.1";
         public string PluginDirectory { get; }
         public string PluginsRootDirectory => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins");
         public string ConfigDirectory => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "cache");
