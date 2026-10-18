@@ -1,4 +1,4 @@
-﻿name: Release
+name: Release
 
 on:
   push:
@@ -44,17 +44,12 @@ jobs:
             }
 
             New-Item -ItemType Directory -Path "${{ github.workspace }}/releases/portables" -Force | Out-Null
-            $sfx = "${{ github.workspace }}/tools/7-Zip/7z.sfx"
             $exe7z = if (Test-Path "${{ github.workspace }}/tools/7-Zip/7z.exe") { "${{ github.workspace }}/tools/7-Zip/7z.exe" } else { "7z" }
-            $destSfx = "${{ github.workspace }}/releases/portables/SnapFindPortable_$($e.Name)_v$version.7z.exe"
+            $destZip = "${{ github.workspace }}/releases/portables/SnapFindPortable_$($e.Name)_v$version.zip"
             Push-Location $pubDir
             try {
-              if (Test-Path $sfx) {
-                & $exe7z a -sfx"$sfx" -mx=9 -mmt=on "$destSfx" *
-              } else {
-                & $exe7z a -sfx -mx=9 -mmt=on "$destSfx" *
-              }
-              if ($LASTEXITCODE -ne 0) { throw "7z packaging failed: $LASTEXITCODE" }
+              & $exe7z a -tzip -mx=9 -mmt=on "$destZip" *
+              if ($LASTEXITCODE -ne 0) { throw "7z zip packaging failed: $LASTEXITCODE" }
             } finally {
               Pop-Location
             }

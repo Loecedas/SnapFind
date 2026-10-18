@@ -1,7 +1,7 @@
 # build.ps1
 # 本地打包脚本：生成 Rapid / Paddle 双版本的便携包与安装包
 param(
-    [string]$Version = "2.5.1",
+    [string]$Version = "2.5.2",
     [ValidateSet("", "Rapid", "Paddle")]
     [string]$Edition = "",
     [switch]$NoZip,
@@ -22,7 +22,7 @@ if (-not (Test-Path $portablesDir)) { New-Item -ItemType Directory -Path $portab
 
 # 2. 版本号
 $nextVersion = $Version.TrimStart('v')
-if (-not $nextVersion) { $nextVersion = "2.5.1" }
+if (-not $nextVersion) { $nextVersion = "2.5.2" }
 
 # 3. 确定要打包的版本
 $editions = if ($Edition) { @($Edition) } else { @("Rapid", "Paddle") }
@@ -52,9 +52,9 @@ foreach ($ed in $editions) {
         }
     }
 
-    # 7. 便携包（7z SFX 自解压程序 .7z.exe，类似 Umi-OCR）
+    # 7. 便携包（标准 .zip 格式）
     if (-not $NoZip -and -not $ExeOnly) {
-        Write-Host "Generating portable package ($ed)..." -ForegroundColor Cyan
+        Write-Host "Generating portable ZIP package ($ed)..." -ForegroundColor Cyan
         $zipTempDir = "$portablesDir\SnapFind"
         if (Test-Path $zipTempDir) { Remove-Item -Path $zipTempDir -Recurse -Force }
         New-Item -ItemType Directory -Path "$zipTempDir" -Force | Out-Null
@@ -67,26 +67,24 @@ foreach ($ed in $editions) {
             Get-ChildItem "$workspaceRoot\libs" | Where-Object { $_.Name -ne "rapid" } | Copy-Item -Destination "$zipTempDir\libs" -Recurse -Force
         }
 
-        # 优先使用 tools/7-Zip 下的便携工具链，其次探测系统 7z
+        # 优先使用 7-Zip 工具快速高压缩比生成 .zip，其次使用 Compress-Archive
         $local7z = "$workspaceRoot\tools\7-Zip\7z.exe"
-        $localSfx = "$workspaceRoot\tools\7-Zip\7z.sfx"
         $exe7z = if (Test-Path $local7z) { $local7z } elseif (Get-Command 7z -ErrorAction SilentlyContinue) { (Get-Command 7z).Source } elseif (Test-Path "C:\Program Files\7-Zip\7z.exe") { "C:\Program Files\7-Zip\7z.exe" } else { $null }
 
-        $sfxDest = "$portablesDir\SnapFindPortable_$ed`_v$nextVersion.7z.exe"
-        if (Test-Path $sfxDest) { Remove-Item $sfxDest -Force }
+        $zipDest = "$portablesDir\SnapFindPortable_$ed`_v$nextVersion.zip"
+        if (Test-Path $zipDest) { Remove-Item $zipDest -Force }
 
-        if ($exe7z -and (Test-Path $localSfx)) {
-            Write-Host "Creating 7z SFX self-extracting portable (.7z.exe) using $exe7z..." -ForegroundColor Cyan
-            & $exe7z a -sfx"$localSfx" -mx=9 -mmt=on "$sfxDest" "$zipTempDir"
-            Write-Host "Portable 7z.exe generated at: $sfxDest" -ForegroundColor Green
-        } elseif ($exe7z) {
-            Write-Host "Creating 7z SFX self-extracting portable (.7z.exe) using $exe7z..." -ForegroundColor Cyan
-            & $exe7z a -sfx -mx=9 -mmt=on "$sfxDest" "$zipTempDir"
-            Write-Host "Portable 7z.exe generated at: $sfxDest" -ForegroundColor Green
+        if ($exe7z) {
+            Write-Host "Creating portable .zip package using $exe7z..." -ForegroundColor Cyan
+            Push-Location $zipTempDir
+            try {
+                & $exe7z a -tzip -mx=9 -mmt=on "$zipDest" *
+            } finally {
+                Pop-Location
+            }
+            Write-Host "Portable ZIP generated at: $zipDest" -ForegroundColor Green
         } else {
-            $zipDest = "$portablesDir\SnapFindPortable_$ed`_v$nextVersion.zip"
-            if (Test-Path $zipDest) { Remove-Item $zipDest -Force }
-            Compress-Archive -Path "$zipTempDir" -DestinationPath "$zipDest" -CompressionLevel Optimal
+            Compress-Archive -Path "$zipTempDir\*" -DestinationPath "$zipDest" -CompressionLevel Optimal
             Write-Host "Portable ZIP generated at: $zipDest" -ForegroundColor Yellow
         }
 

@@ -12,11 +12,13 @@ namespace PixOcrSearch
 {
     public partial class ModernDialog : Window
     {
+        private readonly MessageBoxButton _buttonMode;
         public MessageBoxResult Result { get; private set; } = MessageBoxResult.None;
 
         public ModernDialog(string message, string title, MessageBoxButton button, MessageBoxImage image, Window? owner = null)
         {
             InitializeComponent();
+            _buttonMode = button;
 
             Title = title;
             TitleText.Text = title;
@@ -25,13 +27,15 @@ namespace PixOcrSearch
             ConfigureIcon(image);
             ConfigureButtons(button);
 
-            Owner = owner ?? ResolveActiveWindow();
-            if (Owner != null)
+            var resolvedOwner = owner ?? ResolveActiveWindow();
+            if (resolvedOwner != null && resolvedOwner.IsVisible)
             {
+                Owner = resolvedOwner;
                 WindowStartupLocation = WindowStartupLocation.CenterOwner;
             }
             else
             {
+                Owner = null;
                 WindowStartupLocation = WindowStartupLocation.CenterScreen;
             }
         }
@@ -41,9 +45,10 @@ namespace PixOcrSearch
             if (Application.Current == null) return null;
             foreach (Window win in Application.Current.Windows)
             {
-                if (win.IsActive && win is not ModernDialog) return win;
+                if (win.IsActive && win is not ModernDialog && win.IsVisible) return win;
             }
-            return Application.Current.MainWindow is not ModernDialog ? Application.Current.MainWindow : null;
+            var main = Application.Current.MainWindow;
+            return (main != null && main is not ModernDialog && main.IsVisible) ? main : null;
         }
 
         private void ConfigureIcon(MessageBoxImage image)
@@ -120,9 +125,19 @@ namespace PixOcrSearch
             ButtonsPanel.Children.Add(btn);
         }
 
+        private MessageBoxResult GetDismissResult()
+        {
+            return _buttonMode switch
+            {
+                MessageBoxButton.OK => MessageBoxResult.OK,
+                MessageBoxButton.YesNo => MessageBoxResult.No,
+                _ => MessageBoxResult.Cancel
+            };
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
-            Result = MessageBoxResult.Cancel;
+            Result = GetDismissResult();
             Close();
         }
 
@@ -130,7 +145,7 @@ namespace PixOcrSearch
         {
             if (e.Key == Key.Escape)
             {
-                Result = MessageBoxResult.Cancel;
+                Result = GetDismissResult();
                 Close();
             }
             else if (e.Key == Key.Enter)

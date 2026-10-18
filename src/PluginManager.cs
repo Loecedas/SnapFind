@@ -277,6 +277,33 @@ namespace PixOcrSearch
             }
         }
 
+        private static void MoveOrCopyDirectory(string source, string target)
+        {
+            if (string.Equals(Path.GetPathRoot(Path.GetFullPath(source)), Path.GetPathRoot(Path.GetFullPath(target)), StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    Directory.Move(source, target);
+                    return;
+                }
+                catch { }
+            }
+
+            Directory.CreateDirectory(target);
+            foreach (var file in Directory.GetFiles(source, "*.*", SearchOption.AllDirectories))
+            {
+                string rel = Path.GetRelativePath(source, file);
+                string destFile = Path.Combine(target, rel);
+                string? destDir = Path.GetDirectoryName(destFile);
+                if (!string.IsNullOrEmpty(destDir) && !Directory.Exists(destDir))
+                {
+                    Directory.CreateDirectory(destDir);
+                }
+                File.Copy(file, destFile, true);
+            }
+            SafeDeleteDirectory(source);
+        }
+
         private static bool SafeDeleteDirectory(string path, int maxRetries = 3, int delayMs = 50)
         {
             if (!Directory.Exists(path)) return true;
@@ -439,19 +466,19 @@ namespace PixOcrSearch
 
                     if (File.Exists(Path.Combine(tempExtract, "plugin.json")))
                     {
-                        Directory.Move(tempExtract, targetDir);
+                        MoveOrCopyDirectory(tempExtract, targetDir);
                     }
                     else
                     {
                         var subDirs = Directory.GetDirectories(tempExtract);
                         if (subDirs.Length == 1)
                         {
-                            Directory.Move(subDirs[0], targetDir);
+                            MoveOrCopyDirectory(subDirs[0], targetDir);
                             SafeDeleteDirectory(tempExtract);
                         }
                         else
                         {
-                            Directory.Move(tempExtract, targetDir);
+                            MoveOrCopyDirectory(tempExtract, targetDir);
                         }
                     }
                 }

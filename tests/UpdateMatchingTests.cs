@@ -36,7 +36,7 @@ namespace PixOcrSearch.Tests
         }
 
         [Fact]
-        public void RapidPortable_Prefers7zExe_OverZip()
+        public void RapidPortable_PrefersZip_Over7zExe()
         {
             var assets = new[]
             {
@@ -48,7 +48,7 @@ namespace PixOcrSearch.Tests
             };
 
             var matched = UpdateHelper.SelectAsset(assets, "Rapid", isInstalled: false);
-            Assert.Equal("SnapFindPortable_Rapid_v2.4.8.7z.exe", matched);
+            Assert.Equal("SnapFindPortable_Rapid_v2.4.8.zip", matched);
         }
 
         [Fact]

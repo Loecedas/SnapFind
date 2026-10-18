@@ -46,32 +46,10 @@ namespace PixOcrSearch
             }
             else
             {
-                // 便携版（Umi-OCR 风格）：
-                // 1. 优先匹配当前版本的 .7z.exe 自解压程序
+                // 便携版：
+                // 1. 优先匹配当前版本的 .zip 压缩包
                 string portablePrefix = $"SnapFindPortable_{currentEdition}_";
                 string shortPrefix = $"SnapFind_{currentEdition}_";
-                foreach (var name in assets)
-                {
-                    if ((name.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase) ||
-                         name.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase)) &&
-                        name.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return name;
-                    }
-                }
-
-                // 2. 匹配当前版本的 .7z 纯压缩包
-                foreach (var name in assets)
-                {
-                    if ((name.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase) ||
-                         name.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase)) &&
-                        name.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return name;
-                    }
-                }
-
-                // 3. 兼容历史 .zip 包
                 foreach (var name in assets)
                 {
                     if ((name.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase) ||
@@ -82,11 +60,33 @@ namespace PixOcrSearch
                     }
                 }
 
-                // 3. 回退兼容无 Edition 标识的历史便携包（优先 .7z.exe，后备 .zip）
+                // 2. 兼容历史 .7z.exe 自解压程序
+                foreach (var name in assets)
+                {
+                    if ((name.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase) ||
+                         name.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase)) &&
+                        name.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return name;
+                    }
+                }
+
+                // 3. 兼容历史 .7z 纯压缩包
+                foreach (var name in assets)
+                {
+                    if ((name.StartsWith(portablePrefix, StringComparison.OrdinalIgnoreCase) ||
+                         name.StartsWith(shortPrefix, StringComparison.OrdinalIgnoreCase)) &&
+                        name.EndsWith(".7z", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return name;
+                    }
+                }
+
+                // 4. 回退兼容无 Edition 标识的历史便携包（优先 .zip，后备 .7z.exe）
                 foreach (var name in assets)
                 {
                     if (name.StartsWith("SnapFindPortable_", StringComparison.OrdinalIgnoreCase) &&
-                        name.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase) &&
+                        name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) &&
                         !name.Contains(oppositeEdition, StringComparison.OrdinalIgnoreCase))
                     {
                         return name;
@@ -96,7 +96,7 @@ namespace PixOcrSearch
                 foreach (var name in assets)
                 {
                     if (name.StartsWith("SnapFindPortable_", StringComparison.OrdinalIgnoreCase) &&
-                        name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) &&
+                        name.EndsWith(".7z.exe", StringComparison.OrdinalIgnoreCase) &&
                         !name.Contains(oppositeEdition, StringComparison.OrdinalIgnoreCase))
                     {
                         return name;

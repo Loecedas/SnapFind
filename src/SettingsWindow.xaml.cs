@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -1474,7 +1474,7 @@ namespace PixOcrSearch
                         {
                             Process.Start(new ProcessStartInfo(filePath) 
                             { 
-                                Arguments = "/SILENT /SUPPRESSMSGBBOXES /NORESTART /SP-",
+                                Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /SP-",
                                 UseShellExecute = true 
                             });
                         }
