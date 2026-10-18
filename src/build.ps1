@@ -106,9 +106,9 @@ foreach ($ed in $editions) {
 
 # 9. 扩展插件发布包（专门存放在 releases/plugins/）
 if (-not $ExeOnly) {
-    $pluginScript = "$workspaceRoot\src\Plugins\SnapFind.Plugin.Translation\build-plugin.ps1"
+    $pluginScript = "$workspaceRoot\..\SnapFind.Plugin.Translation\build-plugin.ps1"
     if (Test-Path $pluginScript) {
-        Write-Host "Packaging plugin releases to releases/plugins..." -ForegroundColor Cyan
+        Write-Host "Packaging standalone plugin releases to releases/plugins..." -ForegroundColor Cyan
         & pwsh -File "$pluginScript" -Version "1.0.0"
     }
 }

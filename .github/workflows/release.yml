@@ -55,12 +55,6 @@ jobs:
             }
           }
 
-      - name: Build and package official translation plugin
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          & "${{ github.workspace }}/src/Plugins/SnapFind.Plugin.Translation/build-plugin.ps1" -Configuration Release
-
       - name: Build installers with Inno Setup
         shell: pwsh
         run: |
